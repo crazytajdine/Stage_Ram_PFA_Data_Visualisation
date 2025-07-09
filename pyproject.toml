@@ -1,0 +1,20 @@
+[project]
+name = "dashboard"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Taj Eddine Marmoul",email = "tajdinetajdine1@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.9,<3.14"
+dependencies = [
+    "dash (>=3.1.1,<4.0.0)",
+    "polars (>=1.31.0,<2.0.0)",
+    "pandas (>=2.3.1,<3.0.0)",
+    "pyinstaller (>=6.14.2,<7.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
