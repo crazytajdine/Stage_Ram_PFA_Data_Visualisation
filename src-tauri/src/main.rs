@@ -1,41 +1,49 @@
-use std::process::{Child, Command, Stdio};
-use tauri::{Emitter, Listener, Manager};
+use std::process::{Child, Command};
+use tauri::{ WindowEvent};
 
 static PATH: &str = r"C:/Users/tajdi/Documents/tauri-app/dist/server_dashboard.exe";
 
 fn main() {
 
-    // let _: Child = Command::new(PATH)
-    //     .stdout(Stdio::piped())
-    //     .spawn()
-    //     .expect("Failed to start backend");
 
-    let name_out_exe: &str = PATH.split('/').last().unwrap_or("main.exe");
+     init_server();
 
-    tauri::Builder::default()
-        .setup(move |app| {
-            let handle = app.handle();
-
-            handle.listen("open-notepad", move |_event| {
-                println!("Received event to open Notepad!");
-                let _ = Command::new("notepad.exe").spawn();
-            });
-            if let Some(main_window) = app.get_webview_window("main") {
-                main_window
-                    .emit_str("event-name", "Hello from Rust!".to_string())
-                    .unwrap();
+        
+        
+        tauri::Builder::default().on_window_event(|_,window_event|  {
+            match window_event {
+                
+                WindowEvent::Destroyed {..}=>{
+                kill_server();
             }
-
-            Ok(())
-        })
-        .run(tauri::generate_context!())
+            
+            _ => {}
+        }
+    })
+    .run(tauri::generate_context!())
         .expect("error running Tauri app");
 
-    // let _ = Command::new("taskkill")
-    //     .stdout(Stdio::piped())
-    //     .arg("/F")
-    //     .arg("/IM")
-    //     .arg(name_out_exe)
-    //     .spawn()
-    //     .expect("Failed to kill backend");
+}
+
+fn init_server(){
+    kill_server();
+    start_server();
+}
+
+fn start_server() {
+    let _: Child = Command::new(PATH)
+         .spawn()
+         .expect("Failed to start backend");
+}
+
+fn kill_server() {
+    let name_out_exe: &str = PATH.split('/').last().unwrap_or("main.exe");
+    println!("destroying {}",name_out_exe);
+                
+    let _ = Command::new("taskkill")
+        .arg("/F")
+        .arg("/IM")
+        .arg(name_out_exe)
+        .spawn()
+        .expect("Failed to kill backend");
 }
