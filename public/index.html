@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Starting Server...</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: sans-serif;
+      font-size: 1.5rem;
+      color: #555;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="status">Starting server, please wait...</div>
+
+  <script>
+    const backendUrl = 'http://127.0.0.1:8050';
+
+    async function checkServer() {
+      try {
+        const response = await fetch(backendUrl, { method: 'HEAD', mode: 'no-cors' });
+        // If no error thrown, assume server is up
+        window.location.href = backendUrl;
+      } catch (err) {
+        // Server not ready, retry after 1 second
+        setTimeout(checkServer, 1000);
+      }
+    }
+
+    // Start checking immediately
+    checkServer();
+  </script>
+</body>
+</html>
