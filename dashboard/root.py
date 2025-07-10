@@ -1,15 +1,20 @@
 import dash
 from dash import html, dcc
 from dash.dependencies import Input, Output, State
-import pages.home.main as home
-import pages.tech.main as tech
+import dashboard.pages.home.page as home
+import dashboard.pages.tech.page as tech
 import dash_bootstrap_components as dbc
 
-app = dash.Dash(__name__, suppress_callback_exceptions=True, external_stylesheets=[dbc.themes.BOOTSTRAP])
-app.title = "Dashboard Pro"
-server = app.server
+from dashboard.server_instance import get_app
 
-# Styles personnalisés
+
+app = get_app()
+
+
+
+
+
+
 NAVBAR_STYLE = {
     "position": "fixed",
     "top": 0,
@@ -38,7 +43,7 @@ TOGGLE_STYLE = {
 }
 
 # Icônes avec Font Awesome
-app.index_string = '''<!DOCTYPE html>
+get_app().index_string = '''<!DOCTYPE html>
 <html>
     <head>
         {%metas%}
@@ -64,7 +69,7 @@ nav_items = [
     {"name": "Settings", "icon": "fas fa-cog", "id": "btn-settings", "page": html.Div("Paramètres")},
 ]
 
-app.layout = html.Div([
+get_app().layout = html.Div([
     # Barre de navigation
     html.Div(
         [
@@ -136,7 +141,7 @@ app.layout = html.Div([
     dcc.Store(id='sidebar-collapsed', data=False),
 ])
 
-@app.callback(
+@get_app().callback(
     Output("page-content", "children"),
     [Input(item["id"], "n_clicks") for item in nav_items],
 )
@@ -152,7 +157,7 @@ def render_page(*args):
     
     return home.layout
 
-@app.callback(
+@get_app().callback(
     [Output("sidebar", "style"), Output("main-content", "style"), Output("sidebar-toggle", "style")],
     [Input("sidebar-toggle", "n_clicks")],
     [State("sidebar-collapsed", "data")]
@@ -176,6 +181,8 @@ def toggle_sidebar(n, collapsed):
     
     # Menu étendu
     return NAVBAR_STYLE, CONTENT_STYLE, TOGGLE_STYLE
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -1,32 +1,41 @@
-use std::path::Path;
-use std::process::{Command, Child};
-use std::sync::Mutex;
+use std::process::{Child, Command, Stdio};
+use tauri::{Emitter, Listener, Manager};
 
-use once_cell::sync::OnceCell;
-use ureq;
-
-static BACKEND_CHILD: OnceCell<Mutex<Child>> = OnceCell::new();
-static PATH: &str = r"C:/Users/tajdi/Documents/tauri-app/dist/main.exe";
-static URL: &str = "http://127.0.0.1:8050";
-
-fn is_backend_running() -> bool {
-    ureq::get(URL).call().ok().is_some()
-}
+static PATH: &str = r"C:/Users/tajdi/Documents/tauri-app/dist/server_dashboard.exe";
 
 fn main() {
-    #[cfg(not(debug_assertions))]
-    {
-        if !is_backend_running() {
-            // Spawn backend if URL is not responding
-            let child = Command::new(PATH)
-                .spawn()
-                .expect("Failed to start backend");
 
-            BACKEND_CHILD.set(Mutex::new(child)).ok();
-        }
-    }
+    // let _: Child = Command::new(PATH)
+    //     .stdout(Stdio::piped())
+    //     .spawn()
+    //     .expect("Failed to start backend");
+
+    let name_out_exe: &str = PATH.split('/').last().unwrap_or("main.exe");
 
     tauri::Builder::default()
+        .setup(move |app| {
+            let handle = app.handle();
+
+            handle.listen("open-notepad", move |_event| {
+                println!("Received event to open Notepad!");
+                let _ = Command::new("notepad.exe").spawn();
+            });
+            if let Some(main_window) = app.get_webview_window("main") {
+                main_window
+                    .emit_str("event-name", "Hello from Rust!".to_string())
+                    .unwrap();
+            }
+
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error running Tauri app");
+
+    // let _ = Command::new("taskkill")
+    //     .stdout(Stdio::piped())
+    //     .arg("/F")
+    //     .arg("/IM")
+    //     .arg(name_out_exe)
+    //     .spawn()
+    //     .expect("Failed to kill backend");
 }
