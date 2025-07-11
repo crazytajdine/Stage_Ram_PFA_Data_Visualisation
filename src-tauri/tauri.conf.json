@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.tauri.dash.app",
   "build": {
-    "beforeDevCommand": "poetry install && poetry run python dashboard/main.py",
+    "beforeDevCommand": "poetry run python dashboard/root.py",
     "devUrl": "http://localhost:8050",
     "beforeBuildCommand": "poetry install && poetry run pyinstaller main.spec",
     "frontendDist": "../public"
@@ -23,8 +23,13 @@
       "csp": null
     }
   },
+  
   "bundle": {
     "active": true,
+    
+    "externalBin": [
+      "..\\dist\\server_dashboard"
+    ],
     "icon": [
     "icons/icon.ico",   
     "icons/icon.icns", 
