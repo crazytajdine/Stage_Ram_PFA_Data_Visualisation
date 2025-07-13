@@ -3,11 +3,13 @@
   "productName": "tauri-dash-app",
   "version": "0.1.0",
   "identifier": "com.tauri.dash.app",
+  
   "build": {
     "beforeDevCommand": "poetry run python dashboard/root.py",
     "devUrl": "http://localhost:8050",
-    "beforeBuildCommand": "poetry install && poetry run pyinstaller main.spec",
+    "beforeBuildCommand": "poetry run pyinstaller main.spec",
     "frontendDist": "../public"
+    
   },
   "app": {
     "withGlobalTauri": true,

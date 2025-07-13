@@ -6,18 +6,17 @@ import dash_bootstrap_components as dbc
 
 from dashboard.server_instance import get_app
 
-
-
+from excel_manager import get_df,path_exits
 
 app = get_app()
 
 
 
 
-db = True
+
 
 # Données pour les éléments de navigation
-if db:
+if path_exits():
     import dashboard.pages.home.page as home
     import dashboard.pages.tech.page as tech
     nav_items = [
@@ -26,17 +25,17 @@ if db:
         {"name": "Settings", "icon": "fas fa-cog", "href": "/settings", "page": html.Div("Paramètres")},
     ]
 else:
-    import dashboard.pages.home.page as home
+    import dashboard.pages.verify.page as verify
 
     nav_items = [
-        {"name": "verify", "icon": "fas fa-home", "href": "/", "page": home.layout}
+        {"name": "verifye", "icon": "fas fa-home", "href": "/", "page": verify.layout,"show":False}
     ]
 
 navbar = dbc.Nav(
     children=[
         
             dbc.NavItem(dbc.NavLink(nav_item["name"], href=nav_item["href"]))
-        for nav_item in nav_items
+        for nav_item in nav_items if nav_item.get("show",True)
     ],    
     className="justify-content-center nav-tabs",
     id="navbar",   
@@ -69,7 +68,7 @@ def update_navbar(pathname):
                 active=pathname == nav_item["href"]  
             )
         )
-        for nav_item in nav_items
+        for nav_item in nav_items if nav_item.get("show",True)
     ]
 
 

@@ -11,23 +11,15 @@ fn main() {
         .run(tauri::generate_context!())
         .expect("error running Tauri app");
 }
-
 #[cfg(not(debug_assertions))]
+
 fn main() {
-    let path_to_server = env::current_dir().unwrap().join(NAME_OF_EXE);
-
-    println!("Current directory: {}", path_to_server.display());
-
-    tauri::Builder::default()
-        .run(tauri::generate_context!())
-        .expect("error running Tauri app");
-
     init_server();
 
     tauri::Builder::default()
         .on_window_event(|_, window_event| match window_event {
             WindowEvent::Destroyed { .. } => {
-                kill_server();
+                kill_server(true);
             }
 
             _ => {}
@@ -35,14 +27,14 @@ fn main() {
         .run(tauri::generate_context!())
         .expect("error running Tauri app");
 }
-
 #[cfg(not(debug_assertions))]
+
 fn init_server() {
-    kill_server();
+    kill_server(true);
     start_server();
 }
-
 #[cfg(not(debug_assertions))]
+
 fn start_server() {
     let path_to_server = env::current_dir().unwrap().join(NAME_OF_EXE);
 
@@ -52,15 +44,25 @@ fn start_server() {
         .spawn()
         .expect("Failed to start backend");
 }
-
 #[cfg(not(debug_assertions))]
-fn kill_server() {
+
+fn kill_server(exist_ok: bool) {
     println!("destroying {}", NAME_OF_EXE);
 
-    let _ = Command::new("taskkill")
+    let command = Command::new("taskkill")
         .arg("/F")
         .arg("/IM")
         .arg(NAME_OF_EXE)
-        .spawn()
-        .expect("Failed to kill backend");
+        .spawn();
+
+    if exist_ok {
+        match command {
+            Ok(_) => {
+                println!("Process killed successfully");
+            }
+            Err(err) => {
+                println!("Error killing process: {}", err);
+            }
+        }
+    }
 }
