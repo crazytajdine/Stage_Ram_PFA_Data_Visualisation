@@ -37,18 +37,11 @@ def filter_tec(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
 
 
 def create_dep_datetime(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
-
     return df_lazy.with_columns(
-        [
-            (pl.col("DEP_DAY_SCHED").cast(pl.Utf8) + " " + pl.col("DEP_TIME_SCHED"))
-            .str.strptime(pl.Datetime, "%Y-%m-%d %H:%M", strict=False)
-            .alias("DEP_DATETIME")
-        ]
+        pl.col("DEP_DAY_SCHED")
+        .dt.combine(pl.col("DEP_TIME_SCHED").str.strptime(pl.Time, "%H:%M"))
+        .alias("DEP_DATETIME")
     )
-
-
-lf_dt = create_dep_datetime("PATH", "SHEET")
-df_dt = lf_dt.collect()
 
 
 def update_path_to_excel(path) -> tuple[bool, str]:
@@ -59,10 +52,9 @@ def update_path_to_excel(path) -> tuple[bool, str]:
     if is_exist:
         config["path_to_excel"] = path
         path_to_excel = path
-        try:
-            load_excel_lazy(path)
-        except:
-            return False, "The excel file is corrupted ."
+
+        load_excel_lazy(path)
+
         save_config(path_config, config)
         return True, "Loaded The File successfuly ."
     return is_exist, "The excel file doesn't exists ."
@@ -80,7 +72,6 @@ def load_excel_lazy(path) -> Optional[pl.LazyFrame]:
     res = pl.read_excel(path, sheet_name="Sheet1").lazy()
 
     res = filter_tec(res)
-    res = create_dep_datetime(res)
 
     return res
 
