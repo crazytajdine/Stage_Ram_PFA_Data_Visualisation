@@ -6,3 +6,6 @@ auth = "StagePFA"
 [exe]
 name_of_python_exe_setup = "server_dashboard-x86_64-pc-windows-msvc.exe"
 name_of_python_exe = "server_dashboard.exe"
+
+[config]
+config_data_name = "config_data.toml"
