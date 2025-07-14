@@ -27,9 +27,6 @@
   "bundle": {
     "active": true,
     
-    "externalBin": [
-      "..\\dist\\server_dashboard"
-    ],
     "icon": [
     "icons/icon.ico",   
     "icons/icon.icns", 
