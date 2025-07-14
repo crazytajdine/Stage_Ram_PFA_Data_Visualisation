@@ -47,6 +47,9 @@ def create_dep_datetime(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
 def update_path_to_excel(path) -> tuple[bool, str]:
     global config, path_to_excel
 
+    if not path:
+        return False, "Path cannot be empty."
+
     is_exist = exists(path)
 
     if is_exist:
@@ -56,11 +59,12 @@ def update_path_to_excel(path) -> tuple[bool, str]:
         load_excel_lazy(path)
 
         save_config(path_config, config)
-        return True, "Loaded The File successfuly ."
-    return is_exist, "The excel file doesn't exists ."
+        return True, "Loaded The File successfully."
+    return is_exist, "The excel file doesn't exists."
 
 
 def load_excel_lazy(path) -> Optional[pl.LazyFrame]:
+
     if not path:
         return None
 

@@ -1,12 +1,8 @@
-from dash import State, html
-import dash_bootstrap_components as dbc
-
-from dash import Input, Output
-
-
-from dashboard.server_instance import get_app
-
+from dash import Input, Output, State
+import dash
+from server_instance import get_app
 from excel_manager import update_path_to_excel
+import dash_bootstrap_components as dbc
 
 app = get_app()
 
@@ -21,8 +17,8 @@ layout = dbc.Modal(
         dbc.ModalHeader("Status", close_button=False),
         dbc.ModalBody(
             [
-                dbc.Label("Path to excel :", html_for="url_input"),
-                dbc.Input(id="url_input"),
+                dbc.Label("Path to Excel:", html_for="url_input"),
+                dbc.Input(id="url_input", type="text"),
                 dbc.Alert(id="status_alert", is_open=False),
             ]
         ),
@@ -31,7 +27,7 @@ layout = dbc.Modal(
                 dbc.Button(
                     "Cancel", id="cancel_button", color="secondary", outline=True
                 ),
-                dbc.Button("Save", id="save_button"),
+                dbc.Button("Save", id="save_button", color="primary"),
             ]
         ),
     ],
@@ -45,27 +41,37 @@ layout = dbc.Modal(
         Output("url_input", "value"),
         Output("status_alert", "children"),
     ],
-    [Input("cancel_button", "n_clicks")],
+    Input("cancel_button", "n_clicks"),
+    prevent_initial_call=True,
 )
 def reset_input(_):
+    print("Resetting input value")
     return False, "primary", "", ""
 
 
 @app.callback(
-    Output("status_alert", "children", allow_duplicate=True),
-    Output("status_alert", "is_open", allow_duplicate=True),
-    Output("status_alert", "color"),
     [
+        Output("status_alert", "children", allow_duplicate=True),
+        Output("status_alert", "is_open", allow_duplicate=True),
+        Output("status_alert", "color"),
         Output("save_button", "color", allow_duplicate=True),
+        Output("path-store", "data"),
     ],
-    [Input("save_button", "n_clicks")],
-    [State("url_input", "value")],
+    Input("save_button", "n_clicks"),
+    State("url_input", "value"),
     prevent_initial_call=True,
 )
 def save_input(_, input_value):
 
-    success, status = update_path_to_excel(input_value)
-    print(status)
-    color = "success" if success else "danger"
+    if not _:
+        raise dash.exceptions.PreventUpdate
 
-    return status, success, color, color
+    print("Saving input value:", input_value)
+
+    success, message = update_path_to_excel(input_value)
+    print("Result:", message)
+
+    alert_color = "success" if success else "danger"
+    new_value = input_value if success else dash.no_update
+
+    return message, True, alert_color, alert_color, new_value
