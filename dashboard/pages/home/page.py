@@ -196,7 +196,7 @@ layout = dbc.Container(
 def search_flight(n_clicks, ac_type, ac_reg, dt_start_str, dt_end_str):
 
     print("Search button clicked with n_clicks:", n_clicks)
-    df = get_df().collect()
+    df = get_df()
 
     if not n_clicks:
         return "", False, "", "primary", False, [], [], {}, {}
@@ -235,8 +235,7 @@ def search_flight(n_clicks, ac_type, ac_reg, dt_start_str, dt_end_str):
             "CODE_DR",
         ]
 
-        df = df.filter(pl.col("Retard en min") != 0)
-        if df.is_empty():
+        if df.execute().is_empty():
             return (
                 "",
                 False,
@@ -332,7 +331,6 @@ def search_flight(n_clicks, ac_type, ac_reg, dt_start_str, dt_end_str):
                 go.Bar(
                     x=["Retard < 15 min", "Retard ≥ 15 min"],
                     y=[pct_15_moins, pct_15_plus],
-                    marker_color=["#1a3e72", "#1a3e72"],
                 )
             ]
         )
@@ -348,7 +346,6 @@ def search_flight(n_clicks, ac_type, ac_reg, dt_start_str, dt_end_str):
                 go.Bar(
                     x=["Retard < 15 min", "Retard ≥ 15 min"],
                     y=[mean_15_moins, mean_15_plus],
-                    marker_color=["#1a3e72", "#1a3e72"],
                 )
             ]
         )

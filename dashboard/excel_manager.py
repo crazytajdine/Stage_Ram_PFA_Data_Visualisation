@@ -53,6 +53,10 @@ def filter_tec(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
     return df_lazy.filter(pl.col("LIB_CODE_DR") == "TEC")
 
 
+def filter_retard(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
+    return df_lazy.filter((df.filter(pl.col("Retard en min") != 0)))
+
+
 def create_dep_datetime(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
     return df_lazy.with_columns(
         pl.col("DEP_DAY_SCHED")
@@ -102,9 +106,7 @@ def load_excel_lazy(path) -> Optional[pl.LazyFrame]:
 
     res = pl.read_excel(path, sheet_name="Sheet1").lazy()
 
-    res = res.pipe(filter_tec)
-
-    return res
+    return res.pipe(filter_retard).pipe(filter_tec).pipe(create_dep_datetime)
 
 
 # @app.callback(
