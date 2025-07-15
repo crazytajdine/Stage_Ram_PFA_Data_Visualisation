@@ -16,7 +16,7 @@ SYSTEM = platform.system().lower()  # 'windows', 'darwin', 'linux', etc.
 # via config['exe']['name_windows' | 'name_macos' | 'name_linux']
 DEFAULT_EXE_NAMES = {
     "windows": "-x86_64-pc-windows-msvc",
-    "darwin": "-universal2-macos",
+    "darwin": "-aarch64-apple-darwin",
     "linux": "-x86_64-linux",
 }
 
