@@ -30,7 +30,7 @@
     "active": true,
     
     "externalBin": [
-      "..\\dist\\server_dashboard"
+      "../dist/server_dashboard"
     ],
     "icon": [
     "icons/icon.ico",   

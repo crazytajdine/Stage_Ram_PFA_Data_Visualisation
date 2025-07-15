@@ -3,7 +3,7 @@ use std::env;
 use std::process::Command;
 use tauri::{path::BaseDirectory, Manager, WindowEvent};
 
-static NAME_OF_EXE: &str = "server_dashboard.exe";
+static NAME_OF_EXE: &str = "server_dashboard.app";
 
 #[cfg(debug_assertions)]
 fn main() {
