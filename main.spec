@@ -1,21 +1,39 @@
-# -*- mode: python ; coding: utf-8 -*-
-
-
 import os
+import platform
 from PyInstaller.utils.hooks import collect_data_files
 from PyInstaller.building.build_main import Analysis, PYZ, EXE
 
 from config import config
 
-plotly_datas = collect_data_files('plotly', include_py_files=False)
+# ---------------------------------------------------------------------------
+# Generic settings
+# ---------------------------------------------------------------------------
+ROOT_SCRIPT = os.path.join("dashboard", "root.py")
+PLOTLY_DATAS = collect_data_files("plotly", include_py_files=False)
+SYSTEM = platform.system().lower()  # 'windows', 'darwin', 'linux', etc.
 
-name_of_exe = config.get("exe",{}).get("name_of_python_exe_setup","server_dashboard-x86_64-pc-windows-msvc.exe")
+# Default executable names per platform. You can override them in config.py
+# via config['exe']['name_windows' | 'name_macos' | 'name_linux']
+DEFAULT_EXE_NAMES = {
+    "windows": "-x86_64-pc-windows-msvc",
+    "darwin": "-universal2-macos",
+    "linux": "-x86_64-linux",
+}
+
+NAME_OF_EXE = config.get("exe", {}).get(
+    "name_of_python_exe", "server_dashboard"
+) + DEFAULT_EXE_NAMES.get(SYSTEM, "")
+
+# Fallback to empty string if not found
+# ---------------------------------------------------------------------------
+# PyInstaller build blocks
+# ---------------------------------------------------------------------------
 
 a = Analysis(
-    ['dashboard\\root.py'],
+    [ROOT_SCRIPT],
     pathex=[],
     binaries=[],
-    datas=plotly_datas ,    
+    datas=PLOTLY_DATAS,
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -24,6 +42,7 @@ a = Analysis(
     noarchive=False,
     optimize=0,
 )
+
 pyz = PYZ(a.pure)
 
 exe = EXE(
@@ -31,8 +50,8 @@ exe = EXE(
     a.scripts,
     a.binaries,
     a.datas,
-    [],
-    name=name_of_exe,
+    [],  # icon resources go here (same as your original spec)
+    name=NAME_OF_EXE,
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
