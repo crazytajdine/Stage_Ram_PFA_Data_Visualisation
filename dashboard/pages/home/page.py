@@ -198,6 +198,22 @@ def search_flight(n_clicks, ac_type, ac_reg, dt_start_str, dt_end_str):
     print("Search button clicked with n_clicks:", n_clicks)
     df = get_df()
 
+    if df is None:
+        return (
+            "",
+            False,
+            dbc.Alert(
+                "Aucun fichier Excel chargé. Veuillez charger un fichier Excel d'abord.",
+                color="danger",
+                className="mt-3",
+            ),
+            "danger",
+            True,
+            [],
+            [],
+            {},
+            {},
+        )
     if not n_clicks:
         return "", False, "", "primary", False, [], [], {}, {}
 
@@ -235,7 +251,7 @@ def search_flight(n_clicks, ac_type, ac_reg, dt_start_str, dt_end_str):
             "CODE_DR",
         ]
 
-        if df.execute().is_empty():
+        if df is None or df.execute().is_empty():
             return (
                 "",
                 False,

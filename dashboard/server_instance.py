@@ -6,7 +6,6 @@ server = None
 
 
 def init_server():
-    global app, server
 
     app = dash.Dash(
         __name__,
@@ -15,11 +14,11 @@ def init_server():
     )
     app.title = "Dashboard Pro"
     server = app.server
-
+    return app,server
 
 def get_app() -> dash.Dash:
-    global app
+    global app,server
     if app is None:
         print("Initializing server instance...")
-        init_server()
+        app,server = init_server()
     return app
