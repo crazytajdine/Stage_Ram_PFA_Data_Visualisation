@@ -57,7 +57,8 @@ fn kill_server(exist_ok: bool) {
 
     if exist_ok {
         match command {
-            Ok(_) => {
+            Ok(child) => {
+                child.wait().expect("Failed to wait for child process");
                 println!("Process killed successfully");
             }
             Err(err) => {

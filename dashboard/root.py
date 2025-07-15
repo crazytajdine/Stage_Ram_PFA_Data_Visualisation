@@ -1,17 +1,16 @@
-import dash
-from dash import html, dcc
+import importlib
+from dash import State, html, dcc
 from dash.dependencies import Input, Output
 
 import dash_bootstrap_components as dbc
 
+import excel_manager
 from server_instance import get_app
 
-from excel_manager import path_to_excel
 
-
-import dashboard.pages.home.page as home
 import dashboard.pages.tech.page as tech
 import dashboard.pages.verify.page as verify
+import dashboard.pages.home.page as home
 
 
 app = get_app()
@@ -20,8 +19,7 @@ app = get_app()
 app.layout = html.Div(
     [
         # stores
-        dcc.Store(id="path-store", data=path_to_excel),
-        dcc.Store(id="data-store"),
+        excel_manager.store_excel,
         # Barre de navigation
         dbc.Nav(
             className="justify-content-center nav-tabs",
@@ -59,13 +57,13 @@ def build_nav_items(path_exits: bool):
 
 @app.callback(
     Output("navbar", "children"),
-    [Input("url", "pathname"), Input("path-store", "data")],
+    Output("page-content", "children"),
+    [Input("url", "pathname"), Input("is-path-store", "data")],
 )
-def update_navbar(pathname, path_exists):
+def update_layout(pathname, path_exists):
+    nav_items = build_nav_items(path_exists)
 
-    nav_items = build_nav_items(path_exists != "")
-
-    return [
+    navbar = [
         dbc.NavItem(
             dbc.NavLink(
                 nav_item["name"],
@@ -77,19 +75,13 @@ def update_navbar(pathname, path_exists):
         if nav_item.get("show", True)
     ]
 
-
-@app.callback(
-    Output("page-content", "children"),
-    [Input("url", "pathname"), Input("path-store", "data")],
-)
-def render_page(pathname, path_exists):
-
-    nav_items = build_nav_items(path_exists != "")
-
+    page = html.Div("404: Page not found.")
     for nav_item in nav_items:
         if pathname == nav_item["href"]:
-            return nav_item["page"]
-    return html.Div("404: Page not found.")
+            page = nav_item["page"]
+            break
+
+    return navbar, page
 
 
 if __name__ == "__main__":
