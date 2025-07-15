@@ -12,7 +12,7 @@ plotly_datas = collect_data_files('plotly', include_py_files=False)
 name_of_exe = config.get("exe",{}).get("name_of_python_exe_setup","server_dashboard-x86_64-pc-windows-msvc.exe")
 
 a = Analysis(
-    ['dashboard\\root.py'],
+    [os.path.join('dashboard', 'root.py')],
     pathex=[],
     binaries=[],
     datas=plotly_datas ,    
