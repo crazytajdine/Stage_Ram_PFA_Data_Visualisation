@@ -1,9 +1,10 @@
 use std::env;
 
 use std::process::Command;
+use sysinfo::{Signal, System};
 use tauri::{path::BaseDirectory, Manager, WindowEvent};
 
-static NAME_OF_EXE: &str = "server_dashboard.exe";
+static NAME_OF_EXE: &str = "server_dashboard";
 
 #[cfg(debug_assertions)]
 fn main() {
@@ -19,7 +20,7 @@ fn main() {
     tauri::Builder::default()
         .on_window_event(|_, window_event| match window_event {
             WindowEvent::Destroyed { .. } => {
-                kill_server(true);
+                kill_processes_by_name();
             }
 
             _ => {}
@@ -30,7 +31,7 @@ fn main() {
 #[cfg(not(debug_assertions))]
 
 fn init_server() {
-    kill_server(true);
+    kill_processes_by_name();
     start_server();
 }
 #[cfg(not(debug_assertions))]
@@ -46,24 +47,14 @@ fn start_server() {
 }
 #[cfg(not(debug_assertions))]
 
-fn kill_server(exist_ok: bool) {
-    println!("destroying {}", NAME_OF_EXE);
+fn kill_processes_by_name() {
+    let mut sys = System::new_all();
+    sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
 
-    let command = Command::new("taskkill")
-        .arg("/F")
-        .arg("/IM")
-        .arg(NAME_OF_EXE)
-        .spawn();
-
-    if exist_ok {
-        match command {
-            Ok(mut child) => {
-                child.wait().expect("Failed to wait for child process");
-                println!("Process killed successfully");
-            }
-            Err(err) => {
-                println!("Error killing process: {}", err);
-            }
+    for (pid, process) in sys.processes() {
+        if process.name() == NAME_OF_EXE {
+            println!("Killing PID: {} ({})", pid, process.name().display());
+            process.kill_with(Signal::Kill);
         }
     }
 }
