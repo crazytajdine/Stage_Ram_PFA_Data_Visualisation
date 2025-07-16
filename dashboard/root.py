@@ -1,6 +1,4 @@
-import importlib
-import os
-from dash import State, html, dcc
+from dash import html, dcc
 from dash.dependencies import Input, Output
 
 import dash_bootstrap_components as dbc
@@ -9,9 +7,9 @@ import excel_manager
 from server_instance import get_app
 
 
-import dashboard.pages.tech.page as tech
-import dashboard.pages.verify.page as verify
-import dashboard.pages.home.page as home
+import pages.tech.page as tech
+import pages.verify.page as verify
+import pages.home.page as home
 
 
 app = get_app()

@@ -195,7 +195,6 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 ### VisualStudioCode ###
-.vscode
 ### VisualStudioCode Patch ###
 # Ignore all local history of files
 **/.history
@@ -370,8 +369,6 @@ dist-ssr
 *.local
 
 # Editor directories and files
-.vscode/*
-!.vscode/extensions.json
 .idea
 .DS_Store
 *.suo

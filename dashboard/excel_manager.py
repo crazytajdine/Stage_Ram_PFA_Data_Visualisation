@@ -94,6 +94,7 @@ def update_path_to_excel(path) -> tuple[bool, str]:
     df = load_excel_lazy(path)
     return True, "Loaded The File successfully."
 
+
 def load_excel_lazy(path) -> Optional[pl.LazyFrame]:
 
     if not path:
@@ -121,12 +122,14 @@ def load_excel_lazy(path) -> Optional[pl.LazyFrame]:
 #     if df is None:
 #         return None
 
+
 #     return df
 def get_df() -> Optional[pl.LazyFrame]:
     global df
     if df is None and path_to_excel:
         df = load_excel_lazy(path_to_excel)
     return df
+
 
 # program
 
