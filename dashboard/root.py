@@ -61,7 +61,9 @@ def build_nav_items(path_exits: bool):
     [Input("url", "pathname"), Input("is-path-store", "data")],
 )
 def update_layout(pathname, path_exists):
+    print(f"path_exists: {path_exists}")
     nav_items = build_nav_items(path_exists)
+    print([i["name"] for i in nav_items])
 
     navbar = [
         dbc.NavItem(
@@ -85,4 +87,4 @@ def update_layout(pathname, path_exists):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)

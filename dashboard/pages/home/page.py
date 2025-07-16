@@ -198,8 +198,10 @@ def search_flight(n_clicks, ac_type, ac_reg, dt_start_str, dt_end_str):
     print("Search button clicked with n_clicks:", n_clicks)
     df = get_df()
 
-    if not n_clicks:
+    if not n_clicks and df is None:
         return "", False, "", "primary", False, [], [], {}, {}
+
+    df = df.collect()
 
     try:
         ac_type = ac_type.strip().lower() if ac_type else None
@@ -235,7 +237,7 @@ def search_flight(n_clicks, ac_type, ac_reg, dt_start_str, dt_end_str):
             "CODE_DR",
         ]
 
-        if df.execute().is_empty():
+        if df.is_empty():
             return (
                 "",
                 False,

@@ -39,7 +39,7 @@ fn init_server() {
 fn start_server() {
     let path_to_server = env::current_dir().unwrap().join(NAME_OF_EXE);
 
-    println!("Openning: {}", path_to_server.display());
+    println!("Opening: {}", path_to_server.display());
 
     let _ = Command::new(path_to_server)
         .spawn()
@@ -48,6 +48,7 @@ fn start_server() {
 #[cfg(not(debug_assertions))]
 
 fn kill_processes_by_name() {
+    println!("Killing processes with name: {}", NAME_OF_EXE);
     let mut sys = System::new_all();
     sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
 

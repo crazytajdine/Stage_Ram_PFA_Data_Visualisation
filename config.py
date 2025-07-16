@@ -16,13 +16,14 @@ def save_config(path: str, config: dict[str, Any]):
 
 def load_config(path: str) -> dict[str, Any]:
 
-    print(f"Creating config< in : {path}")
+    print(f"Loading config from: {path}")
 
     if os.path.exists(path):
         with open(path, "r") as f:
             config = toml.load(f)
     else:
         config = {}
+        print(f"Creating config in : {path}")
         with open(path, "w"):
             pass
 

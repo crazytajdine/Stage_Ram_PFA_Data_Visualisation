@@ -54,7 +54,7 @@ def filter_tec(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
 
 
 def filter_retard(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
-    return df_lazy.filter((df.filter(pl.col("Retard en min") != 0)))
+    return df_lazy.filter(pl.col("Retard en min") != 0)
 
 
 def create_dep_datetime(df_lazy: pl.LazyFrame) -> pl.LazyFrame:

@@ -1,15 +1,20 @@
 import os
 import platform
-from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 from PyInstaller.building.build_main import Analysis, PYZ, EXE
 
-from config import config
+
+from config import config, config_path
 
 # ---------------------------------------------------------------------------
 # Generic settings
 # ---------------------------------------------------------------------------
 ROOT_SCRIPT = os.path.join("dashboard", "root.py")
 PLOTLY_DATAS = collect_data_files("plotly", include_py_files=False)
+FASTEXCEL_DATAS = collect_data_files("fastexcel", include_py_files=False)
+hiddenimports = [*collect_submodules("fastexcel")]
+
+
 SYSTEM = platform.system().lower()  # 'windows', 'darwin', 'linux', etc.
 
 # Default executable names per platform. You can override them in config.py
@@ -24,17 +29,22 @@ NAME_OF_EXE = config.get("exe", {}).get(
     "name_of_python_exe", "server_dashboard"
 ) + DEFAULT_EXE_NAMES.get(SYSTEM, "")
 
+
+datas = PLOTLY_DATAS + FASTEXCEL_DATAS + [(config_path, ".")]
+
+
 # Fallback to empty string if not found
 # ---------------------------------------------------------------------------
 # PyInstaller build blocks
 # ---------------------------------------------------------------------------
 
+
 a = Analysis(
     [ROOT_SCRIPT],
     pathex=[],
     binaries=[],
-    datas=PLOTLY_DATAS,
-    hiddenimports=[],
+    datas=datas,
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
