@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, path::Path};
 
 use std::process::Command;
 use sysinfo::{Signal, System};
@@ -46,14 +46,18 @@ fn start_server() {
         .expect("Failed to start backend");
 }
 #[cfg(not(debug_assertions))]
-
 fn kill_processes_by_name() {
     println!("Killing processes with name: {}", NAME_OF_EXE);
     let mut sys = System::new_all();
     sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
 
     for (pid, process) in sys.processes() {
-        if process.name() == NAME_OF_EXE {
+        let process_name = process.name();
+        let process_stem = Path::new(process_name)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("");
+        if process_stem == NAME_OF_EXE {
             println!("Killing PID: {} ({})", pid, process.name().display());
             process.kill_with(Signal::Kill);
         }
