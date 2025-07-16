@@ -10,7 +10,8 @@ from server_instance import get_app
 import pages.tech.page as tech
 import pages.verify.page as verify
 import pages.home.page as home
-
+import pages.settings.page as settings
+import pages.performance_metrics.page as performance_metrics
 
 app = get_app()
 
@@ -38,7 +39,12 @@ def build_nav_items(path_exits: bool):
         nav_items = [
             {"name": "Dashboard", "href": "/", "page": home.layout},
             {"name": "Analytics", "href": "/analytics", "page": tech.layout},
-            {"name": "Settings", "href": "/settings", "page": html.Div("Paramètres")},
+            {
+                "name": "Performance Metrics",
+                "href": "/Performance_Metrics",
+                "page": performance_metrics.layout,
+            },
+            {"name": "Settings", "href": "/settings", "page": settings.layout},
         ]
     else:
 
@@ -88,4 +94,4 @@ def update_layout(pathname, path_exists):
 if __name__ == "__main__":
     print("🔁 Launching Dash app...")
 
-    app.run(debug=True, use_reloader=False)
+    app.run(debug=True, use_reloader=True)
