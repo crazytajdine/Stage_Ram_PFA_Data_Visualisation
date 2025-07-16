@@ -66,7 +66,7 @@ def create_dep_datetime(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
 
 
 def update_path_to_excel(path) -> tuple[bool, str]:
-    global config, path_to_excel
+    global config, path_to_excel, df
 
     if not path:
         return False, "Path cannot be empty."
@@ -91,8 +91,8 @@ def update_path_to_excel(path) -> tuple[bool, str]:
     config["path_to_excel"] = path
     path_to_excel = path
     save_config(path_config, config)
+    df = load_excel_lazy(path)
     return True, "Loaded The File successfully."
-
 
 def load_excel_lazy(path) -> Optional[pl.LazyFrame]:
 
@@ -122,15 +122,15 @@ def load_excel_lazy(path) -> Optional[pl.LazyFrame]:
 #         return None
 
 #     return df
-
-
 def get_df() -> Optional[pl.LazyFrame]:
+    global df
+    if df is None and path_to_excel:
+        df = load_excel_lazy(path_to_excel)
     return df
-
 
 # program
 
-store_excel = dcc.Store(id="is-path-store", storage_type="local", data=path_exits())
+store_excel = dcc.Store(id="is-path-store", storage_type="memory", data=path_exits())
 
 
 df = load_excel_lazy(path_to_excel)

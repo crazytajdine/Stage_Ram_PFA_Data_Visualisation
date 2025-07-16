@@ -1,4 +1,5 @@
 import importlib
+import os
 from dash import State, html, dcc
 from dash.dependencies import Input, Output
 
@@ -87,4 +88,6 @@ def update_layout(pathname, path_exists):
 
 
 if __name__ == "__main__":
+    print("🔁 Launching Dash app...")
+
     app.run(debug=True, use_reloader=False)
