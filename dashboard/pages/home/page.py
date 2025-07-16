@@ -1,8 +1,10 @@
-from dash import Dash, html, dcc, Input, Output, State, dash_table
+from dash import html, dcc, Input, Output, State, dash_table
 import polars as pl
 import dash_bootstrap_components as dbc
 from datetime import datetime
 import plotly.graph_objs as go
+from server_instance import get_app
+from dashboard import excel_manager
 
 # Fonction pour convertir minutes en "Xh Ym"
 def convert_minutes_to_hours_minutes(minutes: int) -> str:
@@ -11,27 +13,21 @@ def convert_minutes_to_hours_minutes(minutes: int) -> str:
     return f"{heures}h {mins}m"
 
 # --- Chargement et préparation des données ---
-PATH = "tableau.xlsx"
-SHEET = "Sheet1"
-
-def create_dep_datetime(path: str, sheet: str) -> pl.DataFrame:
-    df = pl.read_excel(path, sheet_name=sheet)
-    return df.with_columns([
-        (pl.col("DEP_DAY_SCHED").cast(str) + " " + pl.col("DEP_TIME_SCHED").cast(str))
-        .str.strptime(pl.Datetime, "%Y-%m-%d %H:%M", strict=False)
-        .alias("DEP_DATETIME"),
-        (pl.col("AC_SUBTYPE").cast(str) + " - " + pl.col("AC_REGISTRATION").cast(str))
-        .alias("AVION_INFO_COMPLETE")
-    ])
-
-def filter_tec(df: pl.DataFrame) -> pl.DataFrame:
-    return df.filter(pl.col("LIB_CODE_DR") == "TEC")
-
 try:
-    df = create_dep_datetime(PATH, SHEET)
-    df_tec = filter_tec(df)
+    # Use shared excel_manager
+    df_lazy = excel_manager.get_df()
+    
+    if df_lazy is None:
+        raise Exception("No data available from excel_manager")
+    
+    # The excel_manager already applies filters (TEC and retard), so we collect the data
+    df = df_lazy.collect()
+    df_tec = df  # Already filtered by excel_manager
+    
+    print(f"✅ Home page data loaded: {df.height} rows (already filtered for TEC and retard)")
+    
 except Exception as e:
-    print(f"Erreur lors du chargement: {e}")
+    print(f"❌ Error loading data in home page: {e}")
     df = pl.DataFrame()
     df_tec = pl.DataFrame()
 
@@ -45,7 +41,7 @@ dt_max = dt_max or datetime.now()
 default_dt_iso_start = dt_min.strftime("%Y-%m-%dT%H:%M")
 default_dt_iso_end = dt_max.strftime("%Y-%m-%dT%H:%M")
 
-app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = get_app()
 
 custom_css = {
     'container': {'background-color': '#f8f9fa', 'padding': '2rem', 'min-height': '100vh'},
@@ -56,7 +52,7 @@ custom_css = {
     'alert': {'border-radius': '4px', 'font-size': '1rem'}
 }
 
-app.layout = dbc.Container([
+layout = dbc.Container([
     html.Div(style=custom_css['container'], children=[
         html.H1("Suivi des Vols - Royal Air Maroc", style=custom_css['header'], className="text-center"),
         dbc.Row([
@@ -265,6 +261,3 @@ def search_flight(n_clicks, ac_type, ac_reg, dt_start_str, dt_end_str):
             {}
         )
 
-
-if __name__ == '__main__':
-    app.run(debug=True)
