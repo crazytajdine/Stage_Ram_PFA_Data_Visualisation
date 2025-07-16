@@ -253,7 +253,7 @@ def search_flight(n_clicks, ac_type, ac_reg, dt_start_str, dt_end_str):
             "CODE_DR",
         ]
 
-        if df is None or df.execute().is_empty():
+        if df is None or df.is_empty():
             return (
                 "",
                 False,
