@@ -17,8 +17,6 @@ hiddenimports = [*collect_submodules("fastexcel")]
 
 SYSTEM = platform.system().lower()  # 'windows', 'darwin', 'linux', etc.
 
-# Default executable names per platform. You can override them in config.py
-# via config['exe']['name_windows' | 'name_macos' | 'name_linux']
 DEFAULT_EXE_NAMES = {
     "windows": "-x86_64-pc-windows-msvc",
     "darwin": "-aarch64-apple-darwin",

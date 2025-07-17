@@ -8,7 +8,7 @@
     "beforeDevCommand": "poetry run python dashboard/root.py",
     "devUrl": "http://localhost:8050",
     "beforeBuildCommand": "poetry run pyinstaller main.spec",
-    "frontendDist": "../public"
+    "frontendDist": "../src"
     
   },
   "app": {
@@ -25,8 +25,7 @@
       "csp": null
     }
   },
-  
-  "bundle": {
+    "bundle": {
     "active": true,
     
     "externalBin": [
@@ -39,4 +38,5 @@
     "icons/128x128.png"
   ]
   }
+
 }
