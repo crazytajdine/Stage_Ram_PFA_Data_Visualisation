@@ -1,0 +1,19 @@
+    stats = dbc.Row(
+        [
+            dbc.Col(
+                [
+                    html.H5("Codes uniques", className="text-muted"),
+                    html.H3(f"{unique_codes}", className="text-success mb-0"),
+                ],
+                md=6,
+            ),
+            dbc.Col(
+                [
+                    html.H5("Total retards", className="text-muted"),
+                    html.H3(f"{total_delays}", className="text-warning mb-0"),
+                ],
+                md=6,
+            ),
+        ]
+    )
+EOF < /dev/null

@@ -32,14 +32,14 @@ except Exception as e:
     df_tec = pl.DataFrame()
 
 if not df.is_empty():
-    dt_min, dt_max = df.get_column("DEP_DATETIME").min(), df.get_column("DEP_DATETIME").max()
+    dt_min, dt_max = df.get_column("DEP_DAY_SCHED").min(), df.get_column("DEP_DAY_SCHED").max()
 else:
-    dt_min = dt_max = datetime.now()
+    dt_min = dt_max = datetime.now().date()
 
-dt_min = dt_min or datetime.now()
-dt_max = dt_max or datetime.now()
-default_dt_iso_start = dt_min.strftime("%Y-%m-%dT%H:%M")
-default_dt_iso_end = dt_max.strftime("%Y-%m-%dT%H:%M")
+dt_min = dt_min or datetime.now().date()
+dt_max = dt_max or datetime.now().date()
+default_dt_iso_start = dt_min.strftime("%Y-%m-%d")
+default_dt_iso_end = dt_max.strftime("%Y-%m-%d")
 
 app = get_app()
 
@@ -65,24 +65,24 @@ layout = dbc.Container([
                 dbc.Input(id='ac-registration', placeholder='CN-ABC...', type='text', style=custom_css['input']),
             ], md=3),
             dbc.Col([
-                dbc.Label("Date et heure de départ (début)", className="fw-bold mb-2"),
+                dbc.Label("Date de départ (début)", className="fw-bold mb-2"),
                 dbc.Input(
                     id="dep-datetime-input-start",
-                    type="datetime-local",
+                    type="date",
                     value=default_dt_iso_start,
-                    min="1900-01-01T00:00",
-                    max="2100-12-31T23:59",
+                    min="1900-01-01",
+                    max="2100-12-31",
                     style={"width": "100%", 'backgroundColor': custom_css['input']['background-color'], 'color': 'black', 'border': custom_css['input']['border']}
                 ),
             ], md=3),
             dbc.Col([
-                dbc.Label("Date et heure de départ (fin)", className="fw-bold mb-2"),
+                dbc.Label("Date de départ (fin)", className="fw-bold mb-2"),
                 dbc.Input(
                     id="dep-datetime-input-end",
-                    type="datetime-local",
+                    type="date",
                     value=default_dt_iso_end,
-                    min="1900-01-01T00:00",
-                    max="2100-12-31T23:59",
+                    min="1900-01-01",
+                    max="2100-12-31",
                     style={"width": "100%", 'backgroundColor': custom_css['input']['background-color'], 'color': 'black', 'border': custom_css['input']['border']}
                 ),
             ], md=3),
@@ -126,8 +126,8 @@ def search_flight(n_clicks, ac_type, ac_reg, dt_start_str, dt_end_str):
         ac_type = ac_type.strip().lower() if ac_type else None
         ac_reg = ac_reg.strip().lower() if ac_reg else None
 
-        dt_start = datetime.strptime(dt_start_str, "%Y-%m-%dT%H:%M") if dt_start_str else None
-        dt_end = datetime.strptime(dt_end_str, "%Y-%m-%dT%H:%M") if dt_end_str else None
+        dt_start = datetime.strptime(dt_start_str, "%Y-%m-%d").date() if dt_start_str else None
+        dt_end = datetime.strptime(dt_end_str, "%Y-%m-%d").date() if dt_end_str else None
 
         df_filtered = df
 
@@ -136,18 +136,18 @@ def search_flight(n_clicks, ac_type, ac_reg, dt_start_str, dt_end_str):
         if ac_reg:
             df_filtered = df_filtered.filter(pl.col("AC_REGISTRATION").str.to_lowercase() == ac_reg)
 
-        # Filtrage par intervalle date/heure
+        # Filtrage par intervalle de dates
         if dt_start and dt_end:
             df_filtered = df_filtered.filter(
-                (pl.col("DEP_DATETIME") >= dt_start) & (pl.col("DEP_DATETIME") <= dt_end)
+                (pl.col("DEP_DAY_SCHED") >= dt_start) & (pl.col("DEP_DAY_SCHED") <= dt_end)
             )
         elif dt_start:
-            df_filtered = df_filtered.filter(pl.col("DEP_DATETIME") >= dt_start)
+            df_filtered = df_filtered.filter(pl.col("DEP_DAY_SCHED") >= dt_start)
         elif dt_end:
-            df_filtered = df_filtered.filter(pl.col("DEP_DATETIME") <= dt_end)
+            df_filtered = df_filtered.filter(pl.col("DEP_DAY_SCHED") <= dt_end)
 
         # Définition de cols avant utilisation
-        cols = ["AC_SUBTYPE", "AC_REGISTRATION", "DEP_DATETIME", "Retard en min", "CODE_DR"]
+        cols = ["AC_SUBTYPE", "AC_REGISTRATION", "DEP_DAY_SCHED", "Retard en min", "CODE_DR"]
 
         df_filtered = df_filtered.filter(pl.col("Retard en min") != 0)
 
@@ -185,15 +185,16 @@ def search_flight(n_clicks, ac_type, ac_reg, dt_start_str, dt_end_str):
 
         summary_text = f"Nombre de vols avec retard ≥ 15 min : {nb_retard_15}{vol_info}"
 
-        if "DEP_DATETIME" in df_filtered.columns:
+        # Format date for display
+        if "DEP_DAY_SCHED" in df_filtered.columns:
             df_filtered = df_filtered.with_columns(
-                pl.col("DEP_DATETIME").dt.strftime("%Y-%m-%d %H:%M").alias("DEP_DATETIME")
+                pl.col("DEP_DAY_SCHED").dt.strftime("%Y-%m-%d").alias("DEP_DAY_SCHED")
             )
 
         df_display = df_filtered.select(cols).rename({
             "AC_SUBTYPE": "SUBTYPE",
             "AC_REGISTRATION": "REGISTRATION",
-            "DEP_DATETIME": "DATETIME",
+            "DEP_DAY_SCHED": "DATE",
             "CODE_DR": "CODE RETARD",
             "Retard en min": "RETARD (min)"
         })
