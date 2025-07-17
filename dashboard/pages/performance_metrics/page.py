@@ -7,4 +7,8 @@ from dash import html, dcc
 
 app = get_app()
 
-layout = html.Div("Performance Metrics Page")
+layout = html.Div(
+    [
+        html.H1("Performance Metrics", className="text-center"),
+    ],
+)
