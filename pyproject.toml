@@ -2,9 +2,7 @@
 name = "dashboard"
 version = "0.1.0"
 description = ""
-authors = [
-    {name = "Taj Eddine Marmoul",email = "tajdinetajdine1@gmail.com"}
-]
+authors = [{ name = "Taj Eddine Marmoul", email = "tajdinetajdine1@gmail.com" }]
 readme = "README.md"
 requires-python = ">=3.9,<3.14"
 dependencies = [
@@ -16,7 +14,6 @@ dependencies = [
     "platformdirs (>=4.3.8,<5.0.0)",
     "toml (>=0.10.2,<0.11.0)",
     "fastexcel (>=0.14.0,<0.15.0)",
-    "psutil (>=7.0.0,<8.0.0)",
 ]
 
 
@@ -26,4 +23,3 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.29.5"
-

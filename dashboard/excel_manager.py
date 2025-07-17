@@ -1,14 +1,26 @@
 import os
 from typing import Optional
+import dash
 import polars as pl
 
-from dash import dcc
+from dash import Input, Output, State, dcc
 
 
 from config import get_config_dir, config, load_config, save_config
+from server_instance import get_app
 
+# global
 
+ID_PATH_STORE = "is-path-store"
+ID_INTERVAL_WATCHER = "interval-file-selector"
+
+# should be imputed to each chart
+ID_STORE_DATE_WATCHER = "store-date-latest-fetch"
 # init
+
+
+app = get_app()
+
 
 name_config = config.get("config", {}).get("config_data_name", "config_data.toml")
 
@@ -110,30 +122,71 @@ def load_excel_lazy(path) -> Optional[pl.LazyFrame]:
     return res.pipe(filter_retard).pipe(filter_tec).pipe(create_dep_datetime)
 
 
-# @app.callback(
-#     Output("data-store", "data"),
-#     Input("path-store", "data"),
-# )
-# def load_data(path):
-
-#     print("Loading data from:", path)
-
-#     df = get_df()
-#     if df is None:
-#         return None
-
-
-#     return df
 def get_df() -> Optional[pl.LazyFrame]:
     global df
     if df is None and path_to_excel:
-        df = load_excel_lazy(path_to_excel)
+        update_df()
     return df
 
 
 # program
-
-store_excel = dcc.Store(id="is-path-store", storage_type="memory", data=path_exits())
-
-
 df = load_excel_lazy(path_to_excel)
+
+store_excel = dcc.Store(id=ID_PATH_STORE, storage_type="local", data=path_exits())
+
+
+store_latest_date_fetch = dcc.Store(id=ID_STORE_DATE_WATCHER)
+
+
+interval_watcher = dcc.Interval(id=ID_INTERVAL_WATCHER, interval=1000)
+
+
+hookers = [store_excel, store_latest_date_fetch, interval_watcher]
+
+
+def add_watcher_for_data():
+    return Input(ID_STORE_DATE_WATCHER, "data")
+
+
+def update_df():
+    global df
+
+    df = load_excel_lazy(path_to_excel)
+
+
+filepath = os.path.join(os.path.dirname(__file__), "Book1.xlsx")
+
+
+def add_callbacks():
+
+    @app.callback(
+        [
+            # output
+            Output(ID_STORE_DATE_WATCHER, "data"),
+            # input
+            Input(ID_INTERVAL_WATCHER, "n_intervals"),
+            State(ID_STORE_DATE_WATCHER, "data"),
+            State(ID_PATH_STORE, "data"),
+        ]
+    )
+    def watch_file(_, date_latest_fetch, path_file):
+
+        global filepath
+        if not path_file:
+            return dash.no_update
+
+        try:
+            latest_modification_time = os.path.getmtime(filepath)
+
+            if latest_modification_time != date_latest_fetch:
+                print("File changed!")
+                # update_df()
+
+                return (latest_modification_time,)
+
+        except FileNotFoundError:
+            print("not found")
+        except Exception as e:
+            print(f"Error watching file: {e}")
+
+        return dash.no_update
