@@ -46,17 +46,14 @@ def get_path_to_excel():
 
 def path_exits():
 
-    # Use dummy file as fallback if no path is configured
-    file_path = path_to_excel or dummy_path_file
-    
-    if not file_path:
+    if not path_to_excel:
         return False
 
-    is_exist = os.path.exists(file_path)
+    is_exist = os.path.exists(path_to_excel)
     if not is_exist:
         return False
 
-    is_file = os.path.isfile(file_path)
+    is_file = os.path.isfile(path_to_excel)
 
     if not is_file:
         return False
@@ -156,19 +153,19 @@ def load_excel_lazy(path) -> Optional[pl.LazyFrame]:
 
 def get_df() -> Optional[pl.LazyFrame]:
     global df
-    if df is None and (path_to_excel or dummy_path_file):
+    if df is None and path_to_excel:
         update_df()
     return df
 
 
 # program
-df = load_excel_lazy(path_to_excel or dummy_path_file)
+df = load_excel_lazy(path_to_excel)
 
-store_excel = dcc.Store(id=ID_PATH_STORE, storage_type="memory", data=path_to_excel or dummy_path_file)
+store_excel = dcc.Store(id=ID_PATH_STORE, storage_type="local", data=path_to_excel)
 
 
 store_latest_date_fetch = dcc.Store(
-    id=ID_STORE_DATE_WATCHER, storage_type="memory", data=modification_date
+    id=ID_STORE_DATE_WATCHER, storage_type="local", data=modification_date
 )
 
 
@@ -189,7 +186,7 @@ def add_watcher_for_data():
 def update_df():
     global df
 
-    df = load_excel_lazy(path_to_excel or dummy_path_file)
+    df = load_excel_lazy(path_to_excel)
 
 
 def add_callbacks():
