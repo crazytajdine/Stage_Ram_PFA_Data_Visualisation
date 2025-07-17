@@ -13,7 +13,7 @@ import plotly.express as px
 import json
 from server_instance import get_app
 from dashboard import excel_manager
-from dashboard.excel_manager import df_all
+
 
 app = get_app()
 # ------------------------------------------------------------------ #
