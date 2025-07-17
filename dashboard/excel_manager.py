@@ -1,14 +1,26 @@
 import os
 from typing import Optional
+import dash
 import polars as pl
 
-from dash import dcc
+from dash import Input, Output, State, dcc
 
 
 from config import get_config_dir, config, load_config, save_config
+from server_instance import get_app
 
+# global
 
+ID_PATH_STORE = "is-path-store"
+ID_INTERVAL_WATCHER = "interval-file-selector"
+
+# should be imputed to each chart
+ID_STORE_DATE_WATCHER = "store-date-latest-fetch"
 # init
+
+
+app = get_app()
+
 
 name_config = config.get("config", {}).get("config_data_name", "config_data.toml")
 
@@ -21,7 +33,8 @@ config = load_config(path_config)
 
 
 path_to_excel = config.get("path_to_excel", "")
-
+auto_refresh = config.get("auto_refresh", True)
+modification_date = config.get("modification_date", None)
 
 # func
 
@@ -65,6 +78,18 @@ def create_dep_datetime(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
+def modify_modification_date(new_modification_date: float):
+    global config, modification_date
+
+    modification_date = new_modification_date
+    config["modification_date"] = new_modification_date
+
+    save_config(path_config, config)
+
+    print(f"Set modification date to to: {new_modification_date}")
+    save_config(path_config, config)
+
+
 def update_path_to_excel(path) -> tuple[bool, str]:
     global config, path_to_excel, df
 
@@ -88,11 +113,27 @@ def update_path_to_excel(path) -> tuple[bool, str]:
     except:
         return True, "."
 
-    config["path_to_excel"] = path
     path_to_excel = path
+    config["path_to_excel"] = path
+
     save_config(path_config, config)
+
     df = load_excel_lazy(path)
     return True, "Loaded The File successfully."
+
+
+def toggle_auto_refresh() -> bool:
+    global config, auto_refresh
+
+    auto_refresh = not auto_refresh
+    config["auto_refresh"] = auto_refresh
+
+    save_config(path_config, config)
+
+    print(f"Auto refresh set disabled to: {auto_refresh}")
+    save_config(path_config, config)
+
+    return auto_refresh
 
 
 def load_excel_lazy(path) -> Optional[pl.LazyFrame]:
@@ -110,30 +151,86 @@ def load_excel_lazy(path) -> Optional[pl.LazyFrame]:
     return res.pipe(filter_retard).pipe(filter_tec).pipe(create_dep_datetime)
 
 
-# @app.callback(
-#     Output("data-store", "data"),
-#     Input("path-store", "data"),
-# )
-# def load_data(path):
-
-#     print("Loading data from:", path)
-
-#     df = get_df()
-#     if df is None:
-#         return None
-
-
-#     return df
 def get_df() -> Optional[pl.LazyFrame]:
     global df
     if df is None and path_to_excel:
-        df = load_excel_lazy(path_to_excel)
+        update_df()
     return df
 
 
 # program
-
-store_excel = dcc.Store(id="is-path-store", storage_type="memory", data=path_exits())
-
-
 df = load_excel_lazy(path_to_excel)
+
+store_excel = dcc.Store(id=ID_PATH_STORE, storage_type="local", data=path_to_excel)
+
+
+store_latest_date_fetch = dcc.Store(
+    id=ID_STORE_DATE_WATCHER, storage_type="local", data=modification_date
+)
+
+
+interval_watcher = dcc.Interval(
+    id=ID_INTERVAL_WATCHER, interval=1000, disabled=not auto_refresh
+)
+
+
+hookers = [store_excel, store_latest_date_fetch, interval_watcher]
+
+dummy_path_file = os.path.join(os.path.dirname(__file__), "Book1.xlsx")
+
+
+def add_watcher_for_data():
+    return Input(ID_STORE_DATE_WATCHER, "data")
+
+
+def update_df():
+    global df
+
+    df = load_excel_lazy(path_to_excel)
+
+
+def add_callbacks():
+
+    @app.callback(
+        # output
+        Output(ID_INTERVAL_WATCHER, "disabled"),
+        # input
+        Input(ID_PATH_STORE, "data"),
+    )
+    def loaded_file(_):
+        global auto_refresh, config
+
+        is_path_correct = not (path_exits() and auto_refresh)
+
+        print(f"Setting interval watcher disabled to {is_path_correct}")
+
+        return is_path_correct
+
+    @app.callback(
+        # output
+        Output(ID_STORE_DATE_WATCHER, "data"),
+        # input
+        State(ID_STORE_DATE_WATCHER, "data"),
+        Input(ID_INTERVAL_WATCHER, "n_intervals"),
+    )
+    def watch_file(date_latest_fetch, _):
+        global dummy_path_file
+        path_file = dummy_path_file
+
+        if not path_file:
+            return dash.no_update
+        try:
+            latest_modification_time = os.path.getmtime(path_file)
+
+            if latest_modification_time != date_latest_fetch:
+                print("File changed!")
+                # update_df()
+
+                return latest_modification_time
+
+        except FileNotFoundError:
+            print("not found")
+        except Exception as e:
+            print(f"Error watching file: {e}")
+
+        return dash.no_update

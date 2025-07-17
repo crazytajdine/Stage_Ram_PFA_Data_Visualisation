@@ -1,7 +1,7 @@
 from dash import Input, Output, State
 import dash
 from server_instance import get_app
-from excel_manager import update_path_to_excel
+from excel_manager import update_path_to_excel, ID_PATH_STORE
 import dash_bootstrap_components as dbc
 
 app = get_app()
@@ -59,7 +59,7 @@ def reset_input(_):
         Output("status_alert", "is_open", allow_duplicate=True),
         Output("status_alert", "color"),
         Output("save_button", "color", allow_duplicate=True),
-        Output("is-path-store", "data"),
+        Output(ID_PATH_STORE, "data"),
     ],
     Input("save_button", "n_clicks"),
     State("url_input", "value"),
@@ -76,6 +76,6 @@ def save_input(n_clicks, input_value):
     print("Result:", message)
 
     alert_color = "success" if success else "danger"
-    new_value = True if success else dash.no_update
+    new_value = input_value if success else dash.no_update
 
     return message, True, alert_color, alert_color, new_value

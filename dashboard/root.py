@@ -3,7 +3,7 @@ from dash.dependencies import Input, Output
 
 import dash_bootstrap_components as dbc
 
-import excel_manager
+from excel_manager import hookers as excel_hookers, add_callbacks
 from server_instance import get_app
 
 
@@ -19,8 +19,8 @@ app = get_app()
 
 app.layout = html.Div(
     [
-        # stores
-        excel_manager.store_excel,
+        # hookers
+        *excel_hookers,
         # Barre de navigation
         dbc.Nav(
             className="justify-content-center nav-tabs",
@@ -91,6 +91,9 @@ def update_layout(pathname, path_exists):
             break
 
     return navbar, page
+
+
+add_callbacks()
 
 
 if __name__ == "__main__":
