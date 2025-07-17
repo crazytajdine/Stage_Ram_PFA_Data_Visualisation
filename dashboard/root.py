@@ -1,3 +1,4 @@
+import os
 from dash import html, dcc
 from dash.dependencies import Input, Output
 
@@ -67,7 +68,14 @@ def build_nav_items(path_exits: bool):
     Output("page-content", "children"),
     [Input("url", "pathname"), Input("is-path-store", "data")],
 )
-def update_layout(pathname, path_exists):
+def update_layout(pathname, path_data):
+    # Check if path actually exists, with fallback to excel_manager check
+    if path_data:
+        path_exists = bool(os.path.exists(path_data) and os.path.isfile(path_data))
+    else:
+        # Fallback: check excel_manager directly
+        from excel_manager import path_exits
+        path_exists = path_exits()
     print(f"path_exists: {path_exists}")
     nav_items = build_nav_items(path_exists)
     print([i["name"] for i in nav_items])
