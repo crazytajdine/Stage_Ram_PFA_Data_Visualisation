@@ -9,6 +9,7 @@ from dash import Input, Output, State, dcc
 from config import get_config_dir, config, load_config, save_config
 from server_instance import get_app
 
+
 # global
 
 ID_PATH_STORE = "is-path-store"
@@ -16,6 +17,8 @@ ID_INTERVAL_WATCHER = "interval-file-selector"
 
 # should be imputed to each chart
 ID_STORE_DATE_WATCHER = "store-date-latest-fetch"
+
+COL_NAME_TOTAL_COUNT = "total_count"
 # init
 
 
@@ -35,7 +38,7 @@ config = load_config(path_config)
 path_to_excel = config.get("path_to_excel", "")
 auto_refresh = config.get("auto_refresh", True)
 modification_date = config.get("modification_date", None)
-
+count_excel_lazy = None
 # func
 
 
@@ -91,7 +94,7 @@ def modify_modification_date(new_modification_date: float):
 
 
 def update_path_to_excel(path) -> tuple[bool, str]:
-    global config, path_to_excel, df
+    global config, path_to_excel
 
     if not path:
         return False, "Path cannot be empty."
@@ -111,14 +114,13 @@ def update_path_to_excel(path) -> tuple[bool, str]:
     try:
         load_excel_lazy(path)
     except:
-        return True, "."
+        return False, "Could not load the file, make sure it is a valid excel file."
 
     path_to_excel = path
     config["path_to_excel"] = path
 
     save_config(path_config, config)
 
-    df = load_excel_lazy(path)
     return True, "Loaded The File successfully."
 
 
@@ -136,19 +138,21 @@ def toggle_auto_refresh() -> bool:
     return auto_refresh
 
 
-def load_excel_lazy(path) -> Optional[pl.LazyFrame]:
+def load_excel_lazy(path):
+
+    global df, count_excel_lazy
 
     if not path:
-        return None
+        raise ValueError("Path cannot be empty.")
 
     is_exist = os.path.exists(path)
 
     if not is_exist:
-        return None
+        raise ValueError("The path does not exist.")
 
-    res = pl.read_excel(path, sheet_name="Sheet1").lazy()
-
-    return res.pipe(filter_retard).pipe(filter_tec).pipe(create_dep_datetime)
+    df = pl.read_excel(path, sheet_name="Sheet1").lazy()
+    count_excel_lazy = df.select(pl.len().alias(COL_NAME_TOTAL_COUNT))
+    df = df.pipe(filter_retard).pipe(filter_tec).pipe(create_dep_datetime)
 
 
 def get_df() -> Optional[pl.LazyFrame]:
@@ -158,8 +162,13 @@ def get_df() -> Optional[pl.LazyFrame]:
     return df
 
 
+def get_count_df() -> Optional[pl.LazyFrame]:
+    global count_excel_lazy
+    return count_excel_lazy
+
+
 # program
-df = load_excel_lazy(path_to_excel)
+load_excel_lazy(path_to_excel)
 
 store_excel = dcc.Store(id=ID_PATH_STORE, storage_type="local", data=path_to_excel)
 
@@ -184,9 +193,8 @@ def add_watcher_for_data():
 
 
 def update_df():
-    global df
 
-    df = load_excel_lazy(path_to_excel)
+    load_excel_lazy(path_to_excel)
 
 
 def add_callbacks():
