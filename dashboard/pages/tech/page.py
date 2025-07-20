@@ -13,6 +13,7 @@ import plotly.express as px
 import json
 from server_instance import get_app
 from dashboard import excel_manager
+import math
 
 
 app = get_app()
@@ -232,7 +233,7 @@ def compute_divisors(start: str | None, end: str | None) -> list[int]:
     if D <= 0:
         return []
 
-    return [d for d in range( 1, D + 1) if D % d == 0]
+    return [d for d in range( 1, D + 1) ]
 
 
 """
@@ -252,7 +253,8 @@ def create_time_segments(df: pl.DataFrame, dt_start: str, dt_end: str, segmentat
     
     if segmentation is None:
         # No segmentation - whole duration is one period
-        return df.with_columns(pl.lit("All Period").alias("time_period"))
+        return df.with_columns(pl.lit("All Period").alias("time_period")) 
+    # this creates a new column "time_period" with the value "All Period" for all rows
     
     # Convert start/end to dates
     start_date = datetime.fromisoformat(dt_start[:10]).date()
@@ -261,7 +263,7 @@ def create_time_segments(df: pl.DataFrame, dt_start: str, dt_end: str, segmentat
     # Create time periods based on segmentation
     total_days = (end_date - start_date).days + 1
     
-    def get_period_for_date(date_val):
+    def get_period_for_date(date_val):# this function returns the time period for a given date "date_val"
         """
         Return the time period (str) the given date falls in, based on segmentation.
         If segmentation is None, returns "All Period".
@@ -663,14 +665,29 @@ def build_outputs(store_data):
             font=dict(size=20, color="#a0a7b9"),
         )
     else:
-        # ALWAYS create time segments from full dataset to ensure consistent periods
-        df_with_periods_full = create_time_segments(df, dt_start, dt_end, segmentation)
-        
-        # Get ALL possible time periods for consistent x-axis
-        if df_with_periods_full.is_empty():
-            all_periods = []
+        # 1) Build the fixed list of periods from dt_start → dt_end
+        start_date = datetime.fromisoformat(dt_start[:10]).date()
+        end_date   = datetime.fromisoformat(dt_end[:10]).date()
+
+        if segmentation is None:
+            all_periods = ["All Period"]
+            display_periods = ["All Period"]
         else:
-            all_periods = df_with_periods_full["time_period"].unique().sort().to_list()
+            total_days  = (end_date - start_date).days + 1
+            num_periods = math.ceil(total_days / segmentation)
+            all_periods = []
+            for i in range(num_periods):
+                ps = start_date + timedelta(days=i * segmentation)
+                pe = min(ps + timedelta(days=segmentation - 1), end_date)
+                all_periods.append(f"{ps} to {pe}")
+
+            display_periods = [
+                datetime.fromisoformat(period.split(" to ")[0]).strftime("%d %B")
+                for period in all_periods
+            ]
+        # 2) Tag every row with its period
+        df_with_periods_full = create_time_segments(df, dt_start, dt_end, segmentation)
+
         
         # Get selected codes from store_data
         code_sel = store_data.get("code_sel") if store_data else None
@@ -708,40 +725,57 @@ def build_outputs(store_data):
             fig = go.Figure()
             
             # Add bars for each SELECTED code
-            for code in selected_codes:
-                code_data = temporal_data.filter(pl.col("CODE_DR") == code)
-                
-                # Ensure all periods are represented (fill missing with 0)
-                periods_with_data = code_data["time_period"].to_list()
-                counts_with_data = code_data["count"].to_list()
-                
-                # Create full data for all periods
-                full_periods = []
-                full_counts = []
-                for period in all_periods:
-                    if period in periods_with_data:
-                        idx = periods_with_data.index(period)
-                        full_counts.append(counts_with_data[idx])
-                    else:
-                        full_counts.append(0)
-                    full_periods.append(period)
-                
-                fig.add_trace(go.Bar(
-                    x=full_periods,
-                    y=full_counts,
-                    name=code,
-                    marker_color=color_map.get(code, "#cccccc"),
-                    hovertemplate=f"<b>{code}</b><br>" +
-                                "Période: %{x}<br>" +
-                                "Nombre de retards: %{y}<br>" +
-                                "<extra></extra>",
-                ))
+        fig = go.Figure()
+# Add bars for each SELECTED code (zero-fill via a map + formatted dates)
+        for code in selected_codes:
+            # 1) Build map: period → count
+            code_rows  = (
+                temporal_data
+                .filter(pl.col("CODE_DR") == code)
+                .to_dicts()
+            )
+            # Compute total delays per period
+            period_totals = (
+                temporal_data
+                .group_by("time_period")
+                .agg(pl.col("count").sum().alias("period_total"))
+            )
+            # Turn into a lookup map: { period_label: total_count }
+            period_totals_map = {r["time_period"]: r["period_total"] for r in period_totals.to_dicts()}
+
+            counts_map = {r["time_period"]: r["count"] for r in code_rows}
+
+            # 2) Zero-fill all_periods in one line
+            # 1) raw counts per period
+            full_counts = [counts_map.get(p, 0) for p in all_periods]
+            # 2) convert to % of that period’s total
+            full_perc = [
+                (full_counts[i] / period_totals_map.get(p, 1)) * 100
+                for i, p in enumerate(all_periods)
+            ]
+            customdata  = list(zip(full_counts, full_perc))
+            fig.add_trace(go.Bar(
+                x=display_periods,
+                y=full_perc,
+                name=code,
+                marker_color=color_map.get(code, "#cccccc"),
+                customdata=customdata,
+                hovertemplate=(
+                    f"<b>{code}</b><br>"
+                    "Période: %{x}<br>"
+                    "Occurrences: %{customdata[0]}<br>"
+                    "Pourcentage: %{customdata[1]:.1f}%<br>"
+                    "<extra></extra>"
+                ),
+            ))
+
+
     fig.update_layout(
         template="plotly_white",
         height=600,
         margin=dict(l=50, r=20, t=40, b=40),
         xaxis_title="Période",
-        yaxis_title="Nombre total de retards",
+        yaxis_title="Pourcentage (%)",
         title="Évolution des codes de retard par période",
         barmode="group",
         font=dict(size=12),

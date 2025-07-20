@@ -49,6 +49,7 @@ if not df_filtered.is_empty():
         df_filtered.get_column("DEP_DATE").min(),
         df_filtered.get_column("DEP_DATE").max(),
     )
+    
 else:
     dt_min = dt_max = datetime.now().date()
 

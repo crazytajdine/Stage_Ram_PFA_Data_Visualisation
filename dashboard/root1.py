@@ -12,10 +12,10 @@ import pages.tech.page as tech
 import pages.verify.page as verify
 import pages.home.page as home
 import pages.temporal.page as temporal
-import dashboard.pages.weekly.page as page
+import pages.weekly.page as weekly
+
 import pages.settings.page as settings
 import pages.performance_metrics.page as performance_metrics
-import pages.weekly.page as weekly
 
 app = get_app()
 
