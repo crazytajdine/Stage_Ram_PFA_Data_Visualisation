@@ -1,7 +1,7 @@
 import dash_bootstrap_components as dbc
 from dash import html, dcc
-from server_instance import get_app
-from excel_manager import get_df
+from dashboard.server_instance import get_app
+from dashboard.excel_manager import get_df
 
 app = get_app()
 

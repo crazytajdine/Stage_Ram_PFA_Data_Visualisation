@@ -7,7 +7,7 @@ from datetime import datetime
 import dash
 from dash import html, dcc, dash_table, Input, Output, State, ctx, no_update
 import dash_bootstrap_components as dbc
-from server_instance import get_app
+from dashboard.server_instance import get_app
 from dashboard import excel_manager
 from datetime import timedelta
 import io

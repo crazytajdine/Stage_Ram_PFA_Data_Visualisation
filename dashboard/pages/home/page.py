@@ -10,8 +10,8 @@ import xlsxwriter
 from io import BytesIO
 import time
 
-from excel_manager import get_df
-from server_instance import get_app
+from dashboard.excel_manager import get_df
+from dashboard.server_instance import get_app
 
 app = get_app()
 

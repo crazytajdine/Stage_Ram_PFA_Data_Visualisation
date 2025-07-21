@@ -10,7 +10,7 @@ from dash import Dash, html, dcc, dash_table, Input, Output, State
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 import plotly.express as px
-from server_instance import get_app
+from dashboard.server_instance import get_app
 from dashboard import excel_manager
 
 app = get_app()

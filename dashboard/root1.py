@@ -4,18 +4,18 @@ from dash.dependencies import Input, Output
 
 import dash_bootstrap_components as dbc
 
-from excel_manager import hookers as excel_hookers, add_callbacks
-from server_instance import get_app
+from .excel_manager import hookers as excel_hookers, add_callbacks
+from .server_instance import get_app
 
 
-import pages.tech.page as tech
-import pages.verify.page as verify
-import pages.home.page as home
-import pages.temporal.page as temporal
-import pages.weekly.page as weekly
+from .pages.tech       import page as tech
+from .pages.verify     import page as verify
+from .pages.home       import page as home
+from .pages.temporal   import page as temporal
+from .pages.weekly     import page as weekly
+from .pages.settings   import page as settings
+from .pages.performance_metrics import page as performance_metrics
 
-import pages.settings.page as settings
-import pages.performance_metrics.page as performance_metrics
 
 app = get_app()
 

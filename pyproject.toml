@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = [{ name = "Taj Eddine Marmoul", email = "tajdinetajdine1@gmail.com" }]
 readme = "README.md"
-requires-python = ">=3.9,<3.14"
+requires-python = ">=3.9,<3.11"
 dependencies = [
     "dash (>=3.1.1,<4.0.0)",
     "polars (>=1.31.0,<2.0.0)",
@@ -16,6 +16,8 @@ dependencies = [
     "fastexcel (>=0.14.0,<0.15.0)",
     "xlsxwriter (>=3.2.5,<4.0.0)",
     "pyarrow (>=20.0.0,<21.0.0)",
+    "py2app (>=0.28.8,<0.29.0)",
+    "pyside6 (>=6.9.1,<7.0.0)",
 ]
 
 
