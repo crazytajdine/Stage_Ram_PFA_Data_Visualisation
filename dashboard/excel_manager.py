@@ -7,10 +7,11 @@ from dash import Input, Output, State, dcc
 
 
 from config import get_config_dir, config, load_config, save_config
-from server_instance import get_app
+from .server_instance import get_app
 
 
 # global
+
 
 ID_PATH_STORE = "is-path-store"
 ID_INTERVAL_WATCHER = "interval-file-selector"

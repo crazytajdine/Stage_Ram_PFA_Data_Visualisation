@@ -4,8 +4,8 @@ from dash.dependencies import Input, Output
 
 import dash_bootstrap_components as dbc
 
-from excel_manager import hookers as excel_hookers, add_callbacks
-from server_instance import get_app
+from dashboard.excel_manager import hookers as excel_hookers, add_callbacks
+from dashboard.server_instance import get_app
 
 
 import pages.tech.page as tech
@@ -73,7 +73,7 @@ def build_nav_items(path_exits: bool):
 )
 def update_layout(pathname, _):
 
-    from excel_manager import path_exits
+    from dashboard.excel_manager import path_exits
 
     path_exists = path_exits()
 
