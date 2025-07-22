@@ -3,10 +3,10 @@ from typing import List, Optional
 import dash
 import dash_bootstrap_components as dbc
 from dash import Input, Output, html, dcc
-from server_instance import get_app
+from dashboard.server_instance import get_app
 
 import polars as pl
-from excel_manager import (
+from dashboard.excel_manager import (
     get_df,
     get_count_df,
     add_watcher_for_data,

@@ -7,7 +7,7 @@ import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 import plotly.express as px
 import json
-from server_instance import get_app
+from dashboard.server_instance import get_app
 from dashboard import excel_manager
 import math
 
