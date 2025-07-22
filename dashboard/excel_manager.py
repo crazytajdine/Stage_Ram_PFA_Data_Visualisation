@@ -7,7 +7,7 @@ from dash import Input, Output, State, dcc
 
 
 from config import get_config_dir, config, load_config, save_config
-from .server_instance import get_app
+from server_instance import get_app
 
 
 # global

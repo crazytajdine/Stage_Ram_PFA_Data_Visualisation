@@ -1,20 +1,17 @@
 import polars as pl
 from pathlib import Path
 from datetime import datetime, timedelta
-import dash
-from dash import Dash, html, dcc, dash_table, Input, Output, State
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 import plotly.express as px
 import json
-from dashboard.server_instance import get_app
-from dashboard import excel_manager
-import math
+from server_instance import get_app
+import excel_manager
 
 app = get_app()
 
 # Lazy read once
-df_lazy= excel_manager.df
+df_lazy = excel_manager.df
 
 # Normalise column names
 col_map = {
@@ -23,9 +20,7 @@ col_map = {
 df_lazy = df_lazy.rename(col_map)
 
 # Ensure DEP_DAY_SCHED is properly formatted as date
-df_lazy = df_lazy.with_columns(
-    pl.col("DEP_DAY_SCHED").cast(pl.Date).alias("DEP_DATE")
-)
+df_lazy = df_lazy.with_columns(pl.col("DEP_DAY_SCHED").cast(pl.Date).alias("DEP_DATE"))
 
 # Keep only delay-code rows with TEC description
 df_filtered = df_lazy.filter(pl.col("LIB_CODE_DR") == "TEC").collect()
@@ -63,5 +58,3 @@ dt_min_iso, dt_max_iso = (
     dt_min.strftime("%Y-%m-%d"),
     dt_max.strftime("%Y-%m-%d"),
 )
-
-

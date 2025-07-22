@@ -3,10 +3,10 @@ from typing import List, Optional
 import dash
 import dash_bootstrap_components as dbc
 from dash import Input, Output, html, dcc
-from dashboard.server_instance import get_app
+from server_instance import get_app
 
 import polars as pl
-from dashboard.excel_manager import (
+from excel_manager import (
     get_df,
     get_count_df,
     add_watcher_for_data,
@@ -48,7 +48,6 @@ ID_CARD_DELAY_15MIN_41_42 = "card_delay_15min_41_42"
 app = get_app()
 
 import plotly.express as px
-import pandas as pd
 
 # Sample bar data
 import dash_bootstrap_components as dbc
@@ -239,22 +238,30 @@ def generate_card(df: pl.DataFrame, col_name: str, title: str) -> dbc.Card:
 
     return dbc.Card(
         [
-            # colored stripe at top
+            # Stripe (header) – fixed 4px height
             dbc.CardHeader(
-                html.Div(className=f"bg-{stripe_color}", style={"height": "4px"}),
-                className="p-0 border-0",
+                [
+                    html.Div(
+                        className=f"bg-{stripe_color} mb-1", style={"height": "4px"}
+                    ),
+                    html.H5(title, className="text-muted px-4 mb-0"),
+                ],
+                className="p-0 border-0 text-center bg-transparent",
             ),
-            # card body
+            # Body – fixed height (or flex‑fill if you want it to grow)
             dbc.CardBody(
                 [
-                    html.H5(title, className="text-muted mb-1"),
-                    html.H2(f"{this_year:.2f}%", className="mt-0 mb-2"),
-                    change_div,
+                    html.H2(f"{this_year:.2f}%", className="m-0"),
                 ],
-                className="text-center px-4 py-3",
+                className="d-flex flex-fill align-items-center justify-content-center px-4",
+            ),
+            # Footer – fixed height
+            dbc.CardFooter(
+                change_div,
+                className="text-center bg-transparent border-0",
             ),
         ],
-        className="shadow-sm rounded-2 card-hover w-100 mw-100 h-100",
+        className="d-flex flex-column shadow-sm rounded-2 card-hover w-100 h-100",
     )
 
 
