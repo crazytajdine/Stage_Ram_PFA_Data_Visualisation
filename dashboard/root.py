@@ -1,10 +1,9 @@
-import os
 from dash import html, dcc
 from dash.dependencies import Input, Output
 
 import dash_bootstrap_components as dbc
 
-from excel_manager import hookers as excel_hookers, add_callbacks
+from excel_manager import hookers as excel_hookers, add_callbacks, path_exits
 from server_instance import get_app
 
 
@@ -72,8 +71,6 @@ def build_nav_items(path_exits: bool):
     [Input("url", "pathname"), Input("is-path-store", "data")],
 )
 def update_layout(pathname, _):
-
-    from excel_manager import path_exits
 
     path_exists = path_exits()
 
