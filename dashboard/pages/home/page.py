@@ -1,41 +1,70 @@
-from dash import html, dcc, Input, Output, State, dash_table, callback_context, no_update
+from dash import (
+    html,
+    dcc,
+    Input,
+    Output,
+    State,
+    dash_table,
+    callback_context,
+    no_update,
+)
 from dash.dcc import send_bytes
 import polars as pl
 import dash_bootstrap_components as dbc
 from datetime import datetime, timedelta
 import plotly.graph_objs as go
 import math
-import io
 import xlsxwriter
 from io import BytesIO
 import time
 
-from dashboard.excel_manager import get_df
-from dashboard.server_instance import get_app
+from excel_manager import get_df
+from server_instance import get_app
 
 app = get_app()
 
 custom_css = {
-    "container": {"background-color": "#f8f9fa", "padding": "2rem", "min-height": "100vh"},
+    "container": {
+        "background-color": "#f8f9fa",
+        "padding": "2rem",
+        "min-height": "100vh",
+    },
     "header": {"color": "#1a3e72", "margin-bottom": "2rem", "font-weight": "bold"},
-    "input": {"border-radius": "4px", "border": "1px solid #ced4da", "padding": "0.5rem", "background-color": "white"},
-    "button": {"border-radius": "4px", "font-weight": "bold", "transition": "all 0.3s ease"},
-    "button:hover": {"transform": "translateY(-2px)", "box-shadow": "0 4px 8px rgba(0,0,0,0.1)"},
+    "input": {
+        "border-radius": "4px",
+        "border": "1px solid #ced4da",
+        "padding": "0.5rem",
+        "background-color": "white",
+    },
+    "button": {
+        "border-radius": "4px",
+        "font-weight": "bold",
+        "transition": "all 0.3s ease",
+    },
+    "button:hover": {
+        "transform": "translateY(-2px)",
+        "box-shadow": "0 4px 8px rgba(0,0,0,0.1)",
+    },
     "alert": {"border-radius": "4px", "font-size": "1rem"},
 }
+
 
 def convert_minutes_to_hours_minutes(minutes: int) -> str:
     heures = minutes // 60
     mins = minutes % 60
     return f"{heures}h {mins}m"
 
+
 layout = dbc.Container(
     [
         html.Div(
             style=custom_css["container"],
             children=[
-                html.H1("Royal Air Maroc - Visualisation Interactive des Vols et Retards", style=custom_css["header"], className="text-center"),
-
+                html.H1(
+                    "Royal Air Maroc - Visualisation Interactive des Vols et Retards",
+                    style=custom_css["header"],
+                    className="text-center",
+                ),
                 dbc.Row(
                     [
                         dbc.Col(
@@ -66,7 +95,10 @@ layout = dbc.Container(
                         ),
                         dbc.Col(
                             [
-                                dbc.Label("Date et heure de départ (début)", className="fw-bold mb-2"),
+                                dbc.Label(
+                                    "Date et heure de départ (début)",
+                                    className="fw-bold mb-2",
+                                ),
                                 dbc.Input(
                                     id="dep-datetime-input-start",
                                     type="datetime-local",
@@ -74,7 +106,9 @@ layout = dbc.Container(
                                     max="2100-12-31T23:59",
                                     style={
                                         "width": "100%",
-                                        "backgroundColor": custom_css["input"]["background-color"],
+                                        "backgroundColor": custom_css["input"][
+                                            "background-color"
+                                        ],
                                         "color": "black",
                                         "border": custom_css["input"]["border"],
                                     },
@@ -84,7 +118,10 @@ layout = dbc.Container(
                         ),
                         dbc.Col(
                             [
-                                dbc.Label("Date et heure d'arrivée (fin)", className="fw-bold mb-2"),
+                                dbc.Label(
+                                    "Date et heure d'arrivée (fin)",
+                                    className="fw-bold mb-2",
+                                ),
                                 dbc.Input(
                                     id="dep-datetime-input-end",
                                     type="datetime-local",
@@ -92,7 +129,9 @@ layout = dbc.Container(
                                     max="2100-12-31T23:59",
                                     style={
                                         "width": "100%",
-                                        "backgroundColor": custom_css["input"]["background-color"],
+                                        "backgroundColor": custom_css["input"][
+                                            "background-color"
+                                        ],
                                         "color": "black",
                                         "border": custom_css["input"]["border"],
                                     },
@@ -103,7 +142,6 @@ layout = dbc.Container(
                     ],
                     className="mb-3 g-3",
                 ),
-
                 dbc.Row(
                     [
                         dbc.Col(
@@ -122,15 +160,17 @@ layout = dbc.Container(
                     ],
                     className="mb-3",
                 ),
-
                 dbc.Alert(
                     id="summary-info",
                     color="info",
                     is_open=False,
                     className="mb-4",
-                    style={"fontWeight": "bold", "fontSize": "1.1rem", "whiteSpace": "pre-line"},
+                    style={
+                        "fontWeight": "bold",
+                        "fontSize": "1.1rem",
+                        "whiteSpace": "pre-line",
+                    },
                 ),
-
                 dbc.Button(
                     [html.I(className="fas fa-search me-2"), "Rechercher"],
                     id="search-btn",
@@ -138,7 +178,6 @@ layout = dbc.Container(
                     className="w-100 mb-4 py-2",
                     style=custom_css["button"],
                 ),
-
                 dbc.Button(
                     "Télécharger Excel",
                     id="btn_download_excel",
@@ -146,9 +185,7 @@ layout = dbc.Container(
                     className="mb-3",
                     n_clicks=0,
                 ),
-
                 dcc.Download(id="download-excel"),
-
                 dbc.Alert(
                     id="result-message",
                     is_open=False,
@@ -156,30 +193,39 @@ layout = dbc.Container(
                     className="mt-3",
                     style=custom_css["alert"],
                 ),
-
                 dash_table.DataTable(
                     id="result-table",
                     columns=[],
                     data=[],
                     page_size=10,
-                    style_table={"overflowX": "auto", "margin-top": "10px", "margin-bottom": "40px"},
+                    style_table={
+                        "overflowX": "auto",
+                        "margin-top": "10px",
+                        "margin-bottom": "40px",
+                    },
                     style_cell={"textAlign": "left"},
                     sort_action="native",
                 ),
-
                 html.Div(
                     dcc.Graph(
                         id="bar-chart-pct",
                         style={"margin": "auto", "height": "400px", "width": "90%"},
                     ),
-                    style={"display": "flex", "justifyContent": "center", "alignItems": "center", "margin-bottom": "40px"},
+                    style={
+                        "display": "flex",
+                        "justifyContent": "center",
+                        "alignItems": "center",
+                        "margin-bottom": "40px",
+                    },
                 ),
-
                 dbc.Row(
                     [
                         dbc.Col(
                             [
-                                dbc.Label("Taille de l’intervalle en jours pour regroupement", className="fw-bold mt-3"),
+                                dbc.Label(
+                                    "Taille de l’intervalle en jours pour regroupement",
+                                    className="fw-bold mt-3",
+                                ),
                                 dbc.Input(
                                     id="interval-days-input",
                                     type="number",
@@ -206,7 +252,6 @@ layout = dbc.Container(
                     className="mb-2 g-1",
                     style={"margin-bottom": "20px"},
                 ),
-
                 html.Div(
                     dcc.Graph(
                         id="bar-chart-interval",
@@ -225,6 +270,7 @@ layout = dbc.Container(
     fluid=True,
 )
 
+
 @app.callback(
     Output("ac-subtype", "options"),
     Output("ac-registration", "options"),
@@ -235,12 +281,37 @@ def populate_dropdown_options(n):
     df = get_df()
     if df is not None:
         df = df.collect()
-        opts_subtype = [{"label": v, "value": v} for v in sorted(df.get_column("AC_SUBTYPE").unique().to_list()) if v] if "AC_SUBTYPE" in df.columns else []
-        opts_reg = [{"label": v, "value": v} for v in sorted(df.get_column("AC_REGISTRATION").unique().to_list()) if v] if "AC_REGISTRATION" in df.columns else []
-        opts_code = [{"label": v, "value": v} for v in sorted(df.get_column("CODE_DR").unique().to_list()) if v] if "CODE_DR" in df.columns else []
+        opts_subtype = (
+            [
+                {"label": v, "value": v}
+                for v in sorted(df.get_column("AC_SUBTYPE").unique().to_list())
+                if v
+            ]
+            if "AC_SUBTYPE" in df.columns
+            else []
+        )
+        opts_reg = (
+            [
+                {"label": v, "value": v}
+                for v in sorted(df.get_column("AC_REGISTRATION").unique().to_list())
+                if v
+            ]
+            if "AC_REGISTRATION" in df.columns
+            else []
+        )
+        opts_code = (
+            [
+                {"label": v, "value": v}
+                for v in sorted(df.get_column("CODE_DR").unique().to_list())
+                if v
+            ]
+            if "CODE_DR" in df.columns
+            else []
+        )
         return opts_subtype, opts_reg, opts_code
     else:
         return [], [], []
+
 
 @app.callback(
     [
@@ -267,7 +338,16 @@ def populate_dropdown_options(n):
         State("interval-days-input", "value"),
     ],
 )
-def update_outputs(search_clicks, confirm_clicks, ac_types, ac_regs, codes_dr_vals, dt_start_str, dt_end_str, interval_days):
+def update_outputs(
+    search_clicks,
+    confirm_clicks,
+    ac_types,
+    ac_regs,
+    codes_dr_vals,
+    dt_start_str,
+    dt_end_str,
+    interval_days,
+):
     start_time = time.time()
     ctx = callback_context
     triggered_id = ctx.triggered[0]["prop_id"].split(".")[0] if ctx.triggered else None
@@ -277,9 +357,23 @@ def update_outputs(search_clicks, confirm_clicks, ac_types, ac_regs, codes_dr_va
 
     df = get_df()
     if df is None:
-        error_alert = dbc.Alert("Aucun fichier Excel chargé. Veuillez charger un fichier Excel d'abord.", color="danger", className="mt-3")
+        error_alert = dbc.Alert(
+            "Aucun fichier Excel chargé. Veuillez charger un fichier Excel d'abord.",
+            color="danger",
+            className="mt-3",
+        )
         if triggered_id == "search-btn":
-            return "", False, error_alert, "danger", True, empty_cols, empty_data, empty_fig, empty_fig
+            return (
+                "",
+                False,
+                error_alert,
+                "danger",
+                True,
+                empty_cols,
+                empty_data,
+                empty_fig,
+                empty_fig,
+            )
         else:
             return (no_update,) * 9
 
@@ -291,7 +385,9 @@ def update_outputs(search_clicks, confirm_clicks, ac_types, ac_regs, codes_dr_va
             df = df.filter(pl.col("AC_SUBTYPE").str.to_lowercase().is_in(vals_lower))
         if ac_regs:
             vals_lower = [v.lower() for v in ac_regs]
-            df = df.filter(pl.col("AC_REGISTRATION").str.to_lowercase().is_in(vals_lower))
+            df = df.filter(
+                pl.col("AC_REGISTRATION").str.to_lowercase().is_in(vals_lower)
+            )
         if codes_dr_vals:
             df = df.filter(pl.col("CODE_DR").is_in(codes_dr_vals))
 
@@ -309,15 +405,32 @@ def update_outputs(search_clicks, confirm_clicks, ac_types, ac_regs, codes_dr_va
                 dt_end = None
 
         if dt_start and dt_end:
-            df = df.filter((pl.col("DEP_DAY_SCHED") >= dt_start) & (pl.col("DEP_DAY_SCHED") <= dt_end))
+            df = df.filter(
+                (pl.col("DEP_DAY_SCHED") >= dt_start)
+                & (pl.col("DEP_DAY_SCHED") <= dt_end)
+            )
         elif dt_start:
             df = df.filter(pl.col("DEP_DAY_SCHED") >= dt_start)
         elif dt_end:
             df = df.filter(pl.col("DEP_DAY_SCHED") <= dt_end)
 
         if df.is_empty():
-            warning_alert = dbc.Alert("Aucun résultat trouvé pour les critères spécifiés.", color="warning", className="mt-3")
-            return "", False, warning_alert, "warning", True, empty_cols, empty_data, empty_fig, empty_fig
+            warning_alert = dbc.Alert(
+                "Aucun résultat trouvé pour les critères spécifiés.",
+                color="warning",
+                className="mt-3",
+            )
+            return (
+                "",
+                False,
+                warning_alert,
+                "warning",
+                True,
+                empty_cols,
+                empty_data,
+                empty_fig,
+                empty_fig,
+            )
 
         df = df.sort("Retard en min", descending=True)
 
@@ -328,9 +441,13 @@ def update_outputs(search_clicks, confirm_clicks, ac_types, ac_regs, codes_dr_va
             subtype = vol_max["AC_SUBTYPE"]
             subtype = subtype.item() if hasattr(subtype, "item") else subtype
             registration = vol_max["AC_REGISTRATION"]
-            registration = registration.item() if hasattr(registration, "item") else registration
+            registration = (
+                registration.item() if hasattr(registration, "item") else registration
+            )
             retard_min = vol_max["Retard en min"]
-            retard_min = retard_min.item() if hasattr(retard_min, "item") else retard_min
+            retard_min = (
+                retard_min.item() if hasattr(retard_min, "item") else retard_min
+            )
             retard_hm = convert_minutes_to_hours_minutes(retard_min)
             vol_info = f"\nVol avec le plus grand retard est {subtype} {registration}, durée du retard : {retard_hm} ({retard_min} min)\n"
         else:
@@ -339,7 +456,13 @@ def update_outputs(search_clicks, confirm_clicks, ac_types, ac_regs, codes_dr_va
         summary_text = f"Nombre de vols avec retard ≥ 15 min : {nb_retard_15}{vol_info}"
 
         df_display = df.select(
-            ["AC_SUBTYPE", "AC_REGISTRATION", "DEP_DAY_SCHED", "Retard en min", "CODE_DR"]
+            [
+                "AC_SUBTYPE",
+                "AC_REGISTRATION",
+                "DEP_DAY_SCHED",
+                "Retard en min",
+                "CODE_DR",
+            ]
         ).rename(
             {
                 "AC_SUBTYPE": "SUBTYPE",
@@ -354,8 +477,12 @@ def update_outputs(search_clicks, confirm_clicks, ac_types, ac_regs, codes_dr_va
         data = df_display.to_dicts()
 
         total = df.height
-        count_15_plus = df.filter(pl.col("Retard en min") >= 15).height if total > 0 else 0
-        count_15_moins = df.filter(pl.col("Retard en min") < 15).height if total > 0 else 0
+        count_15_plus = (
+            df.filter(pl.col("Retard en min") >= 15).height if total > 0 else 0
+        )
+        count_15_moins = (
+            df.filter(pl.col("Retard en min") < 15).height if total > 0 else 0
+        )
         pct_15_plus = (count_15_plus / total) * 100 if total > 0 else 0
         pct_15_moins = (count_15_moins / total) * 100 if total > 0 else 0
 
@@ -376,7 +503,9 @@ def update_outputs(search_clicks, confirm_clicks, ac_types, ac_regs, codes_dr_va
 
         fig_interval = build_interval_figure(df, interval_days)
 
-        result_msg = dbc.Alert(f"{len(data)} résultat(s) trouvé(s).", color="success", className="mt-3")
+        result_msg = dbc.Alert(
+            f"{len(data)} résultat(s) trouvé(s).", color="success", className="mt-3"
+        )
 
         print(f"[INFO] update_outputs executed in {time.time() - start_time:.2f}s")
         return (
@@ -405,6 +534,7 @@ def update_outputs(search_clicks, confirm_clicks, ac_types, ac_regs, codes_dr_va
             go.Figure(),
         )
 
+
 def build_interval_figure(df, interval_days):
     if not interval_days or interval_days <= 0:
         interval_days = 1
@@ -427,9 +557,15 @@ def build_interval_figure(df, interval_days):
     labels = []
     for i in range(n_intervals):
         start_int = dt_min + timedelta(days=i * interval_days)
-        end_int = min(start_int + timedelta(days=interval_days - 1, hours=23, minutes=59, seconds=59), dt_max)
+        end_int = min(
+            start_int
+            + timedelta(days=interval_days - 1, hours=23, minutes=59, seconds=59),
+            dt_max,
+        )
         intervals.append((start_int, end_int))
-        labels.append(f"{start_int.strftime('%Y-%m-%d')} → {end_int.strftime('%Y-%m-%d')}")
+        labels.append(
+            f"{start_int.strftime('%Y-%m-%d')} → {end_int.strftime('%Y-%m-%d')}"
+        )
 
     counts = []
     for start_i, end_i in intervals:
@@ -459,11 +595,11 @@ def build_interval_figure(df, interval_days):
             go.Bar(
                 y=labels,
                 x=percents,
-                orientation='h',
+                orientation="h",
                 text=[f"{cnt} vols" for cnt in counts],
                 textposition="outside",
                 marker=dict(color="#d6452c"),
-                hoverinfo='x+y+text',
+                hoverinfo="x+y+text",
             )
         ]
     )
@@ -475,12 +611,15 @@ def build_interval_figure(df, interval_days):
         bargap=0.25,
         height=height,
         margin=dict(l=140, r=60, t=60, b=60),
-        yaxis=dict(tickfont=dict(size=tickfont_size), autorange="reversed", automargin=True),
+        yaxis=dict(
+            tickfont=dict(size=tickfont_size), autorange="reversed", automargin=True
+        ),
         xaxis=dict(tickfont=dict(size=14), range=[0, 105], automargin=True),
         plot_bgcolor="#fff",
     )
 
     return fig_interval
+
 
 @app.callback(
     Output("download-excel", "data"),
@@ -495,8 +634,8 @@ def download_excel(n_clicks, table_data):
     df_to_download = pl.DataFrame(table_data)
 
     buf = BytesIO()
-    workbook = xlsxwriter.Workbook(buf, {'in_memory': True})
-    worksheet = workbook.add_worksheet('Vols filtrés')
+    workbook = xlsxwriter.Workbook(buf, {"in_memory": True})
+    worksheet = workbook.add_worksheet("Vols filtrés")
 
     # Écriture des en-têtes
     for j, col in enumerate(df_to_download.columns):

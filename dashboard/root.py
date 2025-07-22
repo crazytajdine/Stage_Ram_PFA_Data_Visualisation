@@ -3,17 +3,17 @@ from dash.dependencies import Input, Output
 
 import dash_bootstrap_components as dbc
 
-from .excel_manager import hookers as excel_hookers, add_callbacks, path_exits
-from .server_instance import get_app
+from excel_manager import hookers as excel_hookers, add_callbacks, path_exits
+from server_instance import get_app
 
 
-from .pages.tech import page as tech
-from .pages.verify import page as verify
-from .pages.home import page as home
-from .pages.temporal import page as temporal
-from .pages.weekly import page as weekly
-from .pages.settings import page as settings
-from .pages.performance_metrics import page as performance_metrics
+from pages.tech import page as tech
+from pages.verify import page as verify
+from pages.home import page as home
+from pages.temporal import page as temporal
+from pages.weekly import page as weekly
+from pages.settings import page as settings
+from pages.performance_metrics import page as performance_metrics
 
 
 app = get_app()
@@ -103,7 +103,7 @@ add_callbacks()
 
 def start_server():
     print("🔁 Starting Dash server…")
-    app.run(debug=True, use_reloader=False, port=8050)
+    app.run(debug=True, use_reloader=True, port=8050)
 
 
 if __name__ == "__main__":

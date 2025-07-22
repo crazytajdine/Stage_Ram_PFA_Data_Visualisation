@@ -5,14 +5,12 @@ delay_codes_app.py  –  Dash + Polars  •  Darkly theme
 import polars as pl
 from pathlib import Path
 from datetime import datetime, timedelta
-import dash
 from dash import Dash, html, dcc, dash_table, Input, Output, State
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 import plotly.express as px
-import json
-from dashboard.server_instance import get_app
-from dashboard import excel_manager
+from server_instance import get_app
+import excel_manager
 import math
 
 
@@ -24,7 +22,7 @@ app = get_app()
 
 try:
     # Lazy read once
-    df_lazy= excel_manager.df
+    df_lazy = excel_manager.df
 
     # Normalise column names
     col_map = {
@@ -229,11 +227,11 @@ def compute_divisors(start: str | None, end: str | None) -> list[int]:
     except ValueError:
         return []
 
-    D = (d1 - d0).days + 1            # inclusive: end date minus start date plus 1
+    D = (d1 - d0).days + 1  # inclusive: end date minus start date plus 1
     if D <= 0:
         return []
 
-    return [d for d in range( 1, D + 1) ]
+    return [d for d in range(1, D + 1)]
 
 
 """
@@ -243,27 +241,33 @@ It adds a new column to your table that tells you which time period each row bel
 ---------------I am talking about the following function---------------
 
 """
-def create_time_segments(df: pl.DataFrame, dt_start: str, dt_end: str, segmentation: int | None) -> pl.DataFrame:
+
+
+def create_time_segments(
+    df: pl.DataFrame, dt_start: str, dt_end: str, segmentation: int | None
+) -> pl.DataFrame:
     """
     Add time period column to dataframe based on segmentation.
     If segmentation is None, use the whole duration as one period.
     """
     if df.is_empty():
         return df
-    
+
     if segmentation is None:
         # No segmentation - whole duration is one period
-        return df.with_columns(pl.lit("All Period").alias("time_period")) 
+        return df.with_columns(pl.lit("All Period").alias("time_period"))
     # this creates a new column "time_period" with the value "All Period" for all rows
-    
+
     # Convert start/end to dates
     start_date = datetime.fromisoformat(dt_start[:10]).date()
     end_date = datetime.fromisoformat(dt_end[:10]).date()
-    
+
     # Create time periods based on segmentation
     total_days = (end_date - start_date).days + 1
-    
-    def get_period_for_date(date_val):# this function returns the time period for a given date "date_val"
+
+    def get_period_for_date(
+        date_val,
+    ):  # this function returns the time period for a given date "date_val"
         """
         Return the time period (str) the given date falls in, based on segmentation.
         If segmentation is None, returns "All Period".
@@ -272,22 +276,29 @@ def create_time_segments(df: pl.DataFrame, dt_start: str, dt_end: str, segmentat
             date_obj = datetime.fromisoformat(date_val).date()
         else:
             date_obj = date_val
-        
+
         days_from_start = (date_obj - start_date).days
-        
+
         # Calculate the period number based on segmentation
-        period_num = min(days_from_start // segmentation, (total_days - 1) // segmentation)
-        
+        period_num = min(
+            days_from_start // segmentation, (total_days - 1) // segmentation
+        )
+
         # Calculate the start and end dates for the period
         period_start = start_date + timedelta(days=period_num * segmentation)
-        period_end = min(start_date + timedelta(days=(period_num + 1) * segmentation - 1), end_date)
-        
+        period_end = min(
+            start_date + timedelta(days=(period_num + 1) * segmentation - 1), end_date
+        )
+
         # Return the time period as a string
         return f"{period_start} to {period_end}"
-    
+
     return df.with_columns(
-        pl.col("DEP_DATE").map_elements(get_period_for_date, return_dtype=pl.Utf8).alias("time_period")
+        pl.col("DEP_DATE")
+        .map_elements(get_period_for_date, return_dtype=pl.Utf8)
+        .alias("time_period")
     )
+
 
 # ------------------------------------------------------------------ #
 # 3 ▸  Layout factory                                                #
@@ -577,18 +588,22 @@ def filter_data(n_clicks, fl_sel, mat_sel, code_sel, segmentation, dt_start, dt_
 
     # Also create data for table (without code filtering)
     df_for_table = df_filtered
-    
+
     # Apply only basic filters for table
     if fl_sel:
         df_for_table = df_for_table.filter(pl.col("AC_SUBTYPE").is_in(fl_sel))
     if mat_sel:
         df_for_table = df_for_table.filter(pl.col("AC_REGISTRATION").is_in(mat_sel))
-    
+
     # Date filtering for table
     if dt_start:
-        df_for_table = df_for_table.filter(pl.col("DEP_DATE") >= datetime.fromisoformat(dt_start).date())
+        df_for_table = df_for_table.filter(
+            pl.col("DEP_DATE") >= datetime.fromisoformat(dt_start).date()
+        )
     if dt_end:
-        df_for_table = df_for_table.filter(pl.col("DEP_DATE") <= datetime.fromisoformat(dt_end).date())
+        df_for_table = df_for_table.filter(
+            pl.col("DEP_DATE") <= datetime.fromisoformat(dt_end).date()
+        )
 
     # Convert to dict for JSON serialization
     return {
@@ -652,7 +667,7 @@ def build_outputs(store_data):
     segmentation = store_data.get("segmentation") if store_data else None
     dt_start = store_data.get("dt_start", dt_min_iso) if store_data else dt_min_iso
     dt_end = store_data.get("dt_end", dt_max_iso) if store_data else dt_max_iso
-    
+
     if df.is_empty():
         fig = go.Figure()
         fig.add_annotation(
@@ -667,13 +682,13 @@ def build_outputs(store_data):
     else:
         # 1) Build the fixed list of periods from dt_start → dt_end
         start_date = datetime.fromisoformat(dt_start[:10]).date()
-        end_date   = datetime.fromisoformat(dt_end[:10]).date()
+        end_date = datetime.fromisoformat(dt_end[:10]).date()
 
         if segmentation is None:
             all_periods = ["All Period"]
             display_periods = ["All Period"]
         else:
-            total_days  = (end_date - start_date).days + 1
+            total_days = (end_date - start_date).days + 1
             num_periods = math.ceil(total_days / segmentation)
             all_periods = []
             for i in range(num_periods):
@@ -688,60 +703,65 @@ def build_outputs(store_data):
         # 2) Tag every row with its period
         df_with_periods_full = create_time_segments(df, dt_start, dt_end, segmentation)
 
-        
         # Get selected codes from store_data
         code_sel = store_data.get("code_sel") if store_data else None
-        
+
         # Filter by selected codes AFTER time segmentation
         if code_sel:
             df_chart = df_with_periods_full.filter(pl.col("CODE_DR").is_in(code_sel))
             selected_codes = code_sel
         else:
             df_chart = df_with_periods_full
-            selected_codes = df_chart["CODE_DR"].unique().sort().to_list() if not df_chart.is_empty() else []
-        
+            selected_codes = (
+                df_chart["CODE_DR"].unique().sort().to_list()
+                if not df_chart.is_empty()
+                else []
+            )
+
         if df_chart.is_empty() or not selected_codes:
             fig = go.Figure()
             fig.add_annotation(
                 text="Aucune donnée pour les codes sélectionnés",
-                xref="paper", yref="paper",
-                x=0.5, y=0.5, showarrow=False,
+                xref="paper",
+                yref="paper",
+                x=0.5,
+                y=0.5,
+                showarrow=False,
                 font=dict(size=16, color="#a0a7b9"),
             )
         else:
             # Group by time period and code
             temporal_data = (
-                df_chart
-                .group_by(["time_period", "CODE_DR"])
+                df_chart.group_by(["time_period", "CODE_DR"])
                 .agg(pl.len().alias("count"))
                 .sort(["time_period", "CODE_DR"])
             )
-            
+
             # Create color palette for ALL unique codes (consistent colors)
-            all_unique_codes = df["CODE_DR"].unique().sort().to_list() if not df.is_empty() else []
+            all_unique_codes = (
+                df["CODE_DR"].unique().sort().to_list() if not df.is_empty() else []
+            )
             colors = px.colors.qualitative.Set3
-            color_map = {code: colors[i % len(colors)] for i, code in enumerate(all_unique_codes)}
-            
+            color_map = {
+                code: colors[i % len(colors)] for i, code in enumerate(all_unique_codes)
+            }
+
             fig = go.Figure()
-            
+
             # Add bars for each SELECTED code
         fig = go.Figure()
-# Add bars for each SELECTED code (zero-fill via a map + formatted dates)
+        # Add bars for each SELECTED code (zero-fill via a map + formatted dates)
         for code in selected_codes:
             # 1) Build map: period → count
-            code_rows  = (
-                temporal_data
-                .filter(pl.col("CODE_DR") == code)
-                .to_dicts()
-            )
+            code_rows = temporal_data.filter(pl.col("CODE_DR") == code).to_dicts()
             # Compute total delays per period
-            period_totals = (
-                temporal_data
-                .group_by("time_period")
-                .agg(pl.col("count").sum().alias("period_total"))
+            period_totals = temporal_data.group_by("time_period").agg(
+                pl.col("count").sum().alias("period_total")
             )
             # Turn into a lookup map: { period_label: total_count }
-            period_totals_map = {r["time_period"]: r["period_total"] for r in period_totals.to_dicts()}
+            period_totals_map = {
+                r["time_period"]: r["period_total"] for r in period_totals.to_dicts()
+            }
 
             counts_map = {r["time_period"]: r["count"] for r in code_rows}
 
@@ -753,22 +773,23 @@ def build_outputs(store_data):
                 (full_counts[i] / period_totals_map.get(p, 1)) * 100
                 for i, p in enumerate(all_periods)
             ]
-            customdata  = list(zip(full_counts, full_perc))
-            fig.add_trace(go.Bar(
-                x=display_periods,
-                y=full_perc,
-                name=code,
-                marker_color=color_map.get(code, "#cccccc"),
-                customdata=customdata,
-                hovertemplate=(
-                    f"<b>{code}</b><br>"
-                    "Période: %{x}<br>"
-                    "Occurrences: %{customdata[0]}<br>"
-                    "Pourcentage: %{customdata[1]:.1f}%<br>"
-                    "<extra></extra>"
-                ),
-            ))
-
+            customdata = list(zip(full_counts, full_perc))
+            fig.add_trace(
+                go.Bar(
+                    x=display_periods,
+                    y=full_perc,
+                    name=code,
+                    marker_color=color_map.get(code, "#cccccc"),
+                    customdata=customdata,
+                    hovertemplate=(
+                        f"<b>{code}</b><br>"
+                        "Période: %{x}<br>"
+                        "Occurrences: %{customdata[0]}<br>"
+                        "Pourcentage: %{customdata[1]:.1f}%<br>"
+                        "<extra></extra>"
+                    ),
+                )
+            )
 
     fig.update_layout(
         template="plotly_white",
@@ -779,13 +800,7 @@ def build_outputs(store_data):
         title="Évolution des codes de retard par période",
         barmode="group",
         font=dict(size=12),
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1
-        ),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     )
 
     # 3. Build table (independent of code and segmentation selection)
@@ -793,7 +808,7 @@ def build_outputs(store_data):
         table_df = df_filtered
     else:
         table_df = pl.DataFrame(store_data["table_payload"])
-        
+
         # If data exists, ensure date column is properly typed
         if not table_df.is_empty() and "DEP_DATE" in table_df.columns:
             # Convert DEP_DATE back to date type if it's a string
@@ -801,9 +816,9 @@ def build_outputs(store_data):
                 table_df = table_df.with_columns(
                     pl.col("DEP_DATE").str.strptime(pl.Date, "%Y-%m-%d", strict=False)
                 )
-    
+
     summary_table = analyze_delay_codes_for_table(table_df)
-    
+
     if summary_table.is_empty():
         table = dbc.Alert(
             "Aucun code de retard trouvé dans la sélection",
@@ -812,7 +827,9 @@ def build_outputs(store_data):
         )
     else:
         # Rename columns for display
-        summary_table = summary_table.rename({"CODE_DR": "Code", "Nb_AP": "Nb Aéroports"})
+        summary_table = summary_table.rename(
+            {"CODE_DR": "Code", "Nb_AP": "Nb Aéroports"}
+        )
 
         table = dash_table.DataTable(
             id="codes-table",
@@ -898,16 +915,18 @@ def update_codes(fl_sel, mat_sel):
 @app.callback(
     Output("segmentation-dd", "options"),
     Output("segmentation-dd", "disabled"),
-    Output("segmentation-dd", "value"),     # reset value if dates change
+    Output("segmentation-dd", "value"),  # reset value if dates change
     Input("dt-start-input", "value"),
     Input("dt-end-input", "value"),
     prevent_initial_call=True,
 )
 def update_segmentation(start_date, end_date):
     divisors = compute_divisors(start_date, end_date)
-    options = [{"label": f"{d} day{'s' if d > 1 else ''}", "value": d} for d in divisors]
+    options = [
+        {"label": f"{d} day{'s' if d > 1 else ''}", "value": d} for d in divisors
+    ]
     disabled = not options
-    return options, disabled, None        # clear selection whenever list rebuilds
+    return options, disabled, None  # clear selection whenever list rebuilds
 
 
 # ------------------------------------------------------------------ #
