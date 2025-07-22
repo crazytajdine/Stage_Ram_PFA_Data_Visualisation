@@ -20,23 +20,23 @@ from excel_manager import (
 
 COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY = "flight_with_delay"
 COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_GTE_15MIN = "flight_with_delay_gte_15min"
-COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_42_GTE_15MIN = (
-    "flight_with_delay_gte_15min_code_41_42"
+COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_46_GTE_15MIN = (
+    "flight_with_delay_gte_15min_code_41_46"
 )
 
 
 COL_NAME_PER_FLIGHTS_NOT_DELAYED = "per_flights_not_delayed"
 COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN = "per_delayed_flights_not_with_15min"
-COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_42 = (
-    "per_delayed_flights_15min__not_with_41_42"
+COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46 = (
+    "per_delayed_flights_15min__not_with_41_46"
 )
 
 COL_NAME_PER_FLIGHTS_NOT_DELAYED_SHOW = "per_flights_not_delayed_show_show"
 COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN_SHOW = (
     "per_delayed_flights_not_with_15min_show"
 )
-COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_42_SHOW = (
-    "per_delayed_flights_15min__not_with_41_42_SHOW"
+COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46_SHOW = (
+    "per_delayed_flights_15min__not_with_41_46_SHOW"
 )
 
 ID_GRAPH_DELAY = "graph_delay"
@@ -78,7 +78,7 @@ def calculate_graph_info(df: pl.LazyFrame) -> pl.LazyFrame:
     ##
     delayed_flights_41_42_gte_15min_count_df = delayed_15min_df.filter(
         (pl.col("CODE_DR").is_in({41, 42}))
-    ).select(pl.len().alias(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_42_GTE_15MIN))
+    ).select(pl.len().alias(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_46_GTE_15MIN))
 
     joined_df: pl.LazyFrame = pl.concat(
         [
@@ -119,17 +119,17 @@ def calculate_graph_info_with_period(df: pl.LazyFrame, window_str: str) -> pl.La
     )
 
     ##
-    delayed_flights_41_42_gte_15min_count_df = (
-        delayed_15min_df.filter(pl.col("CODE_DR").is_in({41, 42}))
+    delayed_flights_41_46_gte_15min_count_df = (
+        delayed_15min_df.filter(pl.col("CODE_DR").is_in({41, 46}))
         .group_by(COL_NAME_WINDOW_TIME)
-        .agg(pl.len().alias(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_42_GTE_15MIN))
+        .agg(pl.len().alias(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_46_GTE_15MIN))
     )
 
     joined_df = (
         total_df.join(delayed_flights_count_df, COL_NAME_WINDOW_TIME, how="left")
         .join(delayed_15min_count_df, COL_NAME_WINDOW_TIME, how="left")
         .join(
-            delayed_flights_41_42_gte_15min_count_df, COL_NAME_WINDOW_TIME, how="left"
+            delayed_flights_41_46_gte_15min_count_df, COL_NAME_WINDOW_TIME, how="left"
         )
         .fill_null(0)
     )
@@ -156,11 +156,15 @@ def create_graph_card(
     if x not in df.columns:
         return None
 
+    len_date = df.select(pl.col(x).len()).item()
+    print("len ", len_date)
+
     # Create figure
     fig = px.bar(df, x=x, y=y, title=title, text=text)
     max_y = df[y].max() * 1.15
 
-    threshold = 12
+    threshold_sep_x = 12
+    threshold_show_y = 20
 
     # Update layout
     fig.update_layout(
@@ -168,12 +172,14 @@ def create_graph_card(
         paper_bgcolor="rgba(0,0,0,0)",
         title_x=0.5,
         margin=dict(t=50, b=30, l=20, r=20),
-        yaxis=dict(range=[0, max_y], visible=False),
+        yaxis=dict(range=[0, max_y], visible=len_date > threshold_show_y),
+        yaxis_title="",
+        xaxis_title="",
     )
 
     # Style bars
     fig.update_traces(
-        textposition="outside",
+        textposition="outside" if len_date <= threshold_show_y else "none",
         marker_color="rgb(0, 123, 255)",
         hovertemplate="%{x}<br>%{text}<extra></extra>",
         textfont_size=16,
@@ -181,13 +187,13 @@ def create_graph_card(
 
     # Handle short x-axis
     unique_x = df[x].unique()
-    if len(unique_x) <= threshold:
+    if len(unique_x) <= threshold_sep_x:
         fig.update_xaxes(tickmode="array", tickvals=unique_x)
 
     # Return the full card component
     return dbc.Card(
         dbc.CardBody([dcc.Graph(figure=fig)]),
-        className="mb-4",
+        className=f"mb-4",
     )
 
 
@@ -294,12 +300,12 @@ def calculate_result(
             pl.lit(1)
             .sub(
                 (
-                    pl.col(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_42_GTE_15MIN)
+                    pl.col(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_46_GTE_15MIN)
                     / pl.col(COL_NAME_TOTAL_COUNT)
                 )
             )
             .mul(100)
-            .alias(COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_42),
+            .alias(COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46),
         ]
     )
 
@@ -313,8 +319,8 @@ def calculate_result(
             COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN_SHOW,
         ),
         (
-            COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_42,
-            COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_42_SHOW,
+            COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46,
+            COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46_SHOW,
         ),
     ]
 
@@ -373,13 +379,9 @@ layout = dbc.Container(
             [
                 dbc.Col(
                     id=ID_GRAPH_DELAY,
-                    lg=12,
-                    xl=6,
                 ),
                 dbc.Col(
                     id=ID_GRAPH_DELAY_15MIN,
-                    lg=12,
-                    xl=6,
                 ),
                 dbc.Col(
                     id=ID_GRAPH_DELAY_41_42_15MIN,
@@ -423,39 +425,39 @@ def create_layout(_, n_clicks, window_str):
     card1 = generate_card(
         result,
         COL_NAME_PER_FLIGHTS_NOT_DELAYED,
-        "Percentage On-Time Performance (without delay)",
+        "Percentage of On-Time Flights",
     )  # example first card
     card2 = generate_card(
         result,
         COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN,
-        "Percentage Extended Delays Less Than 15 Min",
+        "Percentage of On-Time or Delays Less Than 15 Minutes",
     )  # example second card
     card3 = generate_card(
         result,
-        COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_42,
-        "Percentage Extended Delays Less Than 15 Min (Non-41/42)",
+        COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46,
+        "Percentage of On-Time or less than 15 Minutes, or Delays Not Due to Reasons 41/46",
     )  # example second card
 
     fig1 = create_graph_card(
         result,
         COL_NAME_WINDOW_TIME,
         COL_NAME_PER_FLIGHTS_NOT_DELAYED,
-        "Percentage of Flights Not Delayed",
+        "Percentage of On-Time Flights",
         COL_NAME_PER_FLIGHTS_NOT_DELAYED_SHOW,
     )
     fig2 = create_graph_card(
         result,
         COL_NAME_WINDOW_TIME,
         COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN,
-        "Percentage of Delays Less Than 15 Minutes",
+        "Percentage of On-Time or Delays Less Than 15 Minutes",
         COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN_SHOW,
     )
     fig3 = create_graph_card(
         result,
         COL_NAME_WINDOW_TIME,
-        COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_42,
-        "Percentage of 15+ Min Delays Not Attributed to Reasons 41/42",
-        COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_42_SHOW,
+        COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46,
+        "Percentage of On-Time or less than 15 Minutes, or Delays Not Due to Reasons 41/46",
+        COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46_SHOW,
     )
 
     return card1, card2, card3, fig1, fig2, fig3

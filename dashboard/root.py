@@ -101,7 +101,7 @@ add_callbacks()
 
 def start_server():
     print("🔁 Starting Dash server…")
-    app.run(debug=True, use_reloader=True, port=8050)
+    app.run(debug=True, use_reloader=False, port=8050)
 
 
 if __name__ == "__main__":
