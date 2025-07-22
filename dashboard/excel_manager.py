@@ -7,7 +7,7 @@ from dash import Input, Output, State, dcc
 
 
 from config import get_config_dir, config, load_config, save_config
-from .server_instance import get_app
+from server_instance import get_app
 
 
 # global
@@ -70,7 +70,9 @@ def path_exits():
 
 def filter_tec(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
 
-    return df_lazy.filter(pl.col("LIB_CODE_DR") == "TEC")
+    return df_lazy.filter(
+        pl.col("CODE_DR").is_in([41, 42, 43, 44, 45, 46, 47, 51, 52, 55, 56, 57])
+    )
 
 
 def filter_retard(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
