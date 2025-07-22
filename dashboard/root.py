@@ -1,21 +1,20 @@
-import os
 from dash import html, dcc
 from dash.dependencies import Input, Output
 
 import dash_bootstrap_components as dbc
 
-from dashboard.excel_manager import hookers as excel_hookers, add_callbacks
-from dashboard.server_instance import get_app
+from .excel_manager import hookers as excel_hookers, add_callbacks, path_exits
+from .server_instance import get_app
 
 
-import pages.tech.page as tech
-import pages.verify.page as verify
-import pages.home.page as home
-import pages.temporal.page as temporal
-import dashboard.pages.weekly.page as page
-import pages.settings.page as settings
-import pages.performance_metrics.page as performance_metrics
-import pages.weekly.page as weekly
+from .pages.tech import page as tech
+from .pages.verify import page as verify
+from .pages.home import page as home
+from .pages.temporal import page as temporal
+from .pages.weekly import page as weekly
+from .pages.settings import page as settings
+from .pages.performance_metrics import page as performance_metrics
+
 
 app = get_app()
 
@@ -73,12 +72,8 @@ def build_nav_items(path_exits: bool):
 )
 def update_layout(pathname, _):
 
-    from dashboard.excel_manager import path_exits
-
     path_exists = path_exits()
-
     print(f"path_exists: {path_exists}")
-
     nav_items = build_nav_items(path_exists)
     print([i["name"] for i in nav_items])
 
@@ -106,7 +101,11 @@ def update_layout(pathname, _):
 add_callbacks()
 
 
+def start_server():
+    print("🔁 Starting Dash server…")
+    app.run(debug=True, use_reloader=False, port=8050)
+
+
 if __name__ == "__main__":
     print("🔁 Launching Dash app...")
-
-    app.run(debug=True, use_reloader=True)
+    start_server()
