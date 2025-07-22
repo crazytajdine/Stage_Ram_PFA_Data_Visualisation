@@ -38,9 +38,9 @@ try:
     )
 
     # Keep only delay-code rows with TEC description
-    df_filtered = df_lazy.filter(pl.col("LIB_CODE_DR") == "TEC").collect()
+    df_filtered = df_lazy.collect()
 
-    print(f"✅ Weekly analysis data loaded: {df_filtered.height} rows with TEC codes")
+    print(f"✅ Weekly analysis data loaded: {df_filtered.height} rows")
 
 except Exception as e:
     print(f"❌ Error loading data for weekly analysis: {e}")

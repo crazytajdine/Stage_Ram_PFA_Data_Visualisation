@@ -486,15 +486,23 @@ def make_layout(total_vols: int) -> html.Div:
         style={"paddingRight": "20px"},
     )
 
-    right_panel = [
-        html.H2(
-            "Évolution temporelle des codes de retard",
-            className="mb-3 h3",
-        ),
-        dbc.Card(
-            dcc.Graph(id="codes-chart", style={"height": "70vh"}),
-        ),
-    ]
+# --- right_panel ---------------------------------------------------
+    right_panel = html.Div(                         # ⬅️ wrap the charts in a Div
+    id="charts-container",
+    children=[],
+    style={
+        # 🆕 use CSS-grid instead of flex ----------
+        "display": "grid",
+        "gridTemplateColumns": "repeat(2, 1fr)",
+        "gridAutoRows": "400px",  # ← two columns
+        "gap": "16px",
+        "height": "100vh",
+        "overflowY": "auto",
+        "alignItems": "start",
+    },
+    )
+
+    
 
     return dbc.Container(
         fluid=True,
@@ -515,14 +523,14 @@ def make_layout(total_vols: int) -> html.Div:
                 [
                     dbc.Col(
                         left_panel,
-                        md=7,
-                        lg=7,
+                        md=4,
+                        lg=4,
                         className="d-flex flex-column vh-100 overflow-auto",
                     ),
                     dbc.Col(
                         right_panel,
-                        md=5,
-                        lg=5,
+                        md=8,
+                        lg=8,
                         className="d-flex flex-column vh-100 overflow-auto",
                     ),
                 ],
@@ -623,7 +631,7 @@ def filter_data(n_clicks, fl_sel, mat_sel, code_sel, segmentation, dt_start, dt_
 @app.callback(
     [
         Output("stats-div", "children"),
-        Output("codes-chart", "figure"),
+        Output("charts-container", "children"),
         Output("table-container", "children"),
     ],
     Input("filtered-store", "data"),
@@ -703,6 +711,22 @@ def build_outputs(store_data):
         # 2) Tag every row with its period
         df_with_periods_full = create_time_segments(df, dt_start, dt_end, segmentation)
 
+        # ---------- COMMON PERIOD TOTALS (used by every family chart) -------
+        temporal_all = (
+            df_with_periods_full
+            .group_by(["time_period", "CODE_DR", "FAMILLE_DR"])
+            .agg(pl.len().alias("count"))
+        )
+
+        period_totals_map = {
+            r["time_period"]: r["count"]
+            for r in (
+                temporal_all
+                .group_by("time_period")
+                .agg(pl.col("count").sum().alias("count"))
+                .to_dicts()
+            )
+        }
         # Get selected codes from store_data
         code_sel = store_data.get("code_sel") if store_data else None
 
@@ -730,78 +754,71 @@ def build_outputs(store_data):
                 font=dict(size=16, color="#a0a7b9"),
             )
         else:
-            # Group by time period and code
-            temporal_data = (
-                df_chart.group_by(["time_period", "CODE_DR"])
-                .agg(pl.len().alias("count"))
-                .sort(["time_period", "CODE_DR"])
-            )
+                        # Group by time period and code
+            # ---------- FAMILY-LEVEL CHARTS ------------------------------------
+            family_figs = []                     # list of Graph components to return
 
-            # Create color palette for ALL unique codes (consistent colors)
-            all_unique_codes = (
-                df["CODE_DR"].unique().sort().to_list() if not df.is_empty() else []
-            )
-            colors = px.colors.qualitative.Set3
-            color_map = {
-                code: colors[i % len(colors)] for i, code in enumerate(all_unique_codes)
-            }
+            # consistent colour map across all charts
+            all_unique_codes = df_with_periods_full["CODE_DR"].unique().sort().to_list()
+            palette = px.colors.qualitative.Set3
+            color_map = {c: palette[i % len(palette)] for i, c in enumerate(all_unique_codes)}
 
-            fig = go.Figure()
+            for fam in temporal_all["FAMILLE_DR"].unique().sort():
+                fam_data = temporal_all.filter(pl.col("FAMILLE_DR") == fam)
 
-            # Add bars for each SELECTED code
-        fig = go.Figure()
-        # Add bars for each SELECTED code (zero-fill via a map + formatted dates)
-        for code in selected_codes:
-            # 1) Build map: period → count
-            code_rows = temporal_data.filter(pl.col("CODE_DR") == code).to_dicts()
-            # Compute total delays per period
-            period_totals = temporal_data.group_by("time_period").agg(
-                pl.col("count").sum().alias("period_total")
-            )
-            # Turn into a lookup map: { period_label: total_count }
-            period_totals_map = {
-                r["time_period"]: r["period_total"] for r in period_totals.to_dicts()
-            }
+                if fam_data.is_empty():
+                    continue
 
-            counts_map = {r["time_period"]: r["count"] for r in code_rows}
+                fig = go.Figure()
 
-            # 2) Zero-fill all_periods in one line
-            # 1) raw counts per period
-            full_counts = [counts_map.get(p, 0) for p in all_periods]
-            # 2) convert to % of that period’s total
-            full_perc = [
-                (full_counts[i] / period_totals_map.get(p, 1)) * 100
-                for i, p in enumerate(all_periods)
-            ]
-            customdata = list(zip(full_counts, full_perc))
-            fig.add_trace(
-                go.Bar(
-                    x=display_periods,
-                    y=full_perc,
-                    name=code,
-                    marker_color=color_map.get(code, "#cccccc"),
-                    customdata=customdata,
-                    hovertemplate=(
-                        f"<b>{code}</b><br>"
-                        "Période: %{x}<br>"
-                        "Occurrences: %{customdata[0]}<br>"
-                        "Pourcentage: %{customdata[1]:.1f}%<br>"
-                        "<extra></extra>"
-                    ),
+                for code in fam_data["CODE_DR"].unique().sort().to_list():
+                    rows = fam_data.filter(pl.col("CODE_DR") == code).to_dicts()
+                    counts_map = {r["time_period"]: r["count"] for r in rows}
+
+                    # zero-fill periods & convert to %
+                    full_counts = [counts_map.get(p, 0) for p in all_periods]
+                    full_perc   = [
+                        (full_counts[i] / period_totals_map.get(p, 1)) * 100
+                        for i, p in enumerate(all_periods)
+                    ]
+
+                    fig.add_trace(
+                        go.Bar(
+                            x=display_periods,
+                            y=full_perc,
+                            name=code,
+                            marker_color=color_map.get(code, "#cccccc"),
+                            customdata=list(zip(full_counts, full_perc)),
+                            hovertemplate=(
+                                f"<b>{code}</b><br>"
+                                "Période : %{x}<br>"
+                                "Occur. : %{customdata[0]}<br>"
+                                "Pourc. : %{customdata[1]:.1f}%<extra></extra>"
+                            ),
+                        )
+                    )
+
+                fig.update_layout(
+                    title=f"Famille : {fam}",
+                    barmode="group",
+                    height=1000,
+                    margin=dict(l=40, r=10, t=40, b=40),
+                    xaxis_title="Période",
+                    yaxis_title="Pourcentage (%)",
+                    template="plotly_white",
+                    legend_title="Code",
+                    font=dict(size=11),
+                    yaxis=dict(range=[0, 100], tickformat=".0f"),   #  ⬅️ keep 0-100 %
                 )
-            )
 
-    fig.update_layout(
-        template="plotly_white",
-        height=600,
-        margin=dict(l=50, r=20, t=40, b=40),
-        xaxis_title="Période",
-        yaxis_title="Pourcentage (%)",
-        title="Évolution des codes de retard par période",
-        barmode="group",
-        font=dict(size=12),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    )
+                family_figs.append(
+                    dcc.Graph(
+                        id=f"chart-{fam}",
+                          figure=fig, 
+                          style={   "height": "100%",   "width":  "100%",    }    #   (grid controls width)})
+                          )
+                
+                )
 
     # 3. Build table (independent of code and segmentation selection)
     if not store_data or not store_data.get("table_payload"):
@@ -869,7 +886,7 @@ def build_outputs(store_data):
             style_table={"height": "500px", "overflowY": "auto"},
         )
 
-    return stats, fig, table
+    return stats, family_figs, table
 
 
 # --- Update matricule options based on selected fleet --------------

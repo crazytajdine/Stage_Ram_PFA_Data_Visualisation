@@ -10,7 +10,6 @@ from server_instance import get_app
 from pages.tech import page as tech
 from pages.verify import page as verify
 from pages.home import page as home
-from pages.temporal import page as temporal
 from pages.weekly import page as weekly
 from pages.settings import page as settings
 from pages.performance_metrics import page as performance_metrics
@@ -42,7 +41,6 @@ def build_nav_items(path_exits: bool):
         nav_items = [
             {"name": "Dashboard", "href": "/", "page": home.layout},
             {"name": "Analytics", "href": "/analytics", "page": tech.layout},
-            {"name": "Temporal", "href": "/temporal", "page": temporal.layout},
             {"name": "Weekly", "href": "/weekly", "page": weekly.layout},
             {
                 "name": "Performance Metrics",
