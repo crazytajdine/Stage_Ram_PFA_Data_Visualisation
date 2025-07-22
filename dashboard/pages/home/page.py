@@ -34,7 +34,7 @@ layout = dbc.Container(
         html.Div(
             style=custom_css["container"],
             children=[
-                html.H1("Suivi des Vols - Royal Air Maroc", style=custom_css["header"], className="text-center"),
+                html.H1("Royal Air Maroc - Visualisation Interactive des Vols et Retards", style=custom_css["header"], className="text-center"),
 
                 dbc.Row(
                     [
