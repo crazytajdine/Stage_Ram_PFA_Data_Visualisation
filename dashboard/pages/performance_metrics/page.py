@@ -2,8 +2,10 @@ from datetime import datetime
 from typing import List, Optional
 import dash
 import dash_bootstrap_components as dbc
-from dash import Input, Output, html, dcc
+from dash import Input, Output, State, html, dcc
 from server_instance import get_app
+
+import plotly.graph_objs as go
 
 import polars as pl
 from excel_manager import (
@@ -55,7 +57,7 @@ from dash import dcc, html
 import plotly.express as px
 
 
-def calculate_graph_info(df: pl.LazyFrame) -> pl.DataFrame:
+def calculate_graph_info(df: pl.LazyFrame) -> pl.LazyFrame:
 
     assert df is not None
 
@@ -78,25 +80,24 @@ def calculate_graph_info(df: pl.LazyFrame) -> pl.DataFrame:
         (pl.col("CODE_DR").is_in({41, 42}))
     ).select(pl.len().alias(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_42_GTE_15MIN))
 
-    joined_df = (
-        total_df.join(
+    joined_df: pl.LazyFrame = pl.concat(
+        [
+            total_df,
             delayed_flights_count_df,
-        )
-        .join(
             delayed_15min_count_df,
-        )
-        .join(
             delayed_flights_41_42_gte_15min_count_df,
-        )
+        ],
+        how="horizontal",
     )
 
-    return joined_df.collect()
+    return joined_df
 
 
-def calculate_graph_info_with_period(df: pl.LazyFrame, window_str: str) -> pl.DataFrame:
+def calculate_graph_info_with_period(df: pl.LazyFrame, window_str: str) -> pl.LazyFrame:
 
     assert window_str and df is not None
 
+    window_str += "d"
     total_df = get_count_df(window_str)
 
     windowed_df = df.with_columns(
@@ -133,59 +134,44 @@ def calculate_graph_info_with_period(df: pl.LazyFrame, window_str: str) -> pl.Da
         .fill_null(0)
     )
 
-    joined_df = joined_df.with_columns(
-        [
-            ## delay
-            pl.lit(1)
-            .sub(
-                pl.col(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY)
-                / (pl.col(COL_NAME_TOTAL_COUNT))
-            )
-            .mul(100)
-            .alias(COL_NAME_PER_FLIGHTS_NOT_DELAYED),
-            ## delay > 15
-            pl.lit(1)
-            .sub(
-                pl.col(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_GTE_15MIN)
-                / (pl.col(COL_NAME_TOTAL_COUNT))
-            )
-            .mul(100)
-            .alias(COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN),
-            ## delay > 15 min for 41 42
-            pl.lit(1)
-            .sub(
-                (
-                    pl.col(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_42_GTE_15MIN)
-                    / pl.col(COL_NAME_TOTAL_COUNT)
-                )
-            )
-            .mul(100)
-            .alias(COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_42),
-        ]
-    )
-
     joined_df = joined_df.sort(COL_NAME_WINDOW_TIME)
 
-    return joined_df.collect()
+    return joined_df
 
 
-def create_graph_fig(df: pl.DataFrame, x: str, y: str, title: str, text=None) -> px.bar:
+from dash import dcc
+import dash_bootstrap_components as dbc
+import plotly.express as px
+import polars as pl
 
+
+def create_graph_card(
+    df: pl.DataFrame,
+    x: str,
+    y: str,
+    title: str,
+    text=None,
+) -> dbc.Card | None:
+
+    if x not in df.columns:
+        return None
+
+    # Create figure
     fig = px.bar(df, x=x, y=y, title=title, text=text)
     max_y = df[y].max() * 1.15
 
     threshold = 12
 
-    # Update layout and axis appearance
+    # Update layout
     fig.update_layout(
-        plot_bgcolor="rgba(0,0,0,0)",  # remove plot background
-        paper_bgcolor="rgba(0,0,0,0)",  # remove surrounding background
-        title_x=0.5,  # center the title (optional)
-        margin=dict(t=50, b=30, l=20, r=20),  # reduce whitespace
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        title_x=0.5,
+        margin=dict(t=50, b=30, l=20, r=20),
         yaxis=dict(range=[0, max_y], visible=False),
     )
 
-    # Position text above bars
+    # Style bars
     fig.update_traces(
         textposition="outside",
         marker_color="rgb(0, 123, 255)",
@@ -193,11 +179,16 @@ def create_graph_fig(df: pl.DataFrame, x: str, y: str, title: str, text=None) ->
         textfont_size=16,
     )
 
+    # Handle short x-axis
     unique_x = df[x].unique()
     if len(unique_x) <= threshold:
         fig.update_xaxes(tickmode="array", tickvals=unique_x)
 
-    return fig
+    # Return the full card component
+    return dbc.Card(
+        dbc.CardBody([dcc.Graph(figure=fig)]),
+        className="mb-4",
+    )
 
 
 def generate_card(df: pl.DataFrame, col_name: str, title: str) -> dbc.Card:
@@ -205,13 +196,13 @@ def generate_card(df: pl.DataFrame, col_name: str, title: str) -> dbc.Card:
     assert df is not None and col_name is not None
 
     latest_values = df.select(pl.col(col_name).tail(2)).to_series().to_list()
-
     # Calculate change
-    if COL_NAME_WINDOW_TIME in df.columns and len(latest_values) != 2:
-        change = None
-    else:
+    if COL_NAME_WINDOW_TIME in df.columns and len(latest_values) == 2:
         this_year, last_year = latest_values
         change = this_year - last_year
+    else:
+        this_year = latest_values[0]
+        change = None
 
     # Determine display for change
     if change is None:
@@ -242,7 +233,8 @@ def generate_card(df: pl.DataFrame, col_name: str, title: str) -> dbc.Card:
             dbc.CardHeader(
                 [
                     html.Div(
-                        className=f"bg-{stripe_color} mb-1", style={"height": "4px"}
+                        className=f"bg-{stripe_color} rounded-top mb-1",
+                        style={"height": "4px"},
                     ),
                     html.H5(title, className="text-muted px-4 mb-0"),
                 ],
@@ -261,7 +253,7 @@ def generate_card(df: pl.DataFrame, col_name: str, title: str) -> dbc.Card:
                 className="text-center bg-transparent border-0",
             ),
         ],
-        className="d-flex flex-column shadow-sm rounded-2 card-hover w-100 h-100",
+        className="d-flex flex-column shadow-sm rounded-2 w-100 h-100",
     )
 
 
@@ -272,12 +264,44 @@ def calculate_result(
 
     if df is None:
         return None
+    print("Calculating window with string:", window_str)
 
     if window_str:
         res_df = calculate_graph_info_with_period(df, window_str)
 
     else:
         res_df = calculate_graph_info(df)
+
+    res_df = res_df.with_columns(
+        [
+            ## delay
+            pl.lit(1)
+            .sub(
+                pl.col(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY)
+                / (pl.col(COL_NAME_TOTAL_COUNT))
+            )
+            .mul(100)
+            .alias(COL_NAME_PER_FLIGHTS_NOT_DELAYED),
+            ## delay > 15
+            pl.lit(1)
+            .sub(
+                pl.col(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_GTE_15MIN)
+                / (pl.col(COL_NAME_TOTAL_COUNT))
+            )
+            .mul(100)
+            .alias(COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN),
+            ## delay > 15 min for 41 42
+            pl.lit(1)
+            .sub(
+                (
+                    pl.col(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_42_GTE_15MIN)
+                    / pl.col(COL_NAME_TOTAL_COUNT)
+                )
+            )
+            .mul(100)
+            .alias(COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_42),
+        ]
+    )
 
     columns_to_format = [
         (
@@ -306,8 +330,7 @@ def calculate_result(
             for col, show_col in columns_to_format
         ]
     )
-
-    return res_df
+    return res_df.collect()
 
 
 def get_two_latest_values(df: pl.DataFrame, x: str):
@@ -332,9 +355,9 @@ layout = dbc.Container(
             id="window",
             type="text",  # or "number", "password", etc.
             placeholder="Enter window size...",
-            value="3w",  # default value (optional)
             style={"width": "150px"},
         ),
+        dbc.Button("sub", id="submit-button"),
         # Metrics row
         dbc.Row(
             [
@@ -349,26 +372,17 @@ layout = dbc.Container(
         dbc.Row(
             [
                 dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody([dcc.Graph(id=ID_GRAPH_DELAY)]),
-                        className=" mb-4",
-                    ),
+                    id=ID_GRAPH_DELAY,
                     lg=12,
                     xl=6,
                 ),
                 dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody([dcc.Graph(id=ID_GRAPH_DELAY_15MIN)]),
-                        className=" mb-4",
-                    ),
+                    id=ID_GRAPH_DELAY_15MIN,
                     lg=12,
                     xl=6,
                 ),
                 dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody([dcc.Graph(id=ID_GRAPH_DELAY_41_42_15MIN)]),
-                        className=" mb-4",
-                    ),
+                    id=ID_GRAPH_DELAY_41_42_15MIN,
                     lg=12,
                     xl=12,
                 ),
@@ -386,19 +400,17 @@ layout = dbc.Container(
         Output(ID_CARD_DELAY, "children"),
         Output(ID_CARD_DELAY_15MIN, "children"),
         Output(ID_CARD_DELAY_15MIN_41_42, "children"),
-        Output(ID_GRAPH_DELAY, "figure"),
-        Output(ID_GRAPH_DELAY_15MIN, "figure"),
-        Output(ID_GRAPH_DELAY_41_42_15MIN, "figure"),
+        Output(ID_GRAPH_DELAY, "children"),
+        Output(ID_GRAPH_DELAY_15MIN, "children"),
+        Output(ID_GRAPH_DELAY_41_42_15MIN, "children"),
     ],
     [
         add_watcher_for_data(),
-        Input("window", "value"),
+        Input("submit-button", "n_clicks"),
+        State("window", "value"),
     ],
 )
-def create_layout(_, window_str):
-
-    if not window_str:
-        return dash.no_update
+def create_layout(_, n_clicks, window_str):
 
     df = get_df()
     if df is None:
@@ -409,7 +421,9 @@ def create_layout(_, window_str):
         return dash.no_update
 
     card1 = generate_card(
-        result, COL_NAME_PER_FLIGHTS_NOT_DELAYED, "Performance On-Time Performance"
+        result,
+        COL_NAME_PER_FLIGHTS_NOT_DELAYED,
+        "Percentage On-Time Performance (without delay)",
     )  # example first card
     card2 = generate_card(
         result,
@@ -422,21 +436,21 @@ def create_layout(_, window_str):
         "Percentage Extended Delays Less Than 15 Min (Non-41/42)",
     )  # example second card
 
-    fig1 = create_graph_fig(
+    fig1 = create_graph_card(
         result,
         COL_NAME_WINDOW_TIME,
         COL_NAME_PER_FLIGHTS_NOT_DELAYED,
         "Percentage of Flights Not Delayed",
         COL_NAME_PER_FLIGHTS_NOT_DELAYED_SHOW,
     )
-    fig2 = create_graph_fig(
+    fig2 = create_graph_card(
         result,
         COL_NAME_WINDOW_TIME,
         COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN,
         "Percentage of Delays Less Than 15 Minutes",
         COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN_SHOW,
     )
-    fig3 = create_graph_fig(
+    fig3 = create_graph_card(
         result,
         COL_NAME_WINDOW_TIME,
         COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_42,
