@@ -213,7 +213,7 @@ def analyze_delay_codes_for_table(frame: pl.DataFrame) -> pl.DataFrame:
 
 
 # ---------- 2. Helper ----------
-def compute_divisors(start: str | None, end: str | None) -> list[int]:
+def compute_options(start: str | None, end: str | None) -> list[int]:
     """
     Return every integer d (≥1) that divides D, where
     D = whole-day distance between start and end dates.
@@ -304,255 +304,178 @@ def create_time_segments(
 # 3 ▸  Layout factory                                                #
 # ------------------------------------------------------------------ #
 def make_layout(total_vols: int) -> html.Div:
-    left_panel = html.Div(
+    # ----- FILTERS + STATS -----------------------------------------
+    filters_block = html.Div(
         [
-            # Title & subtitle
-            html.H1(
-                "ANALYSE DES CODES DE RETARD",
-                className="mb-2",
-            ),
+            html.H1("ANALYSE DES CODES DE RETARD", className="mb-2"),
             html.P(
-                "Choisissez vos filtres pour explorer les codes de retard TEC.",
+                "Choisissez vos filtres.",
                 className="lead",
             ),
-            # Filters section
+            # ── filters card ────────────────────────────────────────
             dbc.Card(
-                [
-                    dbc.CardBody(
-                        [
-                            # Flotte + Matricule
-                            dbc.Row(
-                                [
-                                    dbc.Col(
-                                        [
-                                            html.Label(
-                                                "Type d'avion (Flotte)",
-                                                className="form-label",
-                                            ),
-                                            dcc.Dropdown(
-                                                id="flotte-dd",
-                                                options=[
-                                                    {"label": f, "value": f}
-                                                    for f in flottes
-                                                ],
-                                                multi=True,
-                                                placeholder="Tous les types",
-                                            ),
-                                        ],
-                                        md=6,
-                                    ),
-                                    dbc.Col(
-                                        [
-                                            html.Label(
-                                                "Matricule",
-                                                className="form-label",
-                                            ),
-                                            dcc.Dropdown(
-                                                id="matricule-dd",
-                                                options=[
-                                                    {"label": m, "value": m}
-                                                    for m in matricules
-                                                ],
-                                                multi=True,
-                                                placeholder="Tous les matricules",
-                                            ),
-                                        ],
-                                        md=6,
-                                    ),
-                                ],
-                                className="mb-3",
-                            ),
-                            # Code DR filter
-                            dbc.Row(
-                                [
-                                    dbc.Col(
-                                        [
-                                            html.Label(
-                                                "Code de retard",
-                                                className="form-label",
-                                            ),
-                                            dcc.Dropdown(
-                                                id="code-dd",
-                                                options=[
-                                                    {"label": c, "value": c}
-                                                    for c in codes_dr
-                                                ],
-                                                multi=True,
-                                                placeholder="Tous les codes",
-                                            ),
-                                        ],
-                                        md=12,
-                                    ),
-                                ],
-                                className="mb-3",
-                            ),
-                            # Segmentation filter
-                            dbc.Row(
-                                [
-                                    dbc.Col(
-                                        [
-                                            html.Label(
-                                                "Segmentation",
-                                                className="form-label",
-                                            ),
-                                            dcc.Dropdown(
-                                                id="segmentation-dd",
-                                                placeholder="Select segmentation (days)",
-                                                disabled=True,
-                                                clearable=False,
-                                            ),
-                                        ],
-                                        md=12,
-                                    ),
-                                ],
-                                className="mb-3",
-                            ),
-                            # Date inputs
-                            dbc.Row(
-                                [
-                                    dbc.Col(
-                                        [
-                                            html.Label(
-                                                "Date de début :",
-                                                className="form-label",
-                                            ),
-                                            dbc.Input(
-                                                id="dt-start-input",
-                                                type="date",
-                                                value=dt_min_iso,
-                                                min=dt_min_iso,
-                                                max=dt_max_iso,
-                                                className="form-control",
-                                            ),
-                                        ],
-                                        md=6,
-                                    ),
-                                    dbc.Col(
-                                        [
-                                            html.Label(
-                                                "Date de fin :",
-                                                className="form-label",
-                                            ),
-                                            dbc.Input(
-                                                id="dt-end-input",
-                                                type="date",
-                                                value=dt_max_iso,
-                                                min=dt_min_iso,
-                                                max=dt_max_iso,
-                                                className="form-control",
-                                            ),
-                                        ],
-                                        md=6,
-                                    ),
-                                ],
-                                className="mb-3",
-                            ),
-                            # Analyse button
-                            dbc.Row(
-                                [
-                                    dbc.Col(
-                                        dbc.Button(
-                                            "🔍 Analyser",
-                                            id="go-btn",
-                                            color="primary",
-                                            className="w-100",
-                                            n_clicks=0,
-                                            size="lg",
+                dbc.CardBody(
+                    [
+                        # flottes / matricules
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        html.Label("Type d'avion (Flotte)"),
+                                        dcc.Dropdown(
+                                            id="flotte-dd",
+                                            options=[{"label": f, "value": f} for f in flottes],
+                                            multi=True,
+                                            placeholder="Tous les types",
                                         ),
-                                        md=12,
-                                    )
+                                    ],
+                                    md=6,
+                                ),
+                                dbc.Col(
+                                    [
+                                        html.Label("Matricule"),
+                                        dcc.Dropdown(
+                                            id="matricule-dd",
+                                            options=[{"label": m, "value": m} for m in matricules],
+                                            multi=True,
+                                            placeholder="Tous les matricules",
+                                        ),
+                                    ],
+                                    md=6,
+                                ),
+                            ],
+                            className="mb-3",
+                        ),
+                        # code DR
+                        dbc.Row(
+                            dbc.Col(
+                                [
+                                    html.Label("Code de retard"),
+                                    dcc.Dropdown(
+                                        id="code-dd",
+                                        options=[{"label": c, "value": c} for c in codes_dr],
+                                        multi=True,
+                                        placeholder="Tous les codes",
+                                    ),
                                 ]
                             ),
-                        ]
-                    )
-                ],
+                            className="mb-3",
+                        ),
+                        # segmentation
+                        dbc.Row(
+                            dbc.Col(
+                                [
+                                    html.Label("Segmentation"),
+                                    dcc.Dropdown(
+                                        id="segmentation-dd",
+                                        placeholder="Select segmentation (days)",
+                                        disabled=False,
+                                        clearable=False,
+                                    ),
+                                ]
+                            ),
+                            className="mb-3",
+                        ),
+                        # dates
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        html.Label("Date de début :"),
+                                        dbc.Input(
+                                            id="dt-start-input",
+                                            type="date",
+                                            value=dt_min_iso,
+                                            min=dt_min_iso,
+                                            max=dt_max_iso,
+                                        ),
+                                    ],
+                                    md=6,
+                                ),
+                                dbc.Col(
+                                    [
+                                        html.Label("Date de fin :"),
+                                        dbc.Input(
+                                            id="dt-end-input",
+                                            type="date",
+                                            value=dt_max_iso,
+                                            min=dt_min_iso,
+                                            max=dt_max_iso,
+                                        ),
+                                    ],
+                                    md=6,
+                                ),
+                            ],
+                            className="mb-3",
+                        ),
+                        # analyse btn
+                        dbc.Row(
+                            dbc.Col(
+                                dbc.Button(
+                                    "🔍 Analyser",
+                                    id="go-btn",
+                                    color="primary",
+                                    className="w-100",
+                                    n_clicks=0,
+                                    size="lg",
+                                )
+                            )
+                        ),
+                    ]
+                ),
                 className="mb-4",
             ),
-            # Stats section
+            # ── stats ───────────────────────────────────────────────
             html.H3("Statistiques", className="h4"),
-            dbc.Card(
-                html.Div(id="stats-div", className="p-3"),
-                className="mb-4",
-            ),
-            # Data table
-            html.H3(
-                "📋 Détail des codes de retard",
-                className="h4",
-            ),
-            html.Div(
-                id="table-container", style={"maxHeight": "600px", "overflowY": "auto"}
-            ),
-        ],
-        style={"paddingRight": "20px"},
+            dbc.Card(html.Div(id="stats-div", className="p-3"), className="mb-4"),
+        ]
     )
 
-# --- right_panel ---------------------------------------------------
-    right_panel = html.Div(                         # ⬅️ wrap the charts in a Div
-    id="charts-container",
-    children=[],
-    style={
-        # 🆕 use CSS-grid instead of flex ----------
-        "display": "grid",
-        "gridTemplateColumns": "repeat(2, 1fr)",
-        "gridAutoRows": "400px",  # ← two columns
-        "gap": "16px",
-        "height": "100vh",
-        "overflowY": "auto",
-        "alignItems": "start",
-    },
+    # ----- CHART GRID ----------------------------------------------
+    charts_block = html.Div(
+        id="charts-container",
+        children=[],
+        style={
+            "display": "grid",
+            "gridTemplateColumns": "repeat(2, 1fr)",
+            "gap": "16px",
+            "alignItems": "start",
+        },
     )
 
-    
+    # ----- TABLE (placed last) -------------------------------------
+    table_block = html.Div(
+        [
+            html.H3("📋 Détail des codes de retard", className="h4 mt-4"),
+            html.Div(id="table-container"),
+        ]
+    )
 
+    # ----- PAGE ----------------------------------------------------
     return dbc.Container(
         fluid=True,
         className="px-4",
         children=[
             dcc.Store(id="filtered-store"),
-            # Header strip & dataset size
             dbc.Row(
                 dbc.Col(
                     html.P(
-                        f"Base de données : {total_vols:,} vols TEC chargés",
+                        f"Base de données : {total_vols:,} vols chargés",
                         className="text-end text-muted small mt-2",
                     )
                 )
             ),
-            # Two-pane zone with 60/40 split
-            dbc.Row(
-                [
-                    dbc.Col(
-                        left_panel,
-                        md=4,
-                        lg=4,
-                        className="d-flex flex-column vh-100 overflow-auto",
-                    ),
-                    dbc.Col(
-                        right_panel,
-                        md=8,
-                        lg=8,
-                        className="d-flex flex-column vh-100 overflow-auto",
-                    ),
-                ],
-                className="pt-3",
-            ),
-            # Footer
-            dbc.Row(
-                dbc.Col(
-                    [
-                        html.Hr(
-                            style={"height": 1, "background": "#202736", "border": 0}
-                        ),
-                        html.P(
-                            f"Dernière mise à jour : {datetime.now():%d/%m/%Y %H:%M}",
-                            className="text-center text-muted small",
-                        ),
-                    ],
-                    className="mt-2",
-                )
+            filters_block,
+            charts_block,
+            table_block,
+            html.Hr(style={"height": 1, "background": "#202736", "border": 0}),
+            html.P(
+                f"Dernière mise à jour : {datetime.now():%d/%m/%Y %H:%M}",
+                className="text-center text-muted small",
             ),
         ],
     )
+
 
 
 # ------------------------------------------------------------------ #
@@ -626,7 +549,16 @@ def filter_data(n_clicks, fl_sel, mat_sel, code_sel, segmentation, dt_start, dt_
         "nonce": n_clicks,
     }
 
-
+plot_config = {
+    # everything else you already put in config …
+    "toImageButtonOptions": {
+        "format": "png",        # or "svg" / "pdf" for vector
+        "filename": "codes-chart",
+        "width": 1600,          # px  (≈ A4 landscape)
+        "height": 900,          # px
+        "scale": 3              # 3× pixel-density → crisp on Retina
+    }
+}
 # --- Outputs -------------------------------------------------------
 @app.callback(
     [
@@ -637,6 +569,7 @@ def filter_data(n_clicks, fl_sel, mat_sel, code_sel, segmentation, dt_start, dt_
     Input("filtered-store", "data"),
     prevent_initial_call=False,
 )
+
 def build_outputs(store_data):
     """Build all output components based on filtered data"""
 
@@ -712,21 +645,29 @@ def build_outputs(store_data):
         df_with_periods_full = create_time_segments(df, dt_start, dt_end, segmentation)
 
         # ---------- COMMON PERIOD TOTALS (used by every family chart) -------
+        # 2️⃣ exact counts per (period, family, code)
         temporal_all = (
             df_with_periods_full
-            .group_by(["time_period", "CODE_DR", "FAMILLE_DR"])
+            .group_by(["time_period", "FAMILLE_DR", "CODE_DR"])
             .agg(pl.len().alias("count"))
         )
 
-        period_totals_map = {
-            r["time_period"]: r["count"]
-            for r in (
-                temporal_all
-                .group_by("time_period")
-                .agg(pl.col("count").sum().alias("count"))
-                .to_dicts()
+        # 3️⃣ grand-total per period (all families, all codes)
+        period_totals = (
+            temporal_all
+            .group_by("time_period")
+            .agg(pl.col("count").sum().alias("period_total"))
+        )
+
+        # 4️⃣ join + exact share
+        temporal_all = (
+            temporal_all
+            .join(period_totals, on="time_period")
+            .with_columns(
+                (pl.col("count") / pl.col("period_total") * 100).alias("perc")
             )
-        }
+        )
+
         # Get selected codes from store_data
         code_sel = store_data.get("code_sel") if store_data else None
 
@@ -771,54 +712,84 @@ def build_outputs(store_data):
 
                 fig = go.Figure()
 
-                for code in fam_data["CODE_DR"].unique().sort().to_list():
-                    rows = fam_data.filter(pl.col("CODE_DR") == code).to_dicts()
-                    counts_map = {r["time_period"]: r["count"] for r in rows}
+                for code in fam_data["CODE_DR"].unique().sort():
+                    rows = fam_data.filter(pl.col("CODE_DR") == code)
 
-                    # zero-fill periods & convert to %
-                    full_counts = [counts_map.get(p, 0) for p in all_periods]
-                    full_perc   = [
-                        (full_counts[i] / period_totals_map.get(p, 1)) * 100
-                        for i, p in enumerate(all_periods)
-                    ]
+                    # maps in the exact grid order
+                    perc_map   = {r["time_period"]: r["perc"]   for r in rows.to_dicts()}
+                    count_map  = {r["time_period"]: r["count"]  for r in rows.to_dicts()}
+
+                    y_vals     = [perc_map.get(p, 0)  for p in all_periods]
+                    raw_counts = [count_map.get(p, 0) for p in all_periods]
 
                     fig.add_trace(
                         go.Bar(
                             x=display_periods,
-                            y=full_perc,
+                            y=y_vals,
                             name=code,
                             marker_color=color_map.get(code, "#cccccc"),
-                            customdata=list(zip(full_counts, full_perc)),
+                            customdata=list(zip(raw_counts, y_vals)),
                             hovertemplate=(
-                                f"<b>{code}</b><br>"
+                                "<b>%{meta}</b><br>"
                                 "Période : %{x}<br>"
                                 "Occur. : %{customdata[0]}<br>"
-                                "Pourc. : %{customdata[1]:.1f}%<extra></extra>"
+                                "Pourc. : %{customdata[1]:.2f}%<extra></extra>"
                             ),
+                            meta=code,
+                            text=[f"{v:.2f} %" if v else "" for v in y_vals],  # optional labels
+                            textposition="outside",
+                            cliponaxis=False,
                         )
                     )
 
+                HEADER_H = 36          # grey bar height (px) – keep padding inside this
+                FIG_H    = 420         # visible Plotly canvas height
+                WRAP_H   = HEADER_H + FIG_H
+                # build the bar­chart …
                 fig.update_layout(
-                    title=f"Famille : {fam}",
-                    barmode="group",
-                    height=1000,
-                    margin=dict(l=40, r=10, t=40, b=40),
-                    xaxis_title="Période",
-                    yaxis_title="Pourcentage (%)",
-                    template="plotly_white",
-                    legend_title="Code",
-                    font=dict(size=11),
-                    yaxis=dict(range=[0, 100], tickformat=".0f"),   #  ⬅️ keep 0-100 %
+                    yaxis=dict(
+                        range=[0, 100],
+                        tickformat=".0f",
+                        dtick=10,
+                        title="Pourcentage (%)"
+                    ),
+                    bargap=0.2,
+                    height=FIG_H,
+                    margin=dict(l=40, r=10, t=20, b=70),   # b = 70 leaves room for “outside” labels
                 )
 
+                # ---- grey-header “card” ------------------------------------------
                 family_figs.append(
-                    dcc.Graph(
-                        id=f"chart-{fam}",
-                          figure=fig, 
-                          style={   "height": "100%",   "width":  "100%",    }    #   (grid controls width)})
-                          )
-                
+                    html.Div(
+                        [
+                            # header bar
+                            html.Div(
+                                f"Famille : {fam}",
+                                style={
+                                    "background": "#6c757d",
+                                    "color": "#fff",
+                                    "height": f"{HEADER_H}px",
+                                    "display": "flex",
+                                    "alignItems": "center",
+                                    "paddingLeft": "12px",
+                                    "fontWeight": 600,
+                                    "borderTopLeftRadius": "6px",
+                                    "borderTopRightRadius": "6px",
+                                },
+                            ),
+                            # graph
+                            dcc.Graph(id="codes-chart", figure=fig, config=plot_config)
+                        ],
+                        style={
+                            "border": "1px solid #dee2e6",
+                            "borderRadius": "6px",
+                            "overflow": "hidden",
+                            "overflow": "visible",
+                            "background": "#ffffff",
+                        },
+                    )
                 )
+
 
     # 3. Build table (independent of code and segmentation selection)
     if not store_data or not store_data.get("table_payload"):
@@ -882,7 +853,9 @@ def build_outputs(store_data):
             sort_action="native",
             filter_action="native",
             page_size=8,
-            export_format="csv",
+            export_format="xlsx",
+            export_headers="display",      # nice human-readable headers
+            export_columns="all",          # include hidden cols if you like
             style_table={"height": "500px", "overflowY": "auto"},
         )
 
@@ -935,12 +908,12 @@ def update_codes(fl_sel, mat_sel):
     Output("segmentation-dd", "value"),  # reset value if dates change
     Input("dt-start-input", "value"),
     Input("dt-end-input", "value"),
-    prevent_initial_call=True,
+    prevent_initial_call=False,
 )
 def update_segmentation(start_date, end_date):
-    divisors = compute_divisors(start_date, end_date)
+    segements_options = compute_options(start_date, end_date)
     options = [
-        {"label": f"{d} day{'s' if d > 1 else ''}", "value": d} for d in divisors
+        {"label": f"{d} day{'s' if d > 1 else ''}", "value": d} for d in segements_options
     ]
     disabled = not options
     return options, disabled, None  # clear selection whenever list rebuilds

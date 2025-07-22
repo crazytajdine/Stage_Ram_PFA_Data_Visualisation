@@ -1,5 +1,6 @@
-from dash import html, dcc
+from dash import html, dcc, callback, Output, Input, State
 from dash.dependencies import Input, Output
+import io, plotly.io as pio, json
 
 import dash_bootstrap_components as dbc
 
@@ -95,13 +96,24 @@ def update_layout(pathname, _):
 
     return navbar, page
 
+@callback(
+    Output("download-chart-png", "data"),
+    Input("btn-export-chart", "n_clicks"),
+    State("codes-chart", "figure"),        # figure lives in pages.page.py
+    prevent_initial_call=True,
+)
+def export_current_chart(_, fig_dict):
+    if not fig_dict:
+        return dash.no_update
+    img_bytes = pio.to_image(fig_dict, format="png", scale=3)
+    return dict(content=img_bytes, filename="codes-chart.png")
 
 add_callbacks()
 
 
 def start_server():
     print("🔁 Starting Dash server…")
-    app.run(debug=True, use_reloader=True, port=8050)
+    app.run(debug=True, use_reloader=False, port=8050)
 
 
 if __name__ == "__main__":
