@@ -15,9 +15,13 @@ from .server_instance import get_app
 ID_PATH_STORE = "is-path-store"
 ID_INTERVAL_WATCHER = "interval-file-selector"
 
-# should be imputed to each chart
 ID_STORE_DATE_WATCHER = "store-date-latest-fetch"
 
+
+COL_NAME_DEPARTURE_DATETIME = "DEP_DATETIME"
+
+COL_NAME_WINDOW_TIME = "WINDOW_DATETIME_DEP"
+COL_NAME_WINDOW_TIME = "WINDOW_DATETIME_DEP"
 COL_NAME_TOTAL_COUNT = "total_count"
 # init
 
@@ -77,7 +81,7 @@ def create_dep_datetime(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
     return df_lazy.with_columns(
         pl.col("DEP_DAY_SCHED")
         .dt.combine(pl.col("DEP_TIME_SCHED").str.strptime(pl.Time, "%H:%M"))
-        .alias("DEP_DATETIME")
+        .alias(COL_NAME_DEPARTURE_DATETIME)
     )
 
 
@@ -140,7 +144,7 @@ def toggle_auto_refresh() -> bool:
 
 def load_excel_lazy(path):
 
-    global df, count_excel_lazy
+    global df, df_raw
 
     if not path:
         raise ValueError("Path cannot be empty.")
@@ -151,8 +155,16 @@ def load_excel_lazy(path):
         raise ValueError("The path does not exist.")
 
     df = pl.read_excel(path, sheet_name="Sheet1").lazy()
-    count_excel_lazy = df.select(pl.len().alias(COL_NAME_TOTAL_COUNT))
-    df = df.pipe(filter_retard).pipe(filter_tec).pipe(create_dep_datetime)
+
+    df_raw = preprocess_df(df)
+
+    df = df_raw.pipe(filter_retard).pipe(filter_tec)
+
+
+def preprocess_df(raw_df: pl.LazyFrame) -> pl.LazyFrame:
+    return raw_df.with_columns(pl.col("CODE_DR").cast(pl.Int32).alias("CODE_DR")).pipe(
+        create_dep_datetime
+    )
 
 
 def get_df() -> Optional[pl.LazyFrame]:
@@ -162,9 +174,23 @@ def get_df() -> Optional[pl.LazyFrame]:
     return df
 
 
-def get_count_df() -> Optional[pl.LazyFrame]:
-    global count_excel_lazy
-    return count_excel_lazy
+def get_count_df(window_str="") -> Optional[pl.LazyFrame]:
+    global df_raw
+
+    if window_str:
+        stmt = (
+            df_raw.with_columns(
+                pl.col(COL_NAME_DEPARTURE_DATETIME)
+                .dt.truncate(window_str)
+                .alias(COL_NAME_WINDOW_TIME)
+            )
+            .group_by(COL_NAME_WINDOW_TIME)
+            .agg(pl.len().alias(COL_NAME_TOTAL_COUNT))
+        )
+    else:
+        stmt = df_raw.select(pl.len().alias(COL_NAME_TOTAL_COUNT))
+
+    return stmt
 
 
 # program
