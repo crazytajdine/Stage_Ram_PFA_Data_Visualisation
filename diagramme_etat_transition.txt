@@ -1,0 +1,23 @@
+
+Diagramme d'état et de transition du projet (style mermaid)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Chargement: Démarrage
+    Chargement --> Filtres: Données chargées
+    Filtres --> Analyse: Filtres appliqués
+    Analyse --> Segmentation: Analyse terminée
+    Segmentation --> Affichage: Segmentation appliquée
+    Affichage --> Interaction: Résultats affichés
+    Interaction --> Filtres: Modification utilisateur
+    Affichage --> [*]: Fin
+```
+
+Légende des états :
+- Chargement : Lecture et préparation des données
+- Filtres : Application des filtres utilisateur
+- Analyse : Calculs et agrégations
+- Segmentation : Découpage temporel
+- Affichage : Génération des graphiques et tableaux
+- Interaction : Attente d'une nouvelle action utilisateur
+

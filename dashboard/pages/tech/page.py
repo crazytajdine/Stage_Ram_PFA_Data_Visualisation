@@ -38,9 +38,9 @@ try:
     )
 
     # Keep only delay-code rows with TEC description
-    df_filtered = df_lazy.filter(pl.col("LIB_CODE_DR") == "TEC").collect()
+    df_filtered = df_lazy.collect()
 
-    print(f"✅ Data loaded: {df_filtered.height} rows with TEC codes")
+    print(f"✅ Data loaded: {df_filtered.height} rows ")
 
 except Exception as e:
     print(f"❌ Error loading data: {e}")
@@ -208,7 +208,7 @@ def analyze_delay_codes_for_table(frame: pl.DataFrame) -> pl.DataFrame:
                 pl.col("AP_list").list.n_unique().alias("Nb_AP"),
             ]
         )
-        .select(["CODE_DR", "Occurrences", "Aéroports", "Nb_AP"])
+        .select(["CODE_DR", "Description", "Occurrences", "Aéroports", "Nb_AP"])
         .sort("Occurrences", descending=True)
     )
     return agg
