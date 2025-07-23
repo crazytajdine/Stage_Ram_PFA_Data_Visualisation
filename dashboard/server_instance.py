@@ -6,10 +6,11 @@ server = None
 
 
 def init_server():
-
+    global app, server
     app = dash.Dash(
         __name__,
-        suppress_callback_exceptions=True,
+        use_pages=True,                     # ← Dash multipage mode
+        suppress_callback_exceptions=True,  # still needed for legacy callbacks
         assets_folder="assets",
         external_stylesheets=[
             dbc.themes.BOOTSTRAP,
