@@ -18,7 +18,6 @@ from pages.performance_metrics import page as performance_metrics
 
 app = get_app()
 
-
 app.layout = html.Div(
     [
         # hookers
@@ -36,29 +35,22 @@ app.layout = html.Div(
 )
 
 
-def build_nav_items(path_exits: bool):
-    if path_exits:
-
+def build_nav_items(path_exists: bool):          # ← renommez au passage
+    if path_exists:
         nav_items = [
-            {"name": "Dashboard", "href": "/", "page": home.layout},
-            {"name": "Analytics", "href": "/analytics", "page": tech.layout},
-            {"name": "Weekly", "href": "/weekly", "page": weekly.layout},
-            {
-                "name": "Performance Metrics",
-                "href": "/Performance_Metrics",
-                "page": performance_metrics.layout,
-            },
-            {"name": "Settings", "href": "/settings", "page": settings.layout},
+            {"name": "Dashboard", "href": "/",            "page": home.layout},
+            {"name": "Analytics", "href": "/analytics",   "page": tech.layout},
+            {"name": "Weekly",    "href": "/weekly",      "page": weekly.layout},
+            {"name": "Performance Metrics",
+             "href": "/Performance_Metrics",
+             "page": performance_metrics.layout},
+            {"name": "Settings",  "href": "/settings",    "page": settings.layout},
         ]
     else:
-
+        # ⬇️  simplement une LISTE de dicts, sans accolades supplémentaires
         nav_items = [
-            {
-                "name": "verify",
-                "href": "/",
-                "page": verify.layout,
-                "show": False,
-            }
+            {"name": "verify",   "href": "/",         "page": verify.layout, "show": False},
+            {"name": "Settings", "href": "/settings", "page": settings.layout},
         ]
 
     return nav_items

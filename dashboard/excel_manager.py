@@ -144,6 +144,9 @@ def toggle_auto_refresh() -> bool:
 
     return auto_refresh
 
+def is_auto_refresh_enabled() -> bool:
+    """Renvoie l’état actuel de l’auto-refresh (True / False)."""
+    return auto_refresh
 
 def load_excel_lazy(path):
 
