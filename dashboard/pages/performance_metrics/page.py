@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 import dash
 import dash_bootstrap_components as dbc
-from dash import Input, Output, State, html, dcc
+from dash import Input, Output, State, html, dcc, dash_table
 from server_instance import get_app
 
 import plotly.graph_objs as go
@@ -48,6 +48,14 @@ ID_CARD_DELAY_15MIN = "card_delay_15min"
 ID_CARD_DELAY_15MIN_41_42 = "card_delay_15min_41_42"
 
 app = get_app()
+
+TABLE_COL_NAMES = [
+    {"name": "time", "id": COL_NAME_DEPARTURE_DATETIME},
+    {"name": "Percentage not delayed", "id": COL_NAME_PER_FLIGHTS_NOT_DELAYED_SHOW},
+    {"name": "bla", "id": COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN_SHOW},
+    {"name": "blaa", "id": COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46_SHOW},
+]
+
 
 import plotly.express as px
 
@@ -390,6 +398,20 @@ layout = dbc.Container(
                 ),
             ],
             className="g-4 justify-content-center",
+        ),
+        dbc.Row(
+            dash_table.DataTable(
+                id="result_table_percentage",
+                columns=TABLE_COL_NAMES,
+                page_size=10,
+                style_table={
+                    "overflowX": "auto",
+                    "margin-top": "10px",
+                    "margin-bottom": "40px",
+                },
+                style_cell={"textAlign": "left"},
+                sort_action="native",
+            ),
         ),
     ],
     fluid=True,

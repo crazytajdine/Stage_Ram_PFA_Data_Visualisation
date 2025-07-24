@@ -652,6 +652,3 @@ def download_excel(n_clicks, table_data):
     filename = "vols_filtres.xlsx"
 
     return send_bytes(lambda out_io: out_io.write(buf.getvalue()), filename=filename)
-
-
-app.layout = layout

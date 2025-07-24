@@ -140,7 +140,6 @@ def toggle_auto_refresh() -> bool:
     save_config(path_config, config)
 
     print(f"Auto refresh set disabled to: {auto_refresh}")
-    save_config(path_config, config)
 
     return auto_refresh
 
@@ -264,7 +263,7 @@ def add_callbacks():
 
             if latest_modification_time != date_latest_fetch:
                 print("File changed!")
-                # update_df()
+                update_df()
 
                 return latest_modification_time
 
