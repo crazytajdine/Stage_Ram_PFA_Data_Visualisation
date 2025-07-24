@@ -1,3 +1,4 @@
+import datetime
 import os
 from typing import Optional
 import dash
@@ -42,7 +43,8 @@ config = load_config(path_config)
 
 path_to_excel = config.get("path_to_excel", "")
 auto_refresh = config.get("auto_refresh", True)
-modification_date = config.get("modification_date", None)
+
+
 count_excel_lazy = None
 # func
 
@@ -198,8 +200,24 @@ def get_count_df(window_str="") -> Optional[pl.LazyFrame]:
     return stmt
 
 
+def get_latest_modification_time():
+    global path_to_excel
+    is_path_exists = path_exits()
+    if not is_path_exists:
+        return None
+    latest_modification_timestamp = os.path.getmtime(path_to_excel)
+    readable_time = datetime.datetime.fromtimestamp(
+        latest_modification_timestamp
+    ).isoformat()
+
+    return readable_time
+
+
 # program
 load_excel_lazy(path_to_excel)
+
+modification_date = config.get("modification_date", get_latest_modification_time())
+
 
 store_excel = dcc.Store(id=ID_PATH_STORE, storage_type="local", data=path_to_excel)
 
@@ -252,12 +270,11 @@ def add_callbacks():
     )
     def watch_file(date_latest_fetch, _):
         global path_to_excel
-        path_file = path_to_excel
 
-        if not path_file:
+        if not path_to_excel:
             return dash.no_update
         try:
-            latest_modification_time = os.path.getmtime(path_file)
+            latest_modification_time = get_latest_modification_time()
 
             if latest_modification_time != date_latest_fetch:
                 print(
