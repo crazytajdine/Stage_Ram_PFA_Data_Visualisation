@@ -19,7 +19,7 @@ ID_INTERVAL_WATCHER = "interval-file-selector"
 ID_STORE_DATE_WATCHER = "store-date-latest-fetch"
 
 
-COL_NAME_DEPARTURE_DATETIME = "DEP_DATETIME"
+COL_NAME_DEPARTURE_DATETIME = "DEP_DAY_SCHED"
 
 COL_NAME_WINDOW_TIME = "WINDOW_DATETIME_DEP"
 COL_NAME_WINDOW_TIME = "WINDOW_DATETIME_DEP"
@@ -169,9 +169,7 @@ def load_excel_lazy(path):
 
 
 def preprocess_df(raw_df: pl.LazyFrame) -> pl.LazyFrame:
-    return raw_df.with_columns(pl.col("CODE_DR").cast(pl.Int32).alias("CODE_DR")).pipe(
-        create_dep_datetime
-    )
+    return raw_df.with_columns(pl.col("CODE_DR").cast(pl.Int32).alias("CODE_DR"))
 
 
 def get_df() -> Optional[pl.LazyFrame]:
@@ -262,9 +260,15 @@ def add_callbacks():
             latest_modification_time = os.path.getmtime(path_file)
 
             if latest_modification_time != date_latest_fetch:
-                print("File changed!")
-                update_df()
+                print(
+                    "File changed old : ",
+                    date_latest_fetch,
+                    ", new: ",
+                    latest_modification_time,
+                )
 
+                update_df()
+                modify_modification_date(latest_modification_time)
                 return latest_modification_time
 
         except FileNotFoundError:

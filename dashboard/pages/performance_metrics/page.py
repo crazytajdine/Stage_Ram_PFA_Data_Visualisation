@@ -47,13 +47,24 @@ ID_CARD_DELAY = "card_delay"
 ID_CARD_DELAY_15MIN = "card_delay_15min"
 ID_CARD_DELAY_15MIN_41_42 = "card_delay_15min_41_42"
 
+ID_TABLE = "result_table_percentage"
+
 app = get_app()
 
 TABLE_COL_NAMES = [
-    {"name": "time", "id": COL_NAME_DEPARTURE_DATETIME},
-    {"name": "Percentage not delayed", "id": COL_NAME_PER_FLIGHTS_NOT_DELAYED_SHOW},
-    {"name": "bla", "id": COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN_SHOW},
-    {"name": "blaa", "id": COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46_SHOW},
+    {"name": "time", "id": COL_NAME_WINDOW_TIME},
+    {
+        "name": "Percentage of On-Time Flights",
+        "id": COL_NAME_PER_FLIGHTS_NOT_DELAYED_SHOW,
+    },
+    {
+        "name": "Percentage of On-Time or Delays Less Than 15 Minutes",
+        "id": COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN_SHOW,
+    },
+    {
+        "name": "Percentage of On-Time or less than 15 Minutes, or Delays Not Due to Reasons 41/46",
+        "id": COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46_SHOW,
+    },
 ]
 
 
@@ -400,18 +411,7 @@ layout = dbc.Container(
             className="g-4 justify-content-center",
         ),
         dbc.Row(
-            dash_table.DataTable(
-                id="result_table_percentage",
-                columns=TABLE_COL_NAMES,
-                page_size=10,
-                style_table={
-                    "overflowX": "auto",
-                    "margin-top": "10px",
-                    "margin-bottom": "40px",
-                },
-                style_cell={"textAlign": "left"},
-                sort_action="native",
-            ),
+            id=ID_TABLE,
         ),
     ],
     fluid=True,
@@ -427,6 +427,7 @@ layout = dbc.Container(
         Output(ID_GRAPH_DELAY, "children"),
         Output(ID_GRAPH_DELAY_15MIN, "children"),
         Output(ID_GRAPH_DELAY_41_42_15MIN, "children"),
+        Output(ID_TABLE, "children"),
     ],
     [
         add_watcher_for_data(),
@@ -482,4 +483,29 @@ def create_layout(_, n_clicks, window_str):
         COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46_SHOW,
     )
 
-    return card1, card2, card3, fig1, fig2, fig3
+    table_col_names = [
+        {"id": col["id"], "name": col["name"]}
+        for col in TABLE_COL_NAMES
+        if col["id"] != COL_NAME_WINDOW_TIME or window_str
+    ]
+
+    table_data = result.select([col["id"] for col in table_col_names]).to_dicts()
+
+    table = []
+
+    if result.height != 0:
+        table = dash_table.DataTable(
+            data=table_data,
+            columns=table_col_names,
+            page_size=10,
+            sort_action="native",
+            style_table={
+                "overflowX": "auto",
+                "margin-top": "10px",
+                "margin-bottom": "40px",
+            },
+            style_cell={"textAlign": "left"},
+            sort_by=[{"column_id": COL_NAME_WINDOW_TIME, "direction": "desc"}],
+        )
+
+    return card1, card2, card3, fig1, fig2, fig3, table
