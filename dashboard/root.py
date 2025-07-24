@@ -1,6 +1,7 @@
 from dash import html, dcc, callback, Output, Input, State
 from dash.dependencies import Input, Output
 import io, plotly.io as pio, json
+import dash
 
 import dash_bootstrap_components as dbc
 
