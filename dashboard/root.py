@@ -35,21 +35,23 @@ app.layout = html.Div(
 )
 
 
-def build_nav_items(path_exists: bool):          # ← renommez au passage
+def build_nav_items(path_exists: bool):  # ← renommez au passage
     if path_exists:
         nav_items = [
-            {"name": "Dashboard", "href": "/",            "page": home.layout},
-            {"name": "Analytics", "href": "/analytics",   "page": tech.layout},
-            {"name": "Weekly",    "href": "/weekly",      "page": weekly.layout},
-            {"name": "Performance Metrics",
-             "href": "/Performance_Metrics",
-             "page": performance_metrics.layout},
-            {"name": "Settings",  "href": "/settings",    "page": settings.layout},
+            {"name": "Dashboard", "href": "/", "page": home.layout},
+            {"name": "Analytics", "href": "/analytics", "page": tech.layout},
+            {"name": "Weekly", "href": "/weekly", "page": weekly.layout},
+            {
+                "name": "Performance Metrics",
+                "href": "/Performance_Metrics",
+                "page": performance_metrics.layout,
+            },
+            {"name": "Settings", "href": "/settings", "page": settings.layout},
         ]
     else:
         # ⬇️  simplement une LISTE de dicts, sans accolades supplémentaires
         nav_items = [
-            {"name": "verify",   "href": "/",         "page": verify.layout, "show": False},
+            {"name": "verify", "href": "/", "page": verify.layout, "show": False},
             {"name": "Settings", "href": "/settings", "page": settings.layout},
         ]
 
@@ -88,10 +90,11 @@ def update_layout(pathname, _):
 
     return navbar, page
 
+
 @callback(
     Output("download-chart-png", "data"),
     Input("btn-export-chart", "n_clicks"),
-    State("codes-chart", "figure"),        # figure lives in pages.page.py
+    State("codes-chart", "figure"),  # figure lives in pages.page.py
     prevent_initial_call=True,
 )
 def export_current_chart(_, fig_dict):
@@ -100,12 +103,13 @@ def export_current_chart(_, fig_dict):
     img_bytes = pio.to_image(fig_dict, format="png", scale=3)
     return dict(content=img_bytes, filename="codes-chart.png")
 
+
 add_callbacks()
 
 
 def start_server():
     print("🔁 Starting Dash server…")
-    app.run(debug=True, use_reloader=False, port=8050)
+    app.run(debug=True, use_reloader=True, port=8050)
 
 
 if __name__ == "__main__":

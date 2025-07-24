@@ -144,9 +144,11 @@ def toggle_auto_refresh() -> bool:
 
     return auto_refresh
 
+
 def is_auto_refresh_enabled() -> bool:
-    """Renvoie l’état actuel de l’auto-refresh (True / False)."""
+    global auto_refresh
     return auto_refresh
+
 
 def load_excel_lazy(path):
 
@@ -217,8 +219,6 @@ interval_watcher = dcc.Interval(
 
 hookers = [store_excel, store_latest_date_fetch, interval_watcher]
 
-dummy_path_file = os.path.join(os.path.dirname(__file__), "Book1.xlsx")
-
 
 def add_watcher_for_data():
     return Input(ID_STORE_DATE_WATCHER, "data")
@@ -254,8 +254,8 @@ def add_callbacks():
         Input(ID_INTERVAL_WATCHER, "n_intervals"),
     )
     def watch_file(date_latest_fetch, _):
-        global dummy_path_file
-        path_file = dummy_path_file
+        global path_to_excel
+        path_file = path_to_excel
 
         if not path_file:
             return dash.no_update
