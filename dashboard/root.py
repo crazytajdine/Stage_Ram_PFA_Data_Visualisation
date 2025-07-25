@@ -7,8 +7,8 @@ import dash_bootstrap_components as dbc
 
 from server_instance import get_app
 
-from components.filter import layout as filter
 from excel_manager import hookers as excel_hookers, add_callbacks, path_exits
+from components.filter import layout as filter
 
 
 from pages.tech import page as tech

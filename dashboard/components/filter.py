@@ -5,11 +5,13 @@ from dash import Input, Output, State
 from excel_manager import (
     COL_NAME_DEPARTURE_DATETIME,
     COL_NAME_WINDOW_TIME,
-    DATA_STORE_TRIGGER,
+    ID_DATA_STORE_TRIGGER,
+    DEFAULT_WINDOW_SEGMENTATION,
     update_df,
     get_df_unfiltered,
     get_df,
     add_watch_file,
+    update_segmentation,
 )
 from server_instance import get_app
 import dash_bootstrap_components as dbc
@@ -127,6 +129,9 @@ layout = dbc.Card(
 def apply_filters(df: pl.LazyFrame, filters: dict) -> pl.LazyFrame:
 
     if not filters:
+        df = df.with_columns(
+            pl.lit(DEFAULT_WINDOW_SEGMENTATION).alias(COL_NAME_WINDOW_TIME)
+        )
         return df
 
     # Filter by AC_SUBTYPE
@@ -139,10 +144,15 @@ def apply_filters(df: pl.LazyFrame, filters: dict) -> pl.LazyFrame:
 
     # Filter by SEGMENTATION
     if filters.get("fl_segmentation"):
+
         df = df.with_columns(
             pl.col(COL_NAME_DEPARTURE_DATETIME)
             .dt.truncate(filters["fl_segmentation"])
             .alias(COL_NAME_WINDOW_TIME)
+        )
+    else:
+        df = df.with_columns(
+            pl.lit(DEFAULT_WINDOW_SEGMENTATION).alias(COL_NAME_WINDOW_TIME)
         )
 
     # Filter by date range (DEP_DAY_SCHED)
@@ -258,7 +268,7 @@ def update_filter_store_suggestions(
 
 
 @app.callback(
-    Output(DATA_STORE_TRIGGER, "data"),
+    Output(ID_DATA_STORE_TRIGGER, "data"),
     add_watch_file(),
     Input(FILTER_STORE_ACTUAL, "data"),
 )
@@ -268,50 +278,10 @@ def filter_data(_, filter_store_data):
 
     df = get_df_unfiltered()
 
-    fl_sel = filter_store_data.get("fl_subtype") if filter_store_data else None
-    mat_sel = filter_store_data.get("fl_matricule") if filter_store_data else None
-    dt_start = filter_store_data.get("dt_start") if filter_store_data else None
-    dt_end = filter_store_data.get("dt_end") if filter_store_data else None
-
     if df is None:
         return {"payload": [], "count": 0}
 
-    if fl_sel:
-        df = df.filter(pl.col("AC_SUBTYPE").is_in(fl_sel))
-    if mat_sel:
-        df = df.filter(pl.col("AC_REGISTRATION").is_in(mat_sel))
-
-    # Date filtering
-    if dt_start:
-        df = df.filter(
-            pl.col(COL_NAME_DEPARTURE_DATETIME)
-            >= datetime.fromisoformat(dt_start).date()
-        )
-    if dt_end:
-        df = df.filter(
-            pl.col(COL_NAME_DEPARTURE_DATETIME) <= datetime.fromisoformat(dt_end).date()
-        )
-
-    # Also create data for table (without code filtering)
-    df_for_table = df
-
-    # Apply only basic filters for table
-    if fl_sel:
-        df_for_table = df_for_table.filter(pl.col("AC_SUBTYPE").is_in(fl_sel))
-    if mat_sel:
-        df_for_table = df_for_table.filter(pl.col("AC_REGISTRATION").is_in(mat_sel))
-
-    # Date filtering for table
-    if dt_start:
-        df_for_table = df_for_table.filter(
-            pl.col(COL_NAME_DEPARTURE_DATETIME)
-            >= datetime.fromisoformat(dt_start).date()
-        )
-    if dt_end:
-        df_for_table = df_for_table.filter(
-            pl.col(COL_NAME_DEPARTURE_DATETIME) <= datetime.fromisoformat(dt_end).date()
-        )
-
+    df: pl.LazyFrame = apply_filters(df, filter_store_data)
     update_df(df)
 
     return None
@@ -323,6 +293,13 @@ def filter_data(_, filter_store_data):
     State(FILTER_STORE_SUGGESTIONS, "data"),
 )
 def submit_filter(n_clicks, store_suggestions_data):
+
+    segmentation = (
+        store_suggestions_data.get("fl_segmentation")
+        if store_suggestions_data
+        else None
+    )
+    update_segmentation(segmentation)
 
     return store_suggestions_data
 

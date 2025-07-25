@@ -26,8 +26,10 @@ COL_NAME_WINDOW_TIME = "WINDOW_DATETIME_DEP"
 COL_NAME_TOTAL_COUNT = "total_count"
 
 
-DATA_STORE_TRIGGER = "filter-store-trigger"
+ID_DATA_STORE_TRIGGER = "filter-store-trigger"
 
+
+DEFAULT_WINDOW_SEGMENTATION = "All Period"
 
 # init
 
@@ -51,6 +53,12 @@ auto_refresh = config.get("auto_refresh", True)
 
 count_excel_lazy = None
 # func
+
+segmentation = None
+
+
+def update_segmentation(new_segmentation: str):
+    segmentation = new_segmentation
 
 
 def get_path_to_excel():
@@ -194,18 +202,27 @@ def get_df() -> Optional[pl.LazyFrame]:
     return df
 
 
-def get_count_df(window_str="") -> Optional[pl.LazyFrame]:
+def get_count_df() -> Optional[pl.LazyFrame]:
     global df_raw
 
-    if window_str:
-        stmt = df_raw.with_columns(
-            pl.col(COL_NAME_DEPARTURE_DATETIME)
-            .dt.truncate(window_str)
-            .alias(COL_NAME_WINDOW_TIME)
+    if segmentation:
+        stmt = (
+            df_raw.with_columns(
+                pl.col(COL_NAME_DEPARTURE_DATETIME)
+                .dt.truncate(segmentation)
+                .alias(COL_NAME_WINDOW_TIME)
+            )
+            .group_by(COL_NAME_WINDOW_TIME)
+            .agg(pl.len().alias(COL_NAME_TOTAL_COUNT))
         )
-    else:
-        stmt = df_raw.select(pl.len().alias(COL_NAME_TOTAL_COUNT))
 
+    else:
+        stmt = df_raw.select(
+            [
+                pl.lit(DEFAULT_WINDOW_SEGMENTATION).alias(COL_NAME_WINDOW_TIME),
+                pl.count().alias(COL_NAME_TOTAL_COUNT),
+            ]
+        )
     return stmt
 
 
@@ -240,7 +257,7 @@ store_latest_date_fetch = dcc.Store(
     id=ID_STORE_DATE_WATCHER, storage_type="local", data=modification_date
 )
 
-store_trigger_change = dcc.Store(id=DATA_STORE_TRIGGER)
+store_trigger_change = dcc.Store(id=ID_DATA_STORE_TRIGGER)
 
 interval_watcher = dcc.Interval(
     id=ID_INTERVAL_WATCHER, interval=1000, disabled=not auto_refresh
@@ -255,7 +272,7 @@ def add_watch_file():
 
 
 def add_watcher_for_data():
-    return Input(DATA_STORE_TRIGGER, "data")
+    return Input(ID_DATA_STORE_TRIGGER, "data")
 
 
 def update_df_unfiltered():

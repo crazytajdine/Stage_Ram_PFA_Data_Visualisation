@@ -71,61 +71,15 @@ TABLE_COL_NAMES = [
 ]
 
 
-def calculate_graph_info(df: pl.LazyFrame) -> pl.LazyFrame:
+def calculate_graph_info_with_period(df: pl.LazyFrame) -> pl.LazyFrame:
 
     assert df is not None
-
-    total_df = get_count_df()
-
     ##
-    delayed_flights_count_df = df.select(
+    delayed_flights_count_df = df.group_by(COL_NAME_WINDOW_TIME).agg(
         pl.len().alias(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY)
     )
 
     delayed_15min_df = df.filter((pl.col("Retard en min") >= 15))
-
-    ##
-    delayed_15min_count_df = delayed_15min_df.select(
-        pl.len().alias(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_GTE_15MIN)
-    )
-
-    ##
-    delayed_flights_41_42_gte_15min_count_df = delayed_15min_df.filter(
-        (pl.col("CODE_DR").is_in({41, 42}))
-    ).select(pl.len().alias(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_46_GTE_15MIN))
-
-    joined_df: pl.LazyFrame = pl.concat(
-        [
-            total_df,
-            delayed_flights_count_df,
-            delayed_15min_count_df,
-            delayed_flights_41_42_gte_15min_count_df,
-        ],
-        how="horizontal",
-    )
-
-    return joined_df
-
-
-def calculate_graph_info_with_period(df: pl.LazyFrame, window_str: str) -> pl.LazyFrame:
-
-    assert window_str and df is not None
-
-    window_str += "d"
-    total_df = get_count_df(window_str)
-
-    windowed_df = df.with_columns(
-        pl.col(COL_NAME_DEPARTURE_DATETIME)
-        .dt.truncate(window_str)
-        .alias(COL_NAME_WINDOW_TIME)
-    )
-
-    ##
-    delayed_flights_count_df = windowed_df.group_by(COL_NAME_WINDOW_TIME).agg(
-        pl.len().alias(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY)
-    )
-
-    delayed_15min_df = windowed_df.filter((pl.col("Retard en min") >= 15))
 
     ##
     delayed_15min_count_df = delayed_15min_df.group_by(COL_NAME_WINDOW_TIME).agg(
@@ -139,6 +93,9 @@ def calculate_graph_info_with_period(df: pl.LazyFrame, window_str: str) -> pl.La
         .agg(pl.len().alias(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_46_GTE_15MIN))
     )
 
+    total_df = get_count_df()
+
+    print(total_df.collect())
     joined_df = (
         total_df.join(delayed_flights_count_df, COL_NAME_WINDOW_TIME, how="left")
         .join(delayed_15min_count_df, COL_NAME_WINDOW_TIME, how="left")
@@ -149,6 +106,65 @@ def calculate_graph_info_with_period(df: pl.LazyFrame, window_str: str) -> pl.La
     )
 
     joined_df = joined_df.sort(COL_NAME_WINDOW_TIME)
+
+    joined_df = joined_df.with_columns(
+        [
+            ## delay
+            pl.lit(1)
+            .sub(
+                pl.col(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY)
+                / (pl.col(COL_NAME_TOTAL_COUNT))
+            )
+            .mul(100)
+            .alias(COL_NAME_PER_FLIGHTS_NOT_DELAYED),
+            ## delay > 15
+            pl.lit(1)
+            .sub(
+                pl.col(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_GTE_15MIN)
+                / (pl.col(COL_NAME_TOTAL_COUNT))
+            )
+            .mul(100)
+            .alias(COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN),
+            ## delay > 15 min for 41 42
+            pl.lit(1)
+            .sub(
+                (
+                    pl.col(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_46_GTE_15MIN)
+                    / pl.col(COL_NAME_TOTAL_COUNT)
+                )
+            )
+            .mul(100)
+            .alias(COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46),
+        ]
+    )
+
+    columns_to_format = [
+        (
+            COL_NAME_PER_FLIGHTS_NOT_DELAYED,
+            COL_NAME_PER_FLIGHTS_NOT_DELAYED_SHOW,
+        ),
+        (
+            COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN,
+            COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN_SHOW,
+        ),
+        (
+            COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46,
+            COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46_SHOW,
+        ),
+    ]
+
+    joined_df = joined_df.with_columns(
+        [
+            (
+                pl.col(col)
+                .round(2)
+                .cast(pl.Utf8)
+                .map_elements(lambda v: f"{v}%", return_dtype=pl.Utf8)
+                .alias(show_col)
+            )
+            for col, show_col in columns_to_format
+        ]
+    )
 
     return joined_df
 
@@ -165,7 +181,6 @@ def create_graph_card(
         return None
 
     len_date = df.select(pl.col(x).len()).item()
-    print("len ", len_date)
 
     # Create figure
     fig = px.bar(df, x=x, y=y, title=title, text=text)
@@ -271,80 +286,15 @@ def generate_card(df: pl.DataFrame, col_name: str, title: str) -> dbc.Card:
     )
 
 
-def calculate_result(
-    window_str: str = "",
-) -> Optional[pl.DataFrame]:
+def calculate_result() -> Optional[pl.DataFrame]:
     df = get_df()
 
     if df is None:
         return None
-    print("Calculating window with string:", window_str)
 
-    if window_str:
-        res_df = calculate_graph_info_with_period(df, window_str)
+    df = calculate_graph_info_with_period(df)
 
-    else:
-        res_df = calculate_graph_info(df)
-
-    res_df = res_df.with_columns(
-        [
-            ## delay
-            pl.lit(1)
-            .sub(
-                pl.col(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY)
-                / (pl.col(COL_NAME_TOTAL_COUNT))
-            )
-            .mul(100)
-            .alias(COL_NAME_PER_FLIGHTS_NOT_DELAYED),
-            ## delay > 15
-            pl.lit(1)
-            .sub(
-                pl.col(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_GTE_15MIN)
-                / (pl.col(COL_NAME_TOTAL_COUNT))
-            )
-            .mul(100)
-            .alias(COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN),
-            ## delay > 15 min for 41 42
-            pl.lit(1)
-            .sub(
-                (
-                    pl.col(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_46_GTE_15MIN)
-                    / pl.col(COL_NAME_TOTAL_COUNT)
-                )
-            )
-            .mul(100)
-            .alias(COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46),
-        ]
-    )
-
-    columns_to_format = [
-        (
-            COL_NAME_PER_FLIGHTS_NOT_DELAYED,
-            COL_NAME_PER_FLIGHTS_NOT_DELAYED_SHOW,
-        ),
-        (
-            COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN,
-            COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN_SHOW,
-        ),
-        (
-            COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46,
-            COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46_SHOW,
-        ),
-    ]
-
-    res_df = res_df.with_columns(
-        [
-            (
-                pl.col(col)
-                .round(2)
-                .cast(pl.Utf8)
-                .map_elements(lambda v: f"{v}%", return_dtype=pl.Utf8)
-                .alias(show_col)
-            )
-            for col, show_col in columns_to_format
-        ]
-    )
-    return res_df.collect()
+    return df.collect()
 
 
 def get_two_latest_values(df: pl.DataFrame, x: str):
@@ -365,13 +315,6 @@ def get_two_latest_values(df: pl.DataFrame, x: str):
 
 layout = dbc.Container(
     [
-        dcc.Input(
-            id="window",
-            type="text",  # or "number", "password", etc.
-            placeholder="Enter window size...",
-            style={"width": "150px"},
-        ),
-        dbc.Button("sub", id="submit-button"),
         # Metrics row
         dbc.Row(
             [
@@ -418,18 +361,17 @@ layout = dbc.Container(
         Output(ID_GRAPH_DELAY_41_42_15MIN, "children"),
         Output(ID_TABLE, "children"),
     ],
-    [
-        add_watcher_for_data(),
-        Input("submit-button", "n_clicks"),
-        State("window", "value"),
-    ],
+    add_watcher_for_data(),
 )
-def create_layout(_, n_clicks, window_str):
+def create_layout(
+    _,
+):
 
     df = get_df()
     if df is None:
         return dash.no_update
-    result = calculate_result(window_str)
+
+    result = calculate_result()
 
     if result is None:
         return dash.no_update
@@ -473,9 +415,7 @@ def create_layout(_, n_clicks, window_str):
     )
 
     table_col_names = [
-        {"id": col["id"], "name": col["name"]}
-        for col in TABLE_COL_NAMES
-        if col["id"] != COL_NAME_WINDOW_TIME or window_str
+        {"id": col["id"], "name": col["name"]} for col in TABLE_COL_NAMES
     ]
 
     table_data = result.select([col["id"] for col in table_col_names]).to_dicts()
