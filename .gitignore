@@ -377,3 +377,4 @@ dist-ssr
 *.sln
 *.sw?
 
+*.ipynb
