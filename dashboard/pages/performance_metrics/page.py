@@ -18,6 +18,7 @@ from excel_manager import (
     COL_NAME_TOTAL_COUNT,
     COL_NAME_WINDOW_TIME,
     COL_NAME_DEPARTURE_DATETIME,
+    get_total_df,
 )
 
 
@@ -75,6 +76,7 @@ def calculate_graph_info_with_period(df: pl.LazyFrame) -> pl.LazyFrame:
 
     assert df is not None
     ##
+
     delayed_flights_count_df = df.group_by(COL_NAME_WINDOW_TIME).agg(
         pl.len().alias(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY)
     )
@@ -93,9 +95,7 @@ def calculate_graph_info_with_period(df: pl.LazyFrame) -> pl.LazyFrame:
         .agg(pl.len().alias(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_46_GTE_15MIN))
     )
 
-    total_df = get_count_df()
-
-    print(total_df.collect())
+    total_df = get_total_df()
     joined_df = (
         total_df.join(delayed_flights_count_df, COL_NAME_WINDOW_TIME, how="left")
         .join(delayed_15min_count_df, COL_NAME_WINDOW_TIME, how="left")

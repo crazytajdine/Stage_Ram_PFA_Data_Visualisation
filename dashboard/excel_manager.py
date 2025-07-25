@@ -54,12 +54,6 @@ auto_refresh = config.get("auto_refresh", True)
 count_excel_lazy = None
 # func
 
-segmentation = None
-
-
-def update_segmentation(new_segmentation: str):
-    segmentation = new_segmentation
-
 
 def get_path_to_excel():
 
@@ -202,7 +196,13 @@ def get_df() -> Optional[pl.LazyFrame]:
     return df
 
 
-def get_count_df() -> Optional[pl.LazyFrame]:
+def get_total_df() -> Optional[pl.LazyFrame]:
+    global total_df
+
+    return total_df
+
+
+def get_count_df(segmentation: Optional[str]) -> Optional[pl.LazyFrame]:
     global df_raw
 
     if segmentation:
@@ -244,6 +244,10 @@ def get_latest_modification_time():
 df_raw: pl.LazyFrame = None
 df_unfiltered: pl.LazyFrame = None
 df: pl.LazyFrame = None
+total_df: pl.LazyFrame = None
+
+get_df
+
 
 load_excel_lazy(path_to_excel)
 
@@ -280,10 +284,11 @@ def update_df_unfiltered():
     load_excel_lazy(path_to_excel)
 
 
-def update_df(filtred_df: pl.LazyFrame):
-    global df
+def update_df(filtred_df: pl.LazyFrame, filtered_total_df: pl.LazyFrame):
+    global df, total_df
 
     df = filtred_df
+    total_df = filtered_total_df
     print("Updated DataFrame with new data.")
 
 

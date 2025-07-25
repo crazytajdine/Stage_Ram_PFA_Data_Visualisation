@@ -1,3 +1,4 @@
+from typing import Optional, Tuple
 import dash
 import polars as pl
 from datetime import date, datetime
@@ -11,7 +12,7 @@ from excel_manager import (
     get_df_unfiltered,
     get_df,
     add_watch_file,
-    update_segmentation,
+    get_count_df,
 )
 from server_instance import get_app
 import dash_bootstrap_components as dbc
@@ -126,13 +127,19 @@ layout = dbc.Card(
 )
 
 
-def apply_filters(df: pl.LazyFrame, filters: dict) -> pl.LazyFrame:
+def apply_filters(
+    df: pl.LazyFrame, filters: dict
+) -> Tuple[pl.LazyFrame, Optional[pl.LazyFrame]]:
+
+    segmentation = filters.get("fl_segmentation") if filters else None
+    total_df = get_count_df(segmentation)
 
     if not filters:
         df = df.with_columns(
             pl.lit(DEFAULT_WINDOW_SEGMENTATION).alias(COL_NAME_WINDOW_TIME)
         )
-        return df
+
+        return df, total_df
 
     # Filter by AC_SUBTYPE
     if filters.get("fl_subtype"):
@@ -143,13 +150,14 @@ def apply_filters(df: pl.LazyFrame, filters: dict) -> pl.LazyFrame:
         df = df.filter(pl.col("AC_REGISTRATION").is_in(filters["fl_matricule"]))
 
     # Filter by SEGMENTATION
-    if filters.get("fl_segmentation"):
+    if segmentation := filters.get("fl_segmentation"):
 
         df = df.with_columns(
             pl.col(COL_NAME_DEPARTURE_DATETIME)
-            .dt.truncate(filters["fl_segmentation"])
+            .dt.truncate(segmentation)
             .alias(COL_NAME_WINDOW_TIME)
         )
+
     else:
         df = df.with_columns(
             pl.lit(DEFAULT_WINDOW_SEGMENTATION).alias(COL_NAME_WINDOW_TIME)
@@ -173,7 +181,7 @@ def apply_filters(df: pl.LazyFrame, filters: dict) -> pl.LazyFrame:
         )
         df = df.filter(pl.col(COL_NAME_DEPARTURE_DATETIME) <= end)
 
-    return df
+    return df, total_df
 
 
 def split_views_by_exclusion(
@@ -182,15 +190,15 @@ def split_views_by_exclusion(
 
     f1 = {**filters, "fl_subtype": None}
     print(f1)
-    view_subtype = apply_filters(df, f1)
+    view_subtype, _ = apply_filters(df, f1)
 
     # exclude matricule
     f2 = {**filters, "fl_matricule": None}
-    view_matricule = apply_filters(df, f2)
+    view_matricule, _ = apply_filters(df, f2)
 
     # exclude both dates
     f3 = {**filters, "dt_start": None, "dt_end": None}
-    view_date = apply_filters(df, f3)
+    view_date, _ = apply_filters(df, f3)
 
     return view_subtype, view_matricule, view_date
 
@@ -281,8 +289,9 @@ def filter_data(_, filter_store_data):
     if df is None:
         return {"payload": [], "count": 0}
 
-    df: pl.LazyFrame = apply_filters(df, filter_store_data)
-    update_df(df)
+    df, total_df = apply_filters(df, filter_store_data)
+
+    update_df(df, total_df)
 
     return None
 
@@ -293,13 +302,6 @@ def filter_data(_, filter_store_data):
     State(FILTER_STORE_SUGGESTIONS, "data"),
 )
 def submit_filter(n_clicks, store_suggestions_data):
-
-    segmentation = (
-        store_suggestions_data.get("fl_segmentation")
-        if store_suggestions_data
-        else None
-    )
-    update_segmentation(segmentation)
 
     return store_suggestions_data
 
