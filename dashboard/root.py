@@ -1,12 +1,14 @@
 from dash import html, dcc, callback, Output, Input, State
 from dash.dependencies import Input, Output
-import io, plotly.io as pio, json
+import plotly.io as pio
 import dash
 
 import dash_bootstrap_components as dbc
 
-from excel_manager import hookers as excel_hookers, add_callbacks, path_exits
 from server_instance import get_app
+
+from components.filter import layout as filter
+from excel_manager import hookers as excel_hookers, add_callbacks, path_exits
 
 
 from pages.tech import page as tech
@@ -28,6 +30,8 @@ app.layout = html.Div(
             className="justify-content-center nav-tabs",
             id="navbar",
         ),
+        # Filters
+        filter,
         # Contenu principal
         html.Div(id="page-content"),
         # Stockage pour suivre l'état du menu

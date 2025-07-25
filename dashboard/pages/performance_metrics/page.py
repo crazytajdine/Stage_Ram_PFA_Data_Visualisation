@@ -7,7 +7,10 @@ from server_instance import get_app
 
 import plotly.graph_objs as go
 
+import plotly.express as px
+
 import polars as pl
+
 from excel_manager import (
     get_df,
     get_count_df,
@@ -66,14 +69,6 @@ TABLE_COL_NAMES = [
         "id": COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46_SHOW,
     },
 ]
-
-
-import plotly.express as px
-
-# Sample bar data
-import dash_bootstrap_components as dbc
-from dash import dcc, html
-import plotly.express as px
 
 
 def calculate_graph_info(df: pl.LazyFrame) -> pl.LazyFrame:
@@ -156,12 +151,6 @@ def calculate_graph_info_with_period(df: pl.LazyFrame, window_str: str) -> pl.La
     joined_df = joined_df.sort(COL_NAME_WINDOW_TIME)
 
     return joined_df
-
-
-from dash import dcc
-import dash_bootstrap_components as dbc
-import plotly.express as px
-import polars as pl
 
 
 def create_graph_card(

@@ -22,7 +22,7 @@ app = get_app()
 
 try:
     # Lazy read once
-    df_lazy = excel_manager.df
+    df_lazy = excel_manager.get_df()
 
     # Normalise column names
     col_map = {
@@ -324,7 +324,10 @@ def make_layout(total_vols: int) -> html.Div:
                                         html.Label("Type d'avion (Flotte)"),
                                         dcc.Dropdown(
                                             id="flotte-dd",
-                                            options=[{"label": f, "value": f} for f in flottes],
+                                            options=[
+                                                {"label": f, "value": f}
+                                                for f in flottes
+                                            ],
                                             multi=True,
                                             placeholder="Tous les types",
                                         ),
@@ -336,7 +339,10 @@ def make_layout(total_vols: int) -> html.Div:
                                         html.Label("Matricule"),
                                         dcc.Dropdown(
                                             id="matricule-dd",
-                                            options=[{"label": m, "value": m} for m in matricules],
+                                            options=[
+                                                {"label": m, "value": m}
+                                                for m in matricules
+                                            ],
                                             multi=True,
                                             placeholder="Tous les matricules",
                                         ),
@@ -353,7 +359,9 @@ def make_layout(total_vols: int) -> html.Div:
                                     html.Label("Code de retard"),
                                     dcc.Dropdown(
                                         id="code-dd",
-                                        options=[{"label": c, "value": c} for c in codes_dr],
+                                        options=[
+                                            {"label": c, "value": c} for c in codes_dr
+                                        ],
                                         multi=True,
                                         placeholder="Tous les codes",
                                     ),
@@ -477,7 +485,6 @@ def make_layout(total_vols: int) -> html.Div:
     )
 
 
-
 # ------------------------------------------------------------------ #
 # 4 ▸  Dash app & callbacks                                          #
 # ------------------------------------------------------------------ #
@@ -549,16 +556,19 @@ def filter_data(n_clicks, fl_sel, mat_sel, code_sel, segmentation, dt_start, dt_
         "nonce": n_clicks,
     }
 
+
 plot_config = {
     # everything else you already put in config …
     "toImageButtonOptions": {
-        "format": "png",        # or "svg" / "pdf" for vector
+        "format": "png",  # or "svg" / "pdf" for vector
         "filename": "codes-chart",
-        "width": 1600,          # px  (≈ A4 landscape)
-        "height": 900,          # px
-        "scale": 3              # 3× pixel-density → crisp on Retina
+        "width": 1600,  # px  (≈ A4 landscape)
+        "height": 900,  # px
+        "scale": 3,  # 3× pixel-density → crisp on Retina
     }
 }
+
+
 # --- Outputs -------------------------------------------------------
 @app.callback(
     [
@@ -569,7 +579,6 @@ plot_config = {
     Input("filtered-store", "data"),
     prevent_initial_call=False,
 )
-
 def build_outputs(store_data):
     """Build all output components based on filtered data"""
 
@@ -646,26 +655,18 @@ def build_outputs(store_data):
 
         # ---------- COMMON PERIOD TOTALS (used by every family chart) -------
         # 2️⃣ exact counts per (period, family, code)
-        temporal_all = (
-            df_with_periods_full
-            .group_by(["time_period", "FAMILLE_DR", "CODE_DR"])
-            .agg(pl.len().alias("count"))
-        )
+        temporal_all = df_with_periods_full.group_by(
+            ["time_period", "FAMILLE_DR", "CODE_DR"]
+        ).agg(pl.len().alias("count"))
 
         # 3️⃣ grand-total per period (all families, all codes)
-        period_totals = (
-            temporal_all
-            .group_by("time_period")
-            .agg(pl.col("count").sum().alias("period_total"))
+        period_totals = temporal_all.group_by("time_period").agg(
+            pl.col("count").sum().alias("period_total")
         )
 
         # 4️⃣ join + exact share
-        temporal_all = (
-            temporal_all
-            .join(period_totals, on="time_period")
-            .with_columns(
-                (pl.col("count") / pl.col("period_total") * 100).alias("perc")
-            )
+        temporal_all = temporal_all.join(period_totals, on="time_period").with_columns(
+            (pl.col("count") / pl.col("period_total") * 100).alias("perc")
         )
 
         # Get selected codes from store_data
@@ -695,14 +696,16 @@ def build_outputs(store_data):
                 font=dict(size=16, color="#a0a7b9"),
             )
         else:
-                        # Group by time period and code
+            # Group by time period and code
             # ---------- FAMILY-LEVEL CHARTS ------------------------------------
-            family_figs = []                     # list of Graph components to return
+            family_figs = []  # list of Graph components to return
 
             # consistent colour map across all charts
             all_unique_codes = df_with_periods_full["CODE_DR"].unique().sort().to_list()
             palette = px.colors.qualitative.Set3
-            color_map = {c: palette[i % len(palette)] for i, c in enumerate(all_unique_codes)}
+            color_map = {
+                c: palette[i % len(palette)] for i, c in enumerate(all_unique_codes)
+            }
 
             for fam in temporal_all["FAMILLE_DR"].unique().sort():
                 fam_data = temporal_all.filter(pl.col("FAMILLE_DR") == fam)
@@ -716,10 +719,10 @@ def build_outputs(store_data):
                     rows = fam_data.filter(pl.col("CODE_DR") == code)
 
                     # maps in the exact grid order
-                    perc_map   = {r["time_period"]: r["perc"]   for r in rows.to_dicts()}
-                    count_map  = {r["time_period"]: r["count"]  for r in rows.to_dicts()}
+                    perc_map = {r["time_period"]: r["perc"] for r in rows.to_dicts()}
+                    count_map = {r["time_period"]: r["count"] for r in rows.to_dicts()}
 
-                    y_vals     = [perc_map.get(p, 0)  for p in all_periods]
+                    y_vals = [perc_map.get(p, 0) for p in all_periods]
                     raw_counts = [count_map.get(p, 0) for p in all_periods]
 
                     fig.add_trace(
@@ -736,26 +739,30 @@ def build_outputs(store_data):
                                 "Pourc. : %{customdata[1]:.2f}%<extra></extra>"
                             ),
                             meta=code,
-                            text=[f"{v:.2f} %" if v else "" for v in y_vals],  # optional labels
+                            text=[
+                                f"{v:.2f} %" if v else "" for v in y_vals
+                            ],  # optional labels
                             textposition="outside",
                             cliponaxis=False,
                         )
                     )
 
-                HEADER_H = 36          # grey bar height (px) – keep padding inside this
-                FIG_H    = 420         # visible Plotly canvas height
-                WRAP_H   = HEADER_H + FIG_H
+                HEADER_H = 36  # grey bar height (px) – keep padding inside this
+                FIG_H = 420  # visible Plotly canvas height
+                WRAP_H = HEADER_H + FIG_H
                 # build the bar­chart …
                 fig.update_layout(
                     yaxis=dict(
                         range=[0, 100],
                         tickformat=".0f",
                         dtick=10,
-                        title="Pourcentage (%)"
+                        title="Pourcentage (%)",
                     ),
                     bargap=0.2,
                     height=FIG_H,
-                    margin=dict(l=40, r=10, t=20, b=70),   # b = 70 leaves room for “outside” labels
+                    margin=dict(
+                        l=40, r=10, t=20, b=70
+                    ),  # b = 70 leaves room for “outside” labels
                 )
 
                 # ---- grey-header “card” ------------------------------------------
@@ -778,7 +785,7 @@ def build_outputs(store_data):
                                 },
                             ),
                             # graph
-                            dcc.Graph(id="codes-chart", figure=fig, config=plot_config)
+                            dcc.Graph(id="codes-chart", figure=fig, config=plot_config),
                         ],
                         style={
                             "border": "1px solid #dee2e6",
@@ -789,7 +796,6 @@ def build_outputs(store_data):
                         },
                     )
                 )
-
 
     # 3. Build table (independent of code and segmentation selection)
     if not store_data or not store_data.get("table_payload"):
@@ -854,8 +860,8 @@ def build_outputs(store_data):
             filter_action="native",
             page_size=8,
             export_format="xlsx",
-            export_headers="display",      # nice human-readable headers
-            export_columns="all",          # include hidden cols if you like
+            export_headers="display",  # nice human-readable headers
+            export_columns="all",  # include hidden cols if you like
             style_table={"height": "500px", "overflowY": "auto"},
         )
 
@@ -913,7 +919,8 @@ def update_codes(fl_sel, mat_sel):
 def update_segmentation(start_date, end_date):
     segements_options = compute_options(start_date, end_date)
     options = [
-        {"label": f"{d} day{'s' if d > 1 else ''}", "value": d} for d in segements_options
+        {"label": f"{d} day{'s' if d > 1 else ''}", "value": d}
+        for d in segements_options
     ]
     disabled = not options
     return options, disabled, None  # clear selection whenever list rebuilds

@@ -23,8 +23,12 @@ ID_STORE_DATE_WATCHER = "store-date-latest-fetch"
 COL_NAME_DEPARTURE_DATETIME = "DEP_DAY_SCHED"
 
 COL_NAME_WINDOW_TIME = "WINDOW_DATETIME_DEP"
-COL_NAME_WINDOW_TIME = "WINDOW_DATETIME_DEP"
 COL_NAME_TOTAL_COUNT = "total_count"
+
+
+DATA_STORE_TRIGGER = "filter-store-trigger"
+
+
 # init
 
 
@@ -153,7 +157,7 @@ def is_auto_refresh_enabled() -> bool:
 
 def load_excel_lazy(path):
 
-    global df, df_raw
+    global df_unfiltered, df_raw, df
 
     if not path:
         raise ValueError("Path cannot be empty.")
@@ -163,21 +167,30 @@ def load_excel_lazy(path):
     if not is_exist:
         raise ValueError("The path does not exist.")
 
-    df = pl.read_excel(path, sheet_name="Sheet1").lazy()
+    df_unfiltered = pl.read_excel(path, sheet_name="Sheet1").lazy()
 
-    df_raw = preprocess_df(df)
+    df_raw = preprocess_df(df_unfiltered)
 
-    df = df_raw.pipe(filter_retard).pipe(filter_tec)
+    df_unfiltered = df_raw.pipe(filter_retard).pipe(filter_tec)
+
+    df = df_unfiltered
 
 
 def preprocess_df(raw_df: pl.LazyFrame) -> pl.LazyFrame:
     return raw_df.with_columns(pl.col("CODE_DR").cast(pl.Int32).alias("CODE_DR"))
 
 
+def get_df_unfiltered() -> Optional[pl.LazyFrame]:
+    global df_unfiltered
+    if df_unfiltered is None and path_to_excel:
+        update_df_unfiltered()
+    return df_unfiltered
+
+
 def get_df() -> Optional[pl.LazyFrame]:
     global df
-    if df is None and path_to_excel:
-        update_df()
+    if df is None:
+        return None
     return df
 
 
@@ -185,14 +198,10 @@ def get_count_df(window_str="") -> Optional[pl.LazyFrame]:
     global df_raw
 
     if window_str:
-        stmt = (
-            df_raw.with_columns(
-                pl.col(COL_NAME_DEPARTURE_DATETIME)
-                .dt.truncate(window_str)
-                .alias(COL_NAME_WINDOW_TIME)
-            )
-            .group_by(COL_NAME_WINDOW_TIME)
-            .agg(pl.len().alias(COL_NAME_TOTAL_COUNT))
+        stmt = df_raw.with_columns(
+            pl.col(COL_NAME_DEPARTURE_DATETIME)
+            .dt.truncate(window_str)
+            .alias(COL_NAME_WINDOW_TIME)
         )
     else:
         stmt = df_raw.select(pl.len().alias(COL_NAME_TOTAL_COUNT))
@@ -214,6 +223,11 @@ def get_latest_modification_time():
 
 
 # program
+
+df_raw: pl.LazyFrame = None
+df_unfiltered: pl.LazyFrame = None
+df: pl.LazyFrame = None
+
 load_excel_lazy(path_to_excel)
 
 modification_date = config.get("modification_date", get_latest_modification_time())
@@ -226,22 +240,34 @@ store_latest_date_fetch = dcc.Store(
     id=ID_STORE_DATE_WATCHER, storage_type="local", data=modification_date
 )
 
+store_trigger_change = dcc.Store(id=DATA_STORE_TRIGGER)
 
 interval_watcher = dcc.Interval(
     id=ID_INTERVAL_WATCHER, interval=1000, disabled=not auto_refresh
 )
 
 
-hookers = [store_excel, store_latest_date_fetch, interval_watcher]
+hookers = [store_excel, store_latest_date_fetch, interval_watcher, store_trigger_change]
 
 
-def add_watcher_for_data():
+def add_watch_file():
     return Input(ID_STORE_DATE_WATCHER, "data")
 
 
-def update_df():
+def add_watcher_for_data():
+    return Input(DATA_STORE_TRIGGER, "data")
+
+
+def update_df_unfiltered():
 
     load_excel_lazy(path_to_excel)
+
+
+def update_df(filtred_df: pl.LazyFrame):
+    global df
+
+    df = filtred_df
+    print("Updated DataFrame with new data.")
 
 
 def add_callbacks():
@@ -284,7 +310,7 @@ def add_callbacks():
                     latest_modification_time,
                 )
 
-                update_df()
+                update_df_unfiltered()
                 modify_modification_date(latest_modification_time)
                 return latest_modification_time
 
