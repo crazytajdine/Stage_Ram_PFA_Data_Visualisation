@@ -13,11 +13,9 @@ import polars as pl
 
 from excel_manager import (
     get_df,
-    get_count_df,
     add_watcher_for_data,
     COL_NAME_TOTAL_COUNT,
     COL_NAME_WINDOW_TIME,
-    COL_NAME_DEPARTURE_DATETIME,
     get_total_df,
 )
 
@@ -204,7 +202,7 @@ def create_graph_card(
     fig.update_traces(
         textposition="outside" if len_date <= threshold_show_y else "none",
         marker_color="rgb(0, 123, 255)",
-        hovertemplate="%{x}<br>%{text}<extra></extra>",
+        hovertemplate="%{x}<br>Percentage : %{text}<br>Detailed : %{y} <extra></extra>",
         textfont_size=16,
     )
 

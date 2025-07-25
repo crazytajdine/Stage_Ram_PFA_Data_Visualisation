@@ -24,7 +24,7 @@ FILTER_MATRICULE = "filter-matricule"
 FILTER_SEGMENTATION = "filter-segmentation"
 FILTER_DATE_RANGE = "filter-date-range"
 FILTER_SUBMIT_BTN = "filter-go-btn"
-FILTER_RESET_BTN = "filter-reset-btn"
+# FILTER_RESET_BTN = "filter-reset-btn"
 FILTER_STORE_SUGGESTIONS = "filter-store-suggestions"
 FILTER_STORE_ACTUAL = "filter-store-actual"
 
@@ -91,7 +91,6 @@ layout = dbc.Card(
                             html.Label("Date :"),
                             dcc.DatePickerRange(
                                 id=FILTER_DATE_RANGE,
-                                display_format="YYYY-MM-DD",
                                 clearable=True,
                             ),
                         ],
@@ -111,13 +110,13 @@ layout = dbc.Card(
                             className="w-100",
                             size="lg",
                         ),
-                        dbc.Button(
-                            "Reset",
-                            id=FILTER_RESET_BTN,
-                            color="secondary",
-                            className="w-100",
-                            size="lg",
-                        ),
+                        # dbc.Button(
+                        #     "Reset",
+                        #     id=FILTER_RESET_BTN,
+                        #     color="secondary",
+                        #     className="w-100",
+                        #     size="lg",
+                        # ),
                     ]
                 )
             ),
@@ -212,7 +211,7 @@ def split_views_by_exclusion(
 )
 def update_filter_options(store_data):
 
-    base_lazy = get_df()  # your global LazyFrame
+    base_lazy = get_df_unfiltered()  # your global LazyFrame
 
     v_sub, v_mat, v_date = split_views_by_exclusion(base_lazy, store_data)
 
