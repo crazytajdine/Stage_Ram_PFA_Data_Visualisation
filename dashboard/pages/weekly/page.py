@@ -77,6 +77,10 @@ def analyze_weekly_codes() -> pl.DataFrame:
           .pivot(values="n", index="CODE_DR", columns="day_of_week")
           .fill_null(0)
     )
+    # Ajout sécurisé des colonnes manquantes avec 0 par défaut
+    for day in DAYS_FR:
+        if day not in pivot.columns:
+            pivot = pivot.with_columns(pl.lit(0).cast(pl.Int64).alias(day))
 
     # reorder and add Total
     pivot = (
