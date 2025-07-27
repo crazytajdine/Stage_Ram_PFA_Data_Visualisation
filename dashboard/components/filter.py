@@ -144,7 +144,7 @@ def apply_filters(
 
     start = end = None
     if (not segmentation) and (not min_dt or not max_dt):
-        min_dt, max_dt = get_min_max_date_raw_df()
+        min_total_dt, max_total_dt = get_min_max_date_raw_df()
 
     if min_dt:
         start = (
@@ -157,7 +157,7 @@ def apply_filters(
         if segmentation:
             stmt_start = pl.lit(COL_NAME_DEPARTURE_DATETIME).min()
         else:
-            stmt_start = pl.lit(min_dt)
+            stmt_start = pl.lit(min_total_dt)
 
     if max_dt:
         end = (
@@ -170,7 +170,7 @@ def apply_filters(
         if segmentation:
             stmt_end = pl.col(COL_NAME_DEPARTURE_DATETIME).max()
         else:
-            stmt_end = pl.lit(max_dt)
+            stmt_end = pl.lit(max_total_dt)
 
     if not is_suggestions:
         total_df = get_count_df(segmentation, unit_segmentation, start, end)
@@ -230,21 +230,15 @@ def apply_filters(
 
 
 def split_views_by_exclusion(
-    df: pl.LazyFrame, filters: dict
-) -> tuple[pl.LazyFrame, pl.LazyFrame, pl.LazyFrame]:
-
-    f1 = {**filters, "fl_subtype": None}
-    view_subtype, _ = apply_filters(df, f1, True)
+    df: pl.LazyFrame, filters: dict, *excludes: str
+) -> pl.LazyFrame:
 
     # exclude matricule
-    f2 = {**filters, "fl_matricule": None}
+    f2 = {**filters, **{exclude: None for exclude in excludes}}
     view_matricule, _ = apply_filters(df, f2, True)
 
     # exclude both dates
-    f3 = {**filters, "dt_start": None, "dt_end": None}
-    view_date, _ = apply_filters(df, f3, True)
-
-    return view_subtype, view_matricule, view_date
+    return view_matricule
 
 
 @app.callback(
@@ -258,7 +252,9 @@ def update_filter_options(store_data):
 
     base_lazy = get_df_unfiltered()  # your global LazyFrame
 
-    v_sub, v_mat, v_date = split_views_by_exclusion(base_lazy, store_data)
+    v_sub = split_views_by_exclusion(base_lazy, store_data, "fl_subtype")
+    v_mat = split_views_by_exclusion(base_lazy, store_data, "fl_matricule")
+    # v_date = split_views_by_exclusion(base_lazy, store_data, "dt_start", "dt_end")
 
     # subtype dropdown
     df_sub = v_sub.collect()
@@ -271,13 +267,17 @@ def update_filter_options(store_data):
     )
 
     # date bounds
-    df_dt = v_date.collect()
-    dt_min = (
-        df_dt.get_column(COL_NAME_DEPARTURE_DATETIME).min() or datetime.now().date()
-    )
-    dt_max = (
-        df_dt.get_column(COL_NAME_DEPARTURE_DATETIME).max() or datetime.now().date()
-    )
+
+    # df_dt = v_date.collect()
+    # dt_min = (
+    #     df_dt.get_column(COL_NAME_DEPARTURE_DATETIME).min() or datetime.now().date()
+    # )
+    # dt_max = (
+    #     df_dt.get_column(COL_NAME_DEPARTURE_DATETIME).max() or datetime.now().date()
+    # )
+
+    dt_min, dt_max = get_min_max_date_raw_df()
+
     dt_min_iso = dt_min.strftime("%Y-%m-%d")
     dt_max_iso = dt_max.strftime("%Y-%m-%d")
 

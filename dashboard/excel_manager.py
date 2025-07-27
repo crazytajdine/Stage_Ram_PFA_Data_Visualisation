@@ -179,7 +179,9 @@ def load_excel_lazy(path):
 
 
 def preprocess_df(raw_df: pl.LazyFrame) -> pl.LazyFrame:
-    return raw_df.with_columns(pl.col("CODE_DR").cast(pl.Int32).alias("CODE_DR"))
+    return raw_df.with_columns(
+        pl.col("CODE_DR").cast(pl.Int32).alias("CODE_DR")
+    ).filter(pl.col("AT_RXP_AFFRT") != "AFFRT")
 
 
 def get_df_unfiltered() -> Optional[pl.LazyFrame]:
@@ -207,6 +209,7 @@ def get_count_df(
 ) -> Optional[pl.LazyFrame]:
     global df_raw
     start = end = None
+    filter_list = []
 
     if min_date:
         start = (
@@ -214,31 +217,25 @@ def get_count_df(
             if isinstance(min_date, date)
             else datetime.fromisoformat(min_date).date()
         )
-
+        filter_list.append(pl.col(COL_NAME_DEPARTURE_DATETIME) > start)
     if max_date:
         end = (
             max_date
             if isinstance(max_date, date)
             else datetime.fromisoformat(max_date).date()
         )
+        filter_list.append(pl.col(COL_NAME_DEPARTURE_DATETIME) < end)
+
+    stmt = df_raw
+    if filter_list:
+        stmt = df_raw.filter(filter_list)
 
     if segmentation and unit_segmentation:
 
-        filter_stmt_df = pl.lit(True)
-
-        if start:
-            filter_stmt_df = filter_stmt_df & (
-                pl.col(COL_NAME_DEPARTURE_DATETIME) > start
-            )
-        if end:
-            filter_stmt_df = filter_stmt_df & (
-                pl.col(COL_NAME_DEPARTURE_DATETIME) < end
-            )
         min_segmentation = str(segmentation) + unit_segmentation
         max_segmentation = str(segmentation - 1) + unit_segmentation
         stmt = (
-            df_raw.filter(filter_stmt_df)
-            .with_columns(
+            stmt.with_columns(
                 pl.col(COL_NAME_DEPARTURE_DATETIME)
                 .dt.truncate(min_segmentation)
                 .alias(COL_NAME_WINDOW_TIME),
@@ -256,6 +253,7 @@ def get_count_df(
 
         if start:
             stmt_start = pl.lit(start)
+
         else:
             stmt_start = pl.col(COL_NAME_DEPARTURE_DATETIME).min()
 
@@ -267,9 +265,7 @@ def get_count_df(
         stmt_start = stmt_start.alias(COL_NAME_WINDOW_TIME)
         stmt_end = stmt_end.alias(COL_NAME_WINDOW_TIME_MAX)
 
-        stmt = df_raw.select(
-            [stmt_start, stmt_end, pl.len().alias(COL_NAME_TOTAL_COUNT)]
-        )
+        stmt = stmt.select([stmt_start, stmt_end, pl.len().alias(COL_NAME_TOTAL_COUNT)])
     return stmt
 
 

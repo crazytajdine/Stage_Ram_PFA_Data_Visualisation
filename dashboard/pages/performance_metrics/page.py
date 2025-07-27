@@ -121,7 +121,6 @@ def calculate_graph_info_with_period(df: pl.LazyFrame) -> pl.LazyFrame:
             COL_NAME_WINDOW_TIME,
             how="left",
         )
-        .fill_null(0)
     )
 
     joined_df = joined_df.sort(COL_NAME_WINDOW_TIME)
@@ -243,9 +242,17 @@ def generate_card(df: pl.DataFrame, col_name: str, title: str) -> dbc.Card:
 
     assert df is not None and col_name is not None
 
-    latest_values = df.select(pl.col(col_name).tail(2)).to_series().to_list()
+    latest_values = (
+        df.drop_nulls(pl.col(col_name))
+        .select(pl.col(col_name).tail(2))
+        .to_series()
+        .to_list()
+    )
+
     # Calculate change
+    print(COL_NAME_WINDOW_TIME in df.columns, len(latest_values) == 2)
     if COL_NAME_WINDOW_TIME in df.columns and len(latest_values) == 2:
+
         this_year, last_year = latest_values
         change = this_year - last_year
     else:
@@ -437,7 +444,17 @@ def create_layout(
         {"id": col["id"], "name": col["name"]} for col in TABLE_COL_NAMES
     ]
 
-    table_data = result.select([col["id"] for col in table_col_names]).to_dicts()
+    table_data = (
+        result.drop_nulls(
+            subset=[
+                COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY,
+                COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_GTE_15MIN,
+                COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_46_GTE_15MIN,
+            ]
+        )
+        .select([col["id"] for col in table_col_names])
+        .to_dicts()
+    )
 
     table = []
 
