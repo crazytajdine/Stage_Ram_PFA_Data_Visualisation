@@ -12,6 +12,7 @@ import plotly.express as px
 import polars as pl
 
 from excel_manager import (
+    COL_NAME_WINDOW_TIME_MAX,
     get_df,
     add_watcher_for_data,
     COL_NAME_TOTAL_COUNT,
@@ -54,7 +55,8 @@ ID_TABLE = "result_table_percentage"
 app = get_app()
 
 TABLE_COL_NAMES = [
-    {"name": "time", "id": COL_NAME_WINDOW_TIME},
+    {"name": "Window Start", "id": COL_NAME_WINDOW_TIME},
+    {"name": "Window End", "id": COL_NAME_WINDOW_TIME_MAX},
     {
         "name": "Percentage of On-Time Flights",
         "id": COL_NAME_PER_FLIGHTS_NOT_DELAYED_SHOW,
@@ -66,6 +68,22 @@ TABLE_COL_NAMES = [
     {
         "name": "Percentage of On-Time or less than 15 Minutes, or Delays Not Due to Reasons 41/46",
         "id": COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46_SHOW,
+    },
+    {
+        "name": "Total count of flights",
+        "id": COL_NAME_TOTAL_COUNT,
+    },
+    {
+        "name": "Total count of flights with delay",
+        "id": COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY,
+    },
+    {
+        "name": "Total count of flights with delay greater than 15 min",
+        "id": COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_GTE_15MIN,
+    },
+    {
+        "name": "Total count of flights with delay than 15 min with code delay 41 and 46",
+        "id": COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_46_GTE_15MIN,
     },
 ]
 
@@ -94,11 +112,14 @@ def calculate_graph_info_with_period(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
     total_df = get_total_df()
+
     joined_df = (
         total_df.join(delayed_flights_count_df, COL_NAME_WINDOW_TIME, how="left")
         .join(delayed_15min_count_df, COL_NAME_WINDOW_TIME, how="left")
         .join(
-            delayed_flights_41_46_gte_15min_count_df, COL_NAME_WINDOW_TIME, how="left"
+            delayed_flights_41_46_gte_15min_count_df,
+            COL_NAME_WINDOW_TIME,
+            how="left",
         )
         .fill_null(0)
     )
@@ -433,6 +454,9 @@ def create_layout(
             },
             style_cell={"textAlign": "left"},
             sort_by=[{"column_id": COL_NAME_WINDOW_TIME, "direction": "desc"}],
+            export_format="xlsx",
+            export_headers="display",
+            export_columns="all",
         )
 
     return card1, card2, card3, fig1, fig2, fig3, table
