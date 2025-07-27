@@ -31,7 +31,7 @@ app.layout = html.Div(
             id="navbar",
         ),
         # Filters
-        filter,
+        html.Div(id="filter-section", children=filter),
         # Contenu principal
         html.Div(id="page-content"),
         # Stockage pour suivre l'état du menu
@@ -61,6 +61,15 @@ def build_nav_items(path_exists: bool):  # ← renommez au passage
         ]
 
     return nav_items
+
+@app.callback(
+    Output("filter-section", "style"),
+    Input("url", "pathname")
+)
+def hide_filter_on_settings(pathname):
+    if pathname == "/settings":
+        return {"display": "none"}
+    return {"display": "block"}
 
 
 @app.callback(

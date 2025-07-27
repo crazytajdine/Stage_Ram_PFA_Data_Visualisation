@@ -53,44 +53,69 @@ def get_day_name(date_val: date | str) -> str:
     return DAY_NAME_MAP[date_val.weekday()]
 
 
+def _blank_weekly_table() -> pl.DataFrame:
+    return pl.DataFrame({
+        "CODE_DR": ["-"],
+        **{day: [0] for day in DAYS_FR},
+        "Total": [0]
+    })
+
+
 def analyze_weekly_codes() -> pl.DataFrame:
     df_lazy = get_df()
     if df_lazy is None:
-        return pl.DataFrame()
+        return _blank_weekly_table()
 
     df = df_lazy.collect()
     if df.is_empty():
-        return pl.DataFrame()
+        return _blank_weekly_table()
 
-    # add French weekday
+    # 💡 Vérifie la plage de dates (en jours) du DataFrame
+    if COL_NAME_DEPARTURE_DATETIME not in df.columns:
+        return _blank_weekly_table()
+
+    try:
+        dates = df.select(COL_NAME_DEPARTURE_DATETIME).to_series()
+        min_date = dates.min()
+        max_date = dates.max()
+
+        if (max_date - min_date).days >= 7:
+            return _blank_weekly_table()
+    except Exception:
+        # En cas de format incohérent ou conversion ratée
+        return _blank_weekly_table()
+
+    # Ajouter le nom du jour de la semaine
     df = df.with_columns(
         pl.col(COL_NAME_DEPARTURE_DATETIME)
           .map_elements(get_day_name, pl.Utf8)
           .alias("day_of_week")
     )
 
-    # count → pivot
+    # Group by + pivot
     pivot = (
         df
-          .group_by(["CODE_DR", "day_of_week"])
-          .agg(pl.len().alias("n"))
-          .pivot(values="n", index="CODE_DR", columns="day_of_week")
-          .fill_null(0)
+        .group_by(["CODE_DR", "day_of_week"])
+        .agg(pl.len().alias("n"))
+        .pivot(values="n", index="CODE_DR", columns="day_of_week")
+        .fill_null(0)
     )
-    # Ajout sécurisé des colonnes manquantes avec 0 par défaut
+
+    # Ajouter les jours manquants
     for day in DAYS_FR:
         if day not in pivot.columns:
             pivot = pivot.with_columns(pl.lit(0).cast(pl.Int64).alias(day))
 
-    # reorder and add Total
+    # Ordonner et totaliser
     pivot = (
         pivot
-          .select("CODE_DR", *DAYS_FR)
-          .with_columns(pl.sum_horizontal(DAYS_FR).alias("Total"))
-          .sort("Total", descending=True)
+        .select("CODE_DR", *DAYS_FR)
+        .with_columns(pl.sum_horizontal(DAYS_FR).alias("Total"))
+        .sort("Total", descending=True)
     )
 
     return pivot
+
 
 
 # ------------------------------------------------------------------ #
