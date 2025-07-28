@@ -363,12 +363,6 @@ def add_callbacks():
             latest_modification_time = get_latest_modification_time()
 
             if latest_modification_time != date_latest_fetch:
-                print(
-                    "File changed old : ",
-                    date_latest_fetch,
-                    ", new: ",
-                    latest_modification_time,
-                )
 
                 update_df_unfiltered()
                 modify_modification_date(latest_modification_time)

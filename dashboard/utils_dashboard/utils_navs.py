@@ -5,10 +5,9 @@ from configurations.config import get_user_config
 from configurations.nav_config import (
     NAV_CONFIG,
     NAV_CONFIG_VERIFY,
-    NavItemMeta,
-    NavItem,
 )
 
+from schemas.navbarItem import NavItem, NavItemMeta
 from pages.home import page as home
 from pages.tech import page as tech
 from pages.weekly import page as weekly
@@ -42,7 +41,6 @@ def build_nav_items(path_exists: bool) -> list[NavItem]:
         if is_visible_user is None:
             is_visible_user = item.show
 
-        print(item.name, is_visible_user)
         if not is_visible_user:
             continue
 

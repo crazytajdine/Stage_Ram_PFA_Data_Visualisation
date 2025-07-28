@@ -248,7 +248,6 @@ def generate_card(df: pl.DataFrame, col_name: str, title: str) -> dbc.Card:
         .to_series()
         .to_list()
     )
-    print(latest_values)
     # Calculate change
     if COL_NAME_WINDOW_TIME in df.columns and len(latest_values) == 2:
 

@@ -36,7 +36,6 @@ def add_callback():
     )
     def update_layout(pathname, _, n_clicks_settings):
         path_exists = path_exits()
-        print(f"path_exists : {path_exists}")
         nav_items = build_nav_items(path_exists)
 
         navbar = []

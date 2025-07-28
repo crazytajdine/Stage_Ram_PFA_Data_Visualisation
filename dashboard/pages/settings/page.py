@@ -14,6 +14,9 @@ from excel_manager import (
 )
 from utils_dashboard.utils_preference import get_nav_preferences, set_page_visibility
 
+
+from pages.settings.metadata import metadata
+
 app = get_app()
 
 ID_TRIGGER_PARAMS_CHANGE_NAVBAR = "trigger_navbar"
@@ -28,6 +31,7 @@ ID_LAST_REFRESH_TIME = "last-refresh-time"
 ID_SETTINGS_BUTTON_NAV = "settings-button-navbar"
 ID_PAGE_VISIBILITY_MSG = "page-visibility-message"
 
+ID_CONTAINER_VISIBILITY_CONTROLS = "page-visibility-controls"
 layout = html.Div(
     [
         dcc.Store(ID_TRIGGER_PARAMS_CHANGE_NAVBAR),
@@ -106,16 +110,7 @@ layout = html.Div(
                             className="mb-3",
                         ),
                         html.Div(
-                            id="page-visibility-controls",
-                            children=[
-                                dbc.Checkbox(
-                                    id={"type": "page-checkbox", "index": page_label},
-                                    label=page_label,
-                                    value=is_checked,
-                                    className="mb-2",
-                                )
-                                for page_label, is_checked in get_nav_preferences().items()
-                            ],
+                            id=ID_CONTAINER_VISIBILITY_CONTROLS,
                         ),
                         html.Hr(className="my-3"),
                         dbc.Button(
@@ -214,6 +209,30 @@ def update_refresh_time(_):
 
 
 # 6. Save page-visibility settings
+
+
+@app.callback(
+    Output(ID_CONTAINER_VISIBILITY_CONTROLS, "children"),
+    Input("url", "pathname"),
+)
+def update_page_visibility_controls(pathname):
+    if pathname == metadata.href:
+        nav_preferences = get_nav_preferences()
+        print(nav_preferences)
+        checkboxes = [
+            dbc.Checkbox(
+                id={"type": "page-checkbox", "index": page_label},
+                label=page_label,
+                value=is_checked,
+                className="mb-2",
+            )
+            for page_label, is_checked in nav_preferences.items()
+        ]
+        return checkboxes
+    else:
+        return []
+
+
 @app.callback(
     Output(ID_TRIGGER_PARAMS_CHANGE_NAVBAR, "data"),
     Output(ID_PAGE_VISIBILITY_MSG, "children"),
@@ -230,7 +249,6 @@ def save_page_visibility_cb(n_clicks, values, ids):
         ids[i]["index"]: (values[i] if values[i] is not None else False)
         for i in range(len(ids))
     }
-    print(prefs)
     # Validate at least one page is shown
     if not any(prefs.values()):
         return (
