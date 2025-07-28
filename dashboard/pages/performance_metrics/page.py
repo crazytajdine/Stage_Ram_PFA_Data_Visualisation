@@ -12,6 +12,7 @@ import plotly.express as px
 import polars as pl
 
 from excel_manager import (
+    COL_NAME_WINDOW_TIME_MAX,
     get_df,
     add_watcher_for_data,
     COL_NAME_TOTAL_COUNT,
@@ -54,7 +55,8 @@ ID_TABLE = "result_table_percentage"
 app = get_app()
 
 TABLE_COL_NAMES = [
-    {"name": "time", "id": COL_NAME_WINDOW_TIME},
+    {"name": "Window Start", "id": COL_NAME_WINDOW_TIME},
+    {"name": "Window End", "id": COL_NAME_WINDOW_TIME_MAX},
     {
         "name": "Percentage of On-Time Flights",
         "id": COL_NAME_PER_FLIGHTS_NOT_DELAYED_SHOW,
@@ -66,6 +68,22 @@ TABLE_COL_NAMES = [
     {
         "name": "Percentage of On-Time or less than 15 Minutes, or Delays Not Due to Reasons 41/46",
         "id": COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46_SHOW,
+    },
+    {
+        "name": "Total count of flights",
+        "id": COL_NAME_TOTAL_COUNT,
+    },
+    {
+        "name": "Total count of flights with delay",
+        "id": COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY,
+    },
+    {
+        "name": "Total count of flights with delay greater than 15 min",
+        "id": COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_GTE_15MIN,
+    },
+    {
+        "name": "Total count of flights with delay than 15 min with code delay 41 and 46",
+        "id": COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_46_GTE_15MIN,
     },
 ]
 
@@ -94,13 +112,15 @@ def calculate_graph_info_with_period(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
     total_df = get_total_df()
+
     joined_df = (
         total_df.join(delayed_flights_count_df, COL_NAME_WINDOW_TIME, how="left")
         .join(delayed_15min_count_df, COL_NAME_WINDOW_TIME, how="left")
         .join(
-            delayed_flights_41_46_gte_15min_count_df, COL_NAME_WINDOW_TIME, how="left"
+            delayed_flights_41_46_gte_15min_count_df,
+            COL_NAME_WINDOW_TIME,
+            how="left",
         )
-        .fill_null(0)
     )
 
     joined_df = joined_df.sort(COL_NAME_WINDOW_TIME)
@@ -222,13 +242,24 @@ def generate_card(df: pl.DataFrame, col_name: str, title: str) -> dbc.Card:
 
     assert df is not None and col_name is not None
 
-    latest_values = df.select(pl.col(col_name).tail(2)).to_series().to_list()
+    latest_values = (
+        df.drop_nulls(pl.col(col_name))
+        .select(pl.col(col_name).tail(2))
+        .to_series()
+        .to_list()
+    )
+    print(latest_values)
     # Calculate change
     if COL_NAME_WINDOW_TIME in df.columns and len(latest_values) == 2:
+
         this_year, last_year = latest_values
         change = this_year - last_year
-    else:
+    elif len(latest_values) == 1:
+
         this_year = latest_values[0]
+        change = None
+    else:
+        this_year = None
         change = None
 
     # Determine display for change
@@ -249,7 +280,7 @@ def generate_card(df: pl.DataFrame, col_name: str, title: str) -> dbc.Card:
         change_div = html.Div(
             [
                 html.I(className=f"{icon_cls} me-1 fs-5"),
-                html.Span(f"{abs(change):.1f}%", className="fs-6"),
+                html.Span(f"{abs(change):.2f}%", className="fs-6"),
             ],
             className=f"{color_cls} d-flex justify-content-center align-items-center",
         )
@@ -270,7 +301,9 @@ def generate_card(df: pl.DataFrame, col_name: str, title: str) -> dbc.Card:
             # Body – fixed height (or flex‑fill if you want it to grow)
             dbc.CardBody(
                 [
-                    html.H2(f"{this_year:.2f}%", className="m-0"),
+                    html.H2(
+                        f"{this_year:.2f}%" if this_year else "N/A", className="m-0"
+                    ),
                 ],
                 className="d-flex flex-fill align-items-center justify-content-center px-4",
             ),
@@ -416,7 +449,17 @@ def create_layout(
         {"id": col["id"], "name": col["name"]} for col in TABLE_COL_NAMES
     ]
 
-    table_data = result.select([col["id"] for col in table_col_names]).to_dicts()
+    table_data = (
+        result.drop_nulls(
+            subset=[
+                COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY,
+                COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_GTE_15MIN,
+                COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_46_GTE_15MIN,
+            ]
+        )
+        .select([col["id"] for col in table_col_names])
+        .to_dicts()
+    )
 
     table = []
 
@@ -433,6 +476,9 @@ def create_layout(
             },
             style_cell={"textAlign": "left"},
             sort_by=[{"column_id": COL_NAME_WINDOW_TIME, "direction": "desc"}],
+            export_format="xlsx",
+            export_headers="display",
+            export_columns="all",
         )
 
     return card1, card2, card3, fig1, fig2, fig3, table

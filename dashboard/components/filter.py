@@ -6,13 +6,13 @@ from dash import Input, Output, State
 from excel_manager import (
     COL_NAME_DEPARTURE_DATETIME,
     COL_NAME_WINDOW_TIME,
+    COL_NAME_WINDOW_TIME_MAX,
     ID_DATA_STORE_TRIGGER,
-    DEFAULT_WINDOW_SEGMENTATION,
     update_df,
     get_df_unfiltered,
-    get_df,
     add_watch_file,
     get_count_df,
+    get_min_max_date_raw_df,
 )
 from server_instance import get_app
 import dash_bootstrap_components as dbc
@@ -28,8 +28,9 @@ FILTER_SUBMIT_BTN = "filter-go-btn"
 FILTER_STORE_SUGGESTIONS = "filter-store-suggestions"
 FILTER_STORE_ACTUAL = "filter-store-actual"
 
-UNIT_SEGMENTATION = "d"
+ID_FILTER_CONTAINER = "filter-container"
 
+ID_FILTER_TITLE = "filter_title"
 
 app = get_app()
 
@@ -39,6 +40,7 @@ layout = dbc.Card(
         [
             dcc.Store(id=FILTER_STORE_SUGGESTIONS),
             dcc.Store(id=FILTER_STORE_ACTUAL),
+            html.H2("Title", id=ID_FILTER_TITLE),
             dbc.Row(
                 [
                     dbc.Col(
@@ -92,6 +94,7 @@ layout = dbc.Card(
                             dcc.DatePickerRange(
                                 id=FILTER_DATE_RANGE,
                                 clearable=True,
+                                display_format="DD-MM-YYYY",
                             ),
                         ],
                         md=6,
@@ -109,6 +112,7 @@ layout = dbc.Card(
                             color="primary",
                             className="w-100",
                             size="lg",
+                            type="submit",
                         ),
                         # dbc.Button(
                         #     "Reset",
@@ -123,83 +127,119 @@ layout = dbc.Card(
         ]
     ),
     className="m-4",
+    id=ID_FILTER_CONTAINER,
 )
 
 
 def apply_filters(
-    df: pl.LazyFrame, filters: dict
+    df: pl.LazyFrame, filters: Optional[dict], is_suggestions=False
 ) -> Tuple[pl.LazyFrame, Optional[pl.LazyFrame]]:
+    total_df = None
 
     segmentation = filters.get("fl_segmentation") if filters else None
-    total_df = get_count_df(segmentation)
+    unit_segmentation = filters.get("fl_unit_segmentation") if filters else None
+    subtypes = filters.get("fl_subtype") if filters else None
+    matricules = filters.get("fl_matricule") if filters else None
+    min_dt = filters.get("dt_start") if filters else None
+    max_dt = filters.get("dt_end") if filters else None
+
+    start = end = None
+    if (not segmentation) and (not min_dt or not max_dt):
+        min_total_dt, max_total_dt = get_min_max_date_raw_df()
+
+    if min_dt:
+        start = (
+            min_dt
+            if isinstance(min_dt, date)
+            else datetime.fromisoformat(min_dt).date()
+        )
+        stmt_start = pl.lit(start)
+    else:
+        if segmentation:
+            stmt_start = pl.lit(COL_NAME_DEPARTURE_DATETIME).min()
+        else:
+            stmt_start = pl.lit(min_total_dt)
+
+    if max_dt:
+        end = (
+            max_dt
+            if isinstance(max_dt, date)
+            else datetime.fromisoformat(max_dt).date()
+        )
+        stmt_end = pl.lit(end)
+    else:
+        if segmentation:
+            stmt_end = pl.col(COL_NAME_DEPARTURE_DATETIME).max()
+        else:
+            stmt_end = pl.lit(max_total_dt)
+
+    if not is_suggestions:
+        total_df = get_count_df(segmentation, unit_segmentation, start, end)
+
+    stmt_start = stmt_start.alias(COL_NAME_WINDOW_TIME)
+    stmt_end = stmt_end.alias(COL_NAME_WINDOW_TIME_MAX)
 
     if not filters:
+
         df = df.with_columns(
-            pl.lit(DEFAULT_WINDOW_SEGMENTATION).alias(COL_NAME_WINDOW_TIME)
+            stmt_start,
+            stmt_end,
         )
 
         return df, total_df
 
     # Filter by AC_SUBTYPE
-    if filters.get("fl_subtype"):
-        df = df.filter(pl.col("AC_SUBTYPE").is_in(filters["fl_subtype"]))
+    if subtypes:
+        df = df.filter(pl.col("AC_SUBTYPE").is_in(subtypes))
 
     # Filter by AC_REGISTRATION
-    if filters.get("fl_matricule"):
-        df = df.filter(pl.col("AC_REGISTRATION").is_in(filters["fl_matricule"]))
+    if matricules:
+        df = df.filter(pl.col("AC_REGISTRATION").is_in(matricules))
 
     # Filter by SEGMENTATION
-    if segmentation := filters.get("fl_segmentation"):
+    if segmentation:
+        min_segmentation = str(segmentation) + unit_segmentation
+        max_segmentation = str(segmentation - 1) + unit_segmentation
 
         df = df.with_columns(
             pl.col(COL_NAME_DEPARTURE_DATETIME)
-            .dt.truncate(segmentation)
+            .dt.truncate(min_segmentation)
             .alias(COL_NAME_WINDOW_TIME)
+        ).with_columns(
+            pl.col(COL_NAME_WINDOW_TIME)
+            .dt.offset_by(max_segmentation)
+            .alias(COL_NAME_WINDOW_TIME_MAX),
         )
 
     else:
+
         df = df.with_columns(
-            pl.lit(DEFAULT_WINDOW_SEGMENTATION).alias(COL_NAME_WINDOW_TIME)
+            stmt_start,
+            stmt_end,
         )
 
     # Filter by date range (DEP_DAY_SCHED)
-    if filters.get("dt_start"):
-        # allow ISO‐string or date
-        start = (
-            filters["dt_start"]
-            if isinstance(filters["dt_start"], date)
-            else datetime.fromisoformat(filters["dt_start"]).date()
-        )
+    if start:
+
         df = df.filter(pl.col(COL_NAME_DEPARTURE_DATETIME) >= start)
 
-    if filters.get("dt_end"):
-        end = (
-            filters["dt_end"]
-            if isinstance(filters["dt_end"], date)
-            else datetime.fromisoformat(filters["dt_end"]).date()
-        )
+    if end:
+
         df = df.filter(pl.col(COL_NAME_DEPARTURE_DATETIME) <= end)
 
     return df, total_df
 
 
 def split_views_by_exclusion(
-    df: pl.LazyFrame, filters: dict
-) -> tuple[pl.LazyFrame, pl.LazyFrame, pl.LazyFrame]:
-
-    f1 = {**filters, "fl_subtype": None}
-    print(f1)
-    view_subtype, _ = apply_filters(df, f1)
+    df: pl.LazyFrame, filters: dict, *excludes: str
+) -> pl.LazyFrame:
 
     # exclude matricule
-    f2 = {**filters, "fl_matricule": None}
-    view_matricule, _ = apply_filters(df, f2)
+    f2 = {**filters, **{exclude: None for exclude in excludes}}
+    view_matricule, _ = apply_filters(df, f2, True)
 
     # exclude both dates
-    f3 = {**filters, "dt_start": None, "dt_end": None}
-    view_date, _ = apply_filters(df, f3)
-
-    return view_subtype, view_matricule, view_date
+    return view_matricule
 
 
 @app.callback(
@@ -213,7 +253,9 @@ def update_filter_options(store_data):
 
     base_lazy = get_df_unfiltered()  # your global LazyFrame
 
-    v_sub, v_mat, v_date = split_views_by_exclusion(base_lazy, store_data)
+    v_sub = split_views_by_exclusion(base_lazy, store_data, "fl_subtype")
+    v_mat = split_views_by_exclusion(base_lazy, store_data, "fl_matricule")
+    # v_date = split_views_by_exclusion(base_lazy, store_data, "dt_start", "dt_end")
 
     # subtype dropdown
     df_sub = v_sub.collect()
@@ -226,13 +268,17 @@ def update_filter_options(store_data):
     )
 
     # date bounds
-    df_dt = v_date.collect()
-    dt_min = (
-        df_dt.get_column(COL_NAME_DEPARTURE_DATETIME).min() or datetime.now().date()
-    )
-    dt_max = (
-        df_dt.get_column(COL_NAME_DEPARTURE_DATETIME).max() or datetime.now().date()
-    )
+
+    # df_dt = v_date.collect()
+    # dt_min = (
+    #     df_dt.get_column(COL_NAME_DEPARTURE_DATETIME).min() or datetime.now().date()
+    # )
+    # dt_max = (
+    #     df_dt.get_column(COL_NAME_DEPARTURE_DATETIME).max() or datetime.now().date()
+    # )
+
+    dt_min, dt_max = get_min_max_date_raw_df()
+
     dt_min_iso = dt_min.strftime("%Y-%m-%d")
     dt_max_iso = dt_max.strftime("%Y-%m-%d")
 
@@ -247,28 +293,50 @@ def update_filter_options(store_data):
     )
 
 
+def compare_filters(filter1: Optional[dict], filter2: Optional[dict]):
+
+    filter1 = {k: v for k, v in filter1.items() if v is not None} if filter1 else {}
+
+    filter2 = {k: v for k, v in filter2.items() if v is not None} if filter2 else {}
+
+    return filter1 == filter2
+
+
+@app.callback(
+    Output(FILTER_SUBMIT_BTN, "color"),
+    Input(FILTER_STORE_SUGGESTIONS, "data"),
+    Input(FILTER_STORE_ACTUAL, "data"),
+    # since i am not putting segmentation and unit into data
+    Input(FILTER_SEGMENTATION, "value"),
+)
+def update_filter_submit_button(filter_suggestions, filter_actual, segmentation):
+
+    if filter_suggestions:
+        filter_suggestions["fl_segmentation"] = segmentation
+        filter_suggestions["fl_unit_segmentation"] = "d"
+
+    color = (
+        "primary" if compare_filters(filter_suggestions, filter_actual) else "warning"
+    )
+
+    print("Filter Button Color :", color)
+    return color
+
+
 @app.callback(
     Output(FILTER_STORE_SUGGESTIONS, "data"),
     Input(FILTER_SUBTYPE, "value"),
-    Input(FILTER_SEGMENTATION, "value"),
     Input(FILTER_MATRICULE, "value"),
     Input(FILTER_DATE_RANGE, "start_date"),
     Input(FILTER_DATE_RANGE, "end_date"),
 )
-def update_filter_store_suggestions(
-    fl_subtype, fl_segmentation, fl_matricule, dt_start, dt_end
-):
+def update_filter_store_suggestions(fl_subtype, fl_matricule, dt_start, dt_end):
 
-    print(
-        f"Filtering data with: {fl_subtype}, {fl_segmentation}, {fl_matricule}, {dt_start}, {dt_end}"
-    )
-    if fl_segmentation:
-        fl_segmentation = str(fl_segmentation) + UNIT_SEGMENTATION
+    print(f"Filtering data with: {fl_subtype}, {fl_matricule}, {dt_start}, {dt_end}")
 
     return {
         "fl_subtype": fl_subtype,
         "fl_matricule": fl_matricule,
-        "fl_segmentation": fl_segmentation,
         "dt_start": dt_start,
         "dt_end": dt_end,
     }
@@ -299,10 +367,16 @@ def filter_data(_, filter_store_data):
     Output(FILTER_STORE_ACTUAL, "data"),
     Input(FILTER_SUBMIT_BTN, "n_clicks"),
     State(FILTER_STORE_SUGGESTIONS, "data"),
+    # since they will not take effect in the suggestions
+    State(FILTER_SEGMENTATION, "value"),
 )
-def submit_filter(n_clicks, store_suggestions_data):
-
-    return store_suggestions_data
+def submit_filter(
+    n_clicks, store_suggestions_data: Optional[dict], segmentation: Optional[int]
+):
+    data = store_suggestions_data if store_suggestions_data else {}
+    data["fl_segmentation"] = segmentation
+    data["fl_unit_segmentation"] = "d"
+    return data
 
 
 # @app.callback(

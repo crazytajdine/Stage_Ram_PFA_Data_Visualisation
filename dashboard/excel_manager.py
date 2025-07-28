@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, date
 import os
 from typing import Optional
 import dash
@@ -23,13 +23,13 @@ ID_STORE_DATE_WATCHER = "store-date-latest-fetch"
 COL_NAME_DEPARTURE_DATETIME = "DEP_DAY_SCHED"
 
 COL_NAME_WINDOW_TIME = "WINDOW_DATETIME_DEP"
+COL_NAME_WINDOW_TIME_MAX = "WINDOW_DATETIME_DEP_MAX"
+
 COL_NAME_TOTAL_COUNT = "total_count"
 
 
 ID_DATA_STORE_TRIGGER = "filter-store-trigger"
 
-
-DEFAULT_WINDOW_SEGMENTATION = "All Period"
 
 # init
 
@@ -179,7 +179,9 @@ def load_excel_lazy(path):
 
 
 def preprocess_df(raw_df: pl.LazyFrame) -> pl.LazyFrame:
-    return raw_df.with_columns(pl.col("CODE_DR").cast(pl.Int32).alias("CODE_DR"))
+    return raw_df.with_columns(
+        pl.col("CODE_DR").cast(pl.Int32).alias("CODE_DR")
+    ).filter(pl.col("AT_RXP_AFFRT") != "AFFRT")
 
 
 def get_df_unfiltered() -> Optional[pl.LazyFrame]:
@@ -202,27 +204,69 @@ def get_total_df() -> Optional[pl.LazyFrame]:
     return total_df
 
 
-def get_count_df(segmentation: Optional[str]) -> Optional[pl.LazyFrame]:
+def get_count_df(
+    segmentation: Optional[str], unit_segmentation: Optional[str], min_date, max_date
+) -> Optional[pl.LazyFrame]:
     global df_raw
+    start = end = None
+    filter_list = []
 
-    if segmentation:
+    if min_date:
+        start = (
+            min_date
+            if isinstance(min_date, date)
+            else datetime.fromisoformat(min_date).date()
+        )
+        filter_list.append(pl.col(COL_NAME_DEPARTURE_DATETIME) >= start)
+    if max_date:
+        end = (
+            max_date
+            if isinstance(max_date, date)
+            else datetime.fromisoformat(max_date).date()
+        )
+        filter_list.append(pl.col(COL_NAME_DEPARTURE_DATETIME) <= end)
+
+    stmt = df_raw
+    if filter_list:
+        stmt = df_raw.filter(filter_list)
+
+    if segmentation and unit_segmentation:
+
+        min_segmentation = str(segmentation) + unit_segmentation
+        max_segmentation = str(segmentation - 1) + unit_segmentation
         stmt = (
-            df_raw.with_columns(
+            stmt.with_columns(
                 pl.col(COL_NAME_DEPARTURE_DATETIME)
-                .dt.truncate(segmentation)
-                .alias(COL_NAME_WINDOW_TIME)
+                .dt.truncate(min_segmentation)
+                .alias(COL_NAME_WINDOW_TIME),
             )
             .group_by(COL_NAME_WINDOW_TIME)
             .agg(pl.len().alias(COL_NAME_TOTAL_COUNT))
+            .with_columns(
+                pl.col(COL_NAME_WINDOW_TIME)
+                .dt.offset_by(max_segmentation)
+                .alias(COL_NAME_WINDOW_TIME_MAX),
+            )
         )
 
     else:
-        stmt = df_raw.select(
-            [
-                pl.lit(DEFAULT_WINDOW_SEGMENTATION).alias(COL_NAME_WINDOW_TIME),
-                pl.count().alias(COL_NAME_TOTAL_COUNT),
-            ]
-        )
+
+        if start:
+            stmt_start = pl.lit(start)
+
+        else:
+            stmt_start = pl.col(COL_NAME_DEPARTURE_DATETIME).min()
+
+        if end:
+            stmt_end = pl.lit(end)
+        else:
+            stmt_end = pl.col(COL_NAME_DEPARTURE_DATETIME).max()
+
+        stmt_start = stmt_start.alias(COL_NAME_WINDOW_TIME)
+        stmt_end = stmt_end.alias(COL_NAME_WINDOW_TIME_MAX)
+
+        stmt = stmt.select([stmt_start, stmt_end, pl.len().alias(COL_NAME_TOTAL_COUNT)])
+
     return stmt
 
 
@@ -232,11 +276,20 @@ def get_latest_modification_time():
     if not is_path_exists:
         return None
     latest_modification_timestamp = os.path.getmtime(path_to_excel)
-    readable_time = datetime.datetime.fromtimestamp(
-        latest_modification_timestamp
-    ).isoformat()
+    readable_time = datetime.fromtimestamp(latest_modification_timestamp).isoformat()
 
     return readable_time
+
+
+def get_min_max_date_raw_df() -> tuple:
+    global df_raw
+
+    min_max_date = df_raw.select(
+        pl.col(COL_NAME_DEPARTURE_DATETIME).min().alias("min_date"),
+        pl.col(COL_NAME_DEPARTURE_DATETIME).max().alias("max_date"),
+    ).collect()
+
+    return min_max_date["min_date"][0], min_max_date["max_date"][0]
 
 
 # program
@@ -245,8 +298,6 @@ df_raw: pl.LazyFrame = None
 df_unfiltered: pl.LazyFrame = None
 df: pl.LazyFrame = None
 total_df: pl.LazyFrame = None
-
-get_df
 
 
 load_excel_lazy(path_to_excel)
