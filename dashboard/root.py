@@ -1,16 +1,25 @@
-from dash import html, dcc, callback, Output, Input, State
+from dash import html, dcc, Output, Input, State
 from dash.dependencies import Input, Output
 import plotly.io as pio
 import dash
 
-import dash_bootstrap_components as dbc
-
 from utils_dashboard.utils_navs import build_nav_items
 from server_instance import get_app
 
-from excel_manager import hookers as excel_hookers, add_callbacks, path_exits
-from components.filter import layout as filter
-
+from excel_manager import (
+    ID_PATH_STORE,
+    hookers as excel_hookers,
+    add_callbacks as add_excel_manager_callback,
+    path_exits,
+)
+from components.filter import (
+    layout as filter_layout,
+    add_callbacks as add_filter_callbacks,
+)
+from components.navbar import (
+    layout as navbar_layout,
+    add_callback as add_navbar_callback,
+)
 
 app = get_app()
 
@@ -19,53 +28,17 @@ app.layout = html.Div(
         # hookers
         *excel_hookers,
         # Barre de navigation
-        dbc.Nav(
-            className="justify-content-center nav-tabs",
-            id="navbar",
-        ),
+        navbar_layout,
         # Filters
-        filter,
+        filter_layout,
         # Contenu principal
         html.Div(id="page-content"),
         # Stockage pour suivre l'état du menu
-        dcc.Location(id="url"),
     ]
 )
 
 
 @app.callback(
-    Output("navbar", "children"),
-    Output("page-content", "children"),
-    [Input("url", "pathname"), Input("is-path-store", "data")],
-)
-def update_layout(pathname, _):
-    path_exists = path_exits()
-    print(f"path_exists: {path_exists}")
-
-    nav_items = build_nav_items(path_exists)
-    print([i.name for i in nav_items])
-    navbar = [
-        dbc.NavItem(
-            dbc.NavLink(
-                nav_item.name,
-                href=nav_item.href,
-                active=pathname == nav_item.href,
-            )
-        )
-        for nav_item in nav_items
-        if nav_item.show
-    ]
-
-    page = html.Div("404: Page not found.")
-    for nav_item in nav_items:
-        if pathname == nav_item.href:
-            page = nav_item.page
-            break
-
-    return navbar, page
-
-
-@callback(
     Output("download-chart-png", "data"),
     Input("btn-export-chart", "n_clicks"),
     State("codes-chart", "figure"),  # figure lives in pages.page.py
@@ -78,7 +51,31 @@ def export_current_chart(_, fig_dict):
     return dict(content=img_bytes, filename="codes-chart.png")
 
 
-add_callbacks()
+@app.callback(
+    Output("page-content", "children"),
+    [
+        Input("url", "pathname"),
+        Input(ID_PATH_STORE, "data"),
+    ],
+)
+def update_content_page(pathname, _):
+    path_exists = path_exits()
+    nav_items = build_nav_items(path_exists)
+
+    for nav_item in nav_items:
+
+        is_selected = pathname == nav_item.href
+
+        if is_selected:
+            print("loading page")
+            return nav_item.page
+
+    return html.Div("404 Page Not Found")
+
+
+add_excel_manager_callback()
+add_filter_callbacks()
+add_navbar_callback()
 
 
 def start_server():
@@ -87,5 +84,5 @@ def start_server():
 
 
 if __name__ == "__main__":
-    print("🔁 Launching Dash app...")
+
     start_server()

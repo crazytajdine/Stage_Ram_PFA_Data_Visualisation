@@ -19,9 +19,10 @@ def get_nav_preferences() -> dict[str, bool]:
 
 
 def set_page_visibility(pages: dict[str, bool]):
+    global config
     updates = {}
     updates["pages"] = {}
     for page_key, visible in pages.items():
         updates["pages"][page_key] = visible
 
-    save_config_sys(updates)
+    config = save_config_sys(updates)

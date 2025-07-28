@@ -242,57 +242,6 @@ def split_views_by_exclusion(
     return view_matricule
 
 
-@app.callback(
-    Output(FILTER_SUBTYPE, "options"),
-    Output(FILTER_MATRICULE, "options"),
-    Output(FILTER_DATE_RANGE, "min_date_allowed"),
-    Output(FILTER_DATE_RANGE, "max_date_allowed"),
-    Input(FILTER_STORE_SUGGESTIONS, "data"),
-)
-def update_filter_options(store_data):
-
-    base_lazy = get_df_unfiltered()  # your global LazyFrame
-
-    v_sub = split_views_by_exclusion(base_lazy, store_data, "fl_subtype")
-    v_mat = split_views_by_exclusion(base_lazy, store_data, "fl_matricule")
-    # v_date = split_views_by_exclusion(base_lazy, store_data, "dt_start", "dt_end")
-
-    # subtype dropdown
-    df_sub = v_sub.collect()
-    subtypes = sorted(df_sub.get_column("AC_SUBTYPE").drop_nulls().unique().to_list())
-
-    # matricule dropdown
-    df_mat = v_mat.collect()
-    matricules = sorted(
-        df_mat.get_column("AC_REGISTRATION").drop_nulls().unique().to_list()
-    )
-
-    # date bounds
-
-    # df_dt = v_date.collect()
-    # dt_min = (
-    #     df_dt.get_column(COL_NAME_DEPARTURE_DATETIME).min() or datetime.now().date()
-    # )
-    # dt_max = (
-    #     df_dt.get_column(COL_NAME_DEPARTURE_DATETIME).max() or datetime.now().date()
-    # )
-
-    dt_min, dt_max = get_min_max_date_raw_df()
-
-    dt_min_iso = dt_min.strftime("%Y-%m-%d")
-    dt_max_iso = dt_max.strftime("%Y-%m-%d")
-
-    def to_options(lst):
-        return [{"label": x, "value": x} for x in lst]
-
-    return (
-        to_options(subtypes),
-        to_options(matricules),
-        dt_min_iso,
-        dt_max_iso,
-    )
-
-
 def compare_filters(filter1: Optional[dict], filter2: Optional[dict]):
 
     filter1 = {k: v for k, v in filter1.items() if v is not None} if filter1 else {}
@@ -302,81 +251,133 @@ def compare_filters(filter1: Optional[dict], filter2: Optional[dict]):
     return filter1 == filter2
 
 
-@app.callback(
-    Output(FILTER_SUBMIT_BTN, "color"),
-    Input(FILTER_STORE_SUGGESTIONS, "data"),
-    Input(FILTER_STORE_ACTUAL, "data"),
-    # since i am not putting segmentation and unit into data
-    Input(FILTER_SEGMENTATION, "value"),
-)
-def update_filter_submit_button(filter_suggestions, filter_actual, segmentation):
+def add_callbacks():
 
-    if filter_suggestions:
-        filter_suggestions["fl_segmentation"] = segmentation
-        filter_suggestions["fl_unit_segmentation"] = "d"
-
-    color = (
-        "primary" if compare_filters(filter_suggestions, filter_actual) else "warning"
+    @app.callback(
+        Output(FILTER_SUBTYPE, "options"),
+        Output(FILTER_MATRICULE, "options"),
+        Output(FILTER_DATE_RANGE, "min_date_allowed"),
+        Output(FILTER_DATE_RANGE, "max_date_allowed"),
+        Input(FILTER_STORE_SUGGESTIONS, "data"),
     )
+    def update_filter_options(store_data):
 
-    print("Filter Button Color :", color)
-    return color
+        base_lazy = get_df_unfiltered()  # your global LazyFrame
 
+        v_sub = split_views_by_exclusion(base_lazy, store_data, "fl_subtype")
+        v_mat = split_views_by_exclusion(base_lazy, store_data, "fl_matricule")
+        # v_date = split_views_by_exclusion(base_lazy, store_data, "dt_start", "dt_end")
 
-@app.callback(
-    Output(FILTER_STORE_SUGGESTIONS, "data"),
-    Input(FILTER_SUBTYPE, "value"),
-    Input(FILTER_MATRICULE, "value"),
-    Input(FILTER_DATE_RANGE, "start_date"),
-    Input(FILTER_DATE_RANGE, "end_date"),
-)
-def update_filter_store_suggestions(fl_subtype, fl_matricule, dt_start, dt_end):
+        # subtype dropdown
+        df_sub = v_sub.collect()
+        subtypes = sorted(
+            df_sub.get_column("AC_SUBTYPE").drop_nulls().unique().to_list()
+        )
 
-    print(f"Filtering data with: {fl_subtype}, {fl_matricule}, {dt_start}, {dt_end}")
+        # matricule dropdown
+        df_mat = v_mat.collect()
+        matricules = sorted(
+            df_mat.get_column("AC_REGISTRATION").drop_nulls().unique().to_list()
+        )
 
-    return {
-        "fl_subtype": fl_subtype,
-        "fl_matricule": fl_matricule,
-        "dt_start": dt_start,
-        "dt_end": dt_end,
-    }
+        # date bounds
 
+        # df_dt = v_date.collect()
+        # dt_min = (
+        #     df_dt.get_column(COL_NAME_DEPARTURE_DATETIME).min() or datetime.now().date()
+        # )
+        # dt_max = (
+        #     df_dt.get_column(COL_NAME_DEPARTURE_DATETIME).max() or datetime.now().date()
+        # )
 
-@app.callback(
-    Output(ID_DATA_STORE_TRIGGER, "data"),
-    add_watch_file(),
-    Input(FILTER_STORE_ACTUAL, "data"),
-)
-def filter_data(_, filter_store_data):
+        dt_min, dt_max = get_min_max_date_raw_df()
 
-    print("Filtering data with:", filter_store_data)
+        dt_min_iso = dt_min.strftime("%Y-%m-%d")
+        dt_max_iso = dt_max.strftime("%Y-%m-%d")
 
-    df = get_df_unfiltered()
+        def to_options(lst):
+            return [{"label": x, "value": x} for x in lst]
 
-    if df is None:
-        return {"payload": [], "count": 0}
+        return (
+            to_options(subtypes),
+            to_options(matricules),
+            dt_min_iso,
+            dt_max_iso,
+        )
 
-    df, total_df = apply_filters(df, filter_store_data)
+    @app.callback(
+        Output(FILTER_SUBMIT_BTN, "color"),
+        Input(FILTER_STORE_SUGGESTIONS, "data"),
+        Input(FILTER_STORE_ACTUAL, "data"),
+        # since i am not putting segmentation and unit into data
+        Input(FILTER_SEGMENTATION, "value"),
+    )
+    def update_filter_submit_button(filter_suggestions, filter_actual, segmentation):
 
-    update_df(df, total_df)
+        if filter_suggestions:
+            filter_suggestions["fl_segmentation"] = segmentation
+            filter_suggestions["fl_unit_segmentation"] = "d"
 
-    return None
+        color = (
+            "primary"
+            if compare_filters(filter_suggestions, filter_actual)
+            else "warning"
+        )
 
+        return color
 
-@app.callback(
-    Output(FILTER_STORE_ACTUAL, "data"),
-    Input(FILTER_SUBMIT_BTN, "n_clicks"),
-    State(FILTER_STORE_SUGGESTIONS, "data"),
-    # since they will not take effect in the suggestions
-    State(FILTER_SEGMENTATION, "value"),
-)
-def submit_filter(
-    n_clicks, store_suggestions_data: Optional[dict], segmentation: Optional[int]
-):
-    data = store_suggestions_data if store_suggestions_data else {}
-    data["fl_segmentation"] = segmentation
-    data["fl_unit_segmentation"] = "d"
-    return data
+    @app.callback(
+        Output(FILTER_STORE_SUGGESTIONS, "data"),
+        Input(FILTER_SUBTYPE, "value"),
+        Input(FILTER_MATRICULE, "value"),
+        Input(FILTER_DATE_RANGE, "start_date"),
+        Input(FILTER_DATE_RANGE, "end_date"),
+    )
+    def update_filter_store_suggestions(fl_subtype, fl_matricule, dt_start, dt_end):
+
+        print(
+            f"Filtering data with: {fl_subtype}, {fl_matricule}, {dt_start}, {dt_end}"
+        )
+
+        return {
+            "fl_subtype": fl_subtype,
+            "fl_matricule": fl_matricule,
+            "dt_start": dt_start,
+            "dt_end": dt_end,
+        }
+
+    @app.callback(
+        Output(ID_DATA_STORE_TRIGGER, "data"),
+        add_watch_file(),
+        Input(FILTER_STORE_ACTUAL, "data"),
+    )
+    def filter_data(_, filter_store_data):
+
+        df = get_df_unfiltered()
+
+        if df is None:
+            return {"payload": [], "count": 0}
+
+        df, total_df = apply_filters(df, filter_store_data)
+
+        update_df(df, total_df)
+
+        return None
+
+    @app.callback(
+        Output(FILTER_STORE_ACTUAL, "data"),
+        Input(FILTER_SUBMIT_BTN, "n_clicks"),
+        State(FILTER_STORE_SUGGESTIONS, "data"),
+        # since they will not take effect in the suggestions
+        State(FILTER_SEGMENTATION, "value"),
+    )
+    def submit_filter(
+        n_clicks, store_suggestions_data: Optional[dict], segmentation: Optional[int]
+    ):
+        data = store_suggestions_data if store_suggestions_data else {}
+        data["fl_segmentation"] = segmentation
+        data["fl_unit_segmentation"] = "d"
+        return data
 
 
 # @app.callback(
