@@ -30,6 +30,7 @@ FILTER_STORE_ACTUAL = "filter-store-actual"
 
 ID_FILTER_CONTAINER = "filter-container"
 
+ID_FILTER_TITLE = "filter_title"
 
 app = get_app()
 
@@ -39,7 +40,7 @@ layout = dbc.Card(
         [
             dcc.Store(id=FILTER_STORE_SUGGESTIONS),
             dcc.Store(id=FILTER_STORE_ACTUAL),
-            html.H2("Tittle"),
+            html.H2("Title", id=ID_FILTER_TITLE),
             dbc.Row(
                 [
                     dbc.Col(

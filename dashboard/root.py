@@ -43,13 +43,29 @@ app.layout = html.Div(
 def build_nav_items(path_exists: bool):
     if path_exists:
         nav_items = [
-            {"name": "Dashboard", "href": "/", "page": home.layout},
-            {"name": "Analytics", "href": "/analytics", "page": tech.layout},
-            {"name": "Weekly", "href": "/weekly", "page": weekly.layout},
+            {
+                "name": "Dashboard",
+                "href": "/",
+                "page": home.layout,
+                "filter_title": "performance metrics",
+            },
+            {
+                "name": "Analytics",
+                "href": "/analytics",
+                "page": tech.layout,
+                "filter_title": "performance metrics",
+            },
+            {
+                "name": "Weekly",
+                "href": "/weekly",
+                "page": weekly.layout,
+                "filter_title": "performance metrics",
+            },
             {
                 "name": "Performance Metrics",
                 "href": "/Performance_Metrics",
                 "page": performance_metrics.layout,
+                "filter_title": "performance metrics",
             },
             {
                 "name": "Settings",
@@ -70,6 +86,7 @@ def build_nav_items(path_exists: bool):
     Output("navbar", "children"),
     Output("page-content", "children"),
     Output(filter.ID_FILTER_CONTAINER, "style"),
+    Output(filter.ID_FILTER_TITLE, "children"),
     [Input("url", "pathname"), Input("is-path-store", "data")],
 )
 def update_layout(pathname, _):
@@ -78,7 +95,7 @@ def update_layout(pathname, _):
     print(f"path_exists: {path_exists}")
     nav_items = build_nav_items(path_exists)
     print([i["name"] for i in nav_items])
-
+    title = "Filters"
     navbar = []
     for nav_item in nav_items:
         show = nav_item.get("show", True)
@@ -90,6 +107,7 @@ def update_layout(pathname, _):
             style_filter = (
                 {"display": "none"} if not nav_item.get("filter", True) else {}
             )
+            title = nav_item.get("filter_title", title)
 
         navbar.append(
             dbc.NavItem(
@@ -107,7 +125,7 @@ def update_layout(pathname, _):
             page = nav_item["page"]
             break
 
-    return navbar, page, style_filter
+    return navbar, page, style_filter, title
 
 
 # @callback(
