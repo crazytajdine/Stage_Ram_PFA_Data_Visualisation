@@ -1,4 +1,4 @@
-from dash import html, dcc, Output, Input
+from dash import html, dcc, callback, Output, Input, State
 from dash.dependencies import Input, Output
 import plotly.io as pio
 import dash
@@ -9,7 +9,7 @@ from server_instance import get_app
 
 from excel_manager import hookers as excel_hookers, add_callbacks, path_exits
 from components.filter import layout as filter
-
+from config import get_page_visibility
 
 from pages.tech import page as tech
 from pages.verify import page as verify
@@ -31,7 +31,7 @@ app.layout = html.Div(
             id="navbar",
         ),
         # Filters
-        filter.layout,
+        filter,
         # Contenu principal
         html.Div(id="page-content"),
         # Stockage pour suivre l'état du menu
@@ -43,20 +43,51 @@ app.layout = html.Div(
 def build_nav_items(path_exists: bool):
     if path_exists:
         nav_items = [
-            {"name": "Dashboard", "href": "/", "page": home.layout},
-            {"name": "Analytics", "href": "/analytics", "page": tech.layout},
-            {"name": "Weekly", "href": "/weekly", "page": weekly.layout},
+            {
+                "name": "Dashboard", 
+                "href": "/", 
+                "page": home.layout,
+                "show": get_page_visibility("dashboard")
+            },
+            {
+                "name": "Analytics", 
+                "href": "/analytics", 
+                "page": tech.layout,
+                "show": get_page_visibility("analytics")
+            },
+            {
+                "name": "Weekly", 
+                "href": "/weekly", 
+                "page": weekly.layout,
+                "show": get_page_visibility("weekly")
+            },
             {
                 "name": "Performance Metrics",
                 "href": "/Performance_Metrics",
                 "page": performance_metrics.layout,
+                "show": get_page_visibility("performance_metrics")
             },
-            {"name": "Settings", "href": "/settings", "page": settings.layout},
+            {
+                "name": "Settings", 
+                "href": "/settings", 
+                "page": settings.layout,
+                "show": True
+            },
         ]
     else:
         nav_items = [
-            {"name": "verify", "href": "/", "page": verify.layout, "show": False},
-            {"name": "Settings", "href": "/settings", "page": settings.layout},
+            {
+                "name": "verify", 
+                "href": "/", 
+                "page": verify.layout, 
+                "show": True
+            },
+            {
+                "name": "Settings", 
+                "href": "/settings", 
+                "page": settings.layout,
+                "show": True
+            },
         ]
 
     return nav_items
@@ -65,8 +96,6 @@ def build_nav_items(path_exists: bool):
 @app.callback(
     Output("navbar", "children"),
     Output("page-content", "children"),
-    Output(filter.ID_FILTER_CONTAINER, "style"),
-    Output(filter.ID_FILTER_TITLE, "children"),
     [Input("url", "pathname"), Input("is-path-store", "data")],
 )
 def update_layout(pathname, _):
@@ -75,29 +104,18 @@ def update_layout(pathname, _):
     print(f"path_exists: {path_exists}")
     nav_items = build_nav_items(path_exists)
     print([i["name"] for i in nav_items])
-    title = "Filters"
-    navbar = []
-    for nav_item in nav_items:
-        show = nav_item.get("show", True)
-        if not show:
-            continue
 
-        is_active = pathname == nav_item["href"]
-        if is_active:
-            style_filter = (
-                {"display": "none"} if not nav_item.get("filter", True) else {}
-            )
-            title = nav_item.get("filter_title", title)
-
-        navbar.append(
-            dbc.NavItem(
-                dbc.NavLink(
-                    nav_item["name"],
-                    href=nav_item["href"],
-                    active=is_active,
-                )
+    navbar = [
+        dbc.NavItem(
+            dbc.NavLink(
+                nav_item["name"],
+                href=nav_item["href"],
+                active=pathname == nav_item["href"],
             )
         )
+        for nav_item in nav_items
+        if nav_item.get("show", True)
+    ]
 
     page = html.Div("404: Page not found.")
     for nav_item in nav_items:
@@ -105,21 +123,20 @@ def update_layout(pathname, _):
             page = nav_item["page"]
             break
 
-    return navbar, page, style_filter, title
+    return navbar, page
 
 
-# @callback(
-#     Output("download-chart-png", "data"),
-#     Input("btn-export-chart", "n_clicks"),
-#     State("codes-chart", "figure"),  # figure lives in pages.page.py
-#     prevent_initial_call=True,
-# )
-# def export_current_chart(_, fig_dict):
-#     if not fig_dict:
-#         return dash.no_update
-
-#     img_bytes = pio.to_image(fig_dict, format="png", scale=3)
-#     return dict(content=img_bytes, filename="codes-chart.png")
+@callback(
+    Output("download-chart-png", "data"),
+    Input("btn-export-chart", "n_clicks"),
+    State("codes-chart", "figure"),  # figure lives in pages.page.py
+    prevent_initial_call=True,
+)
+def export_current_chart(_, fig_dict):
+    if not fig_dict:
+        return dash.no_update
+    img_bytes = pio.to_image(fig_dict, format="png", scale=3)
+    return dict(content=img_bytes, filename="codes-chart.png")
 
 
 add_callbacks()
