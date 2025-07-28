@@ -9,7 +9,7 @@ def init_server():
     global app, server
     app = dash.Dash(
         __name__,
-        use_pages=True,                     # ← Dash multipage mode
+        use_pages=False,                    # ← Disable automatic page discovery
         suppress_callback_exceptions=True,  # still needed for legacy callbacks
         assets_folder="assets",
         external_stylesheets=[

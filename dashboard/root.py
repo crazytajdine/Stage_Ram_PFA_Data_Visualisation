@@ -9,7 +9,7 @@ from server_instance import get_app
 
 from excel_manager import hookers as excel_hookers, add_callbacks, path_exits
 from components.filter import layout as filter
-
+from config import get_page_visibility
 
 from pages.tech import page as tech
 from pages.verify import page as verify
@@ -40,24 +40,54 @@ app.layout = html.Div(
 )
 
 
-def build_nav_items(path_exists: bool):  # ← renommez au passage
+def build_nav_items(path_exists: bool):
     if path_exists:
         nav_items = [
-            {"name": "Dashboard", "href": "/", "page": home.layout},
-            {"name": "Analytics", "href": "/analytics", "page": tech.layout},
-            {"name": "Weekly", "href": "/weekly", "page": weekly.layout},
+            {
+                "name": "Dashboard", 
+                "href": "/", 
+                "page": home.layout,
+                "show": get_page_visibility("dashboard")
+            },
+            {
+                "name": "Analytics", 
+                "href": "/analytics", 
+                "page": tech.layout,
+                "show": get_page_visibility("analytics")
+            },
+            {
+                "name": "Weekly", 
+                "href": "/weekly", 
+                "page": weekly.layout,
+                "show": get_page_visibility("weekly")
+            },
             {
                 "name": "Performance Metrics",
                 "href": "/Performance_Metrics",
                 "page": performance_metrics.layout,
+                "show": get_page_visibility("performance_metrics")
             },
-            {"name": "Settings", "href": "/settings", "page": settings.layout},
+            {
+                "name": "Settings", 
+                "href": "/settings", 
+                "page": settings.layout,
+                "show": True
+            },
         ]
     else:
-        # ⬇️  simplement une LISTE de dicts, sans accolades supplémentaires
         nav_items = [
-            {"name": "verify", "href": "/", "page": verify.layout, "show": False},
-            {"name": "Settings", "href": "/settings", "page": settings.layout},
+            {
+                "name": "verify", 
+                "href": "/", 
+                "page": verify.layout, 
+                "show": True
+            },
+            {
+                "name": "Settings", 
+                "href": "/settings", 
+                "page": settings.layout,
+                "show": True
+            },
         ]
 
     return nav_items
@@ -114,7 +144,7 @@ add_callbacks()
 
 def start_server():
     print("🔁 Starting Dash server…")
-    app.run(debug=True, use_reloader=True, port=8050)
+    app.run(debug=True, use_reloader=False, port=8050)
 
 
 if __name__ == "__main__":

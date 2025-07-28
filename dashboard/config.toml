@@ -1,10 +1,17 @@
-
-
 [app]
 app_name = "DashboardApp"
 auth = "StagePFA"
+
 [exe]
 name_of_python_exe = "server_dashboard"
 
 [config]
 config_data_name = "config_data.toml"
+
+[pages]
+dashboard = true
+analytics = true
+weekly = true
+performance_metrics = true
+settings = true
+verify = true

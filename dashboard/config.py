@@ -40,4 +40,38 @@ def get_config_dir():
     return user_config_dir(app_name, auth)
 
 
+def get_page_visibility(page_key: str) -> bool:
+    """Get visibility status for a specific page"""
+    return config.get("pages", {}).get(page_key, True)
+
+
+def set_page_visibility(page_key: str, visible: bool):
+    """Set visibility status for a specific page"""
+    global config
+    if "pages" not in config:
+        config["pages"] = {}
+    config["pages"][page_key] = visible
+    save_config(config_path, config)
+
+
+def get_all_page_visibility() -> dict[str, bool]:
+    """Get visibility status for all pages"""
+    default_pages = {
+        "dashboard": True,
+        "analytics": True,
+        "weekly": True,
+        "performance_metrics": True
+    }
+    return config.get("pages", default_pages)
+
+
+def update_page_visibility(page_settings: dict[str, bool]):
+    """Update visibility settings for multiple pages"""
+    global config
+    if "pages" not in config:
+        config["pages"] = {}
+    config["pages"].update(page_settings)
+    save_config(config_path, config)
+
+
 os.makedirs(get_config_dir(), exist_ok=True)

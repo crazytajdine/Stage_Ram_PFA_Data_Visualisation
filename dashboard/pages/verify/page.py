@@ -4,7 +4,7 @@ from server_instance import get_app
 from excel_manager import update_path_to_excel, ID_PATH_STORE
 import dash_bootstrap_components as dbc
 
-app = get_app()
+app = None
 
 layout = dbc.Modal(
     id="status-modal",
@@ -38,33 +38,33 @@ layout = dbc.Modal(
 )
 
 
-@app.callback(
-    [
-        Output("status_alert", "is_open"),
-        Output("save_button", "color"),
-        Output("url_input", "value"),
-        Output("status_alert", "children"),
-    ],
-    Input("cancel_button", "n_clicks"),
-    prevent_initial_call=True,
-)
+# @app.callback(
+#     [
+#         Output("status_alert", "is_open"),
+#         Output("save_button", "color"),
+#         Output("url_input", "value"),
+#         Output("status_alert", "children"),
+#     ],
+#     Input("cancel_button", "n_clicks"),
+#     prevent_initial_call=True,
+# )
 def reset_input(_):
     print("Resetting input value")
     return False, "primary", "", ""
 
 
-@app.callback(
-    [
-        Output("status_alert", "children", allow_duplicate=True),
-        Output("status_alert", "is_open", allow_duplicate=True),
-        Output("status_alert", "color"),
-        Output("save_button", "color", allow_duplicate=True),
-        Output(ID_PATH_STORE, "data"),
-    ],
-    Input("save_button", "n_clicks"),
-    State("url_input", "value"),
-    prevent_initial_call=True,
-)
+# @app.callback(
+#     [
+#         Output("status_alert", "children", allow_duplicate=True),
+#         Output("status_alert", "is_open", allow_duplicate=True),
+#         Output("status_alert", "color"),
+#         Output("save_button", "color", allow_duplicate=True),
+#         Output(ID_PATH_STORE, "data"),
+#     ],
+#     Input("save_button", "n_clicks"),
+#     State("url_input", "value"),
+#     prevent_initial_call=True,
+# )
 def save_input(n_clicks, input_value):
 
     if not n_clicks:
