@@ -7,7 +7,7 @@ import polars as pl
 from dash import Input, Output, State, dcc
 
 
-from config import get_config_dir, config, load_config, save_config
+from configurations.config import get_user_config, save_config_sys
 from server_instance import get_app
 
 
@@ -36,16 +36,7 @@ ID_DATA_STORE_TRIGGER = "filter-store-trigger"
 
 app = get_app()
 
-
-name_config = config.get("config", {}).get("config_data_name", "config_data.toml")
-
-dir_main_config = get_config_dir()
-
-path_config = os.path.join(dir_main_config, name_config)
-
-
-config = load_config(path_config)
-
+config = get_user_config()
 
 path_to_excel = config.get("path_to_excel", "")
 auto_refresh = config.get("auto_refresh", True)
@@ -102,10 +93,9 @@ def modify_modification_date(new_modification_date: float):
     modification_date = new_modification_date
     config["modification_date"] = new_modification_date
 
-    save_config(path_config, config)
+    save_config_sys({"modification_date": new_modification_date})
 
     print(f"Set modification date to to: {new_modification_date}")
-    save_config(path_config, config)
 
 
 def update_path_to_excel(path) -> tuple[bool, str]:
@@ -134,7 +124,7 @@ def update_path_to_excel(path) -> tuple[bool, str]:
     path_to_excel = path
     config["path_to_excel"] = path
 
-    save_config(path_config, config)
+    save_config_sys({"path_to_excel": path})
 
     return True, "Loaded The File successfully."
 
@@ -145,7 +135,7 @@ def toggle_auto_refresh() -> bool:
     auto_refresh = not auto_refresh
     config["auto_refresh"] = auto_refresh
 
-    save_config(path_config, config)
+    save_config_sys({"auto_refresh": auto_refresh})
 
     print(f"Auto refresh set disabled to: {auto_refresh}")
 

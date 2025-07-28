@@ -252,7 +252,7 @@ def generate_card(df: pl.DataFrame, col_name: str, title: str) -> dbc.Card:
     # Calculate change
     if COL_NAME_WINDOW_TIME in df.columns and len(latest_values) == 2:
 
-        this_year, last_year = latest_values
+        last_year, this_year = latest_values
         change = this_year - last_year
     elif len(latest_values) == 1:
 
