@@ -217,14 +217,14 @@ def get_count_df(
             if isinstance(min_date, date)
             else datetime.fromisoformat(min_date).date()
         )
-        filter_list.append(pl.col(COL_NAME_DEPARTURE_DATETIME) > start)
+        filter_list.append(pl.col(COL_NAME_DEPARTURE_DATETIME) >= start)
     if max_date:
         end = (
             max_date
             if isinstance(max_date, date)
             else datetime.fromisoformat(max_date).date()
         )
-        filter_list.append(pl.col(COL_NAME_DEPARTURE_DATETIME) < end)
+        filter_list.append(pl.col(COL_NAME_DEPARTURE_DATETIME) <= end)
 
     stmt = df_raw
     if filter_list:
@@ -266,6 +266,7 @@ def get_count_df(
         stmt_end = stmt_end.alias(COL_NAME_WINDOW_TIME_MAX)
 
         stmt = stmt.select([stmt_start, stmt_end, pl.len().alias(COL_NAME_TOTAL_COUNT)])
+
     return stmt
 
 
