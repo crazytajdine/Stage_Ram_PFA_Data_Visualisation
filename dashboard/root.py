@@ -3,7 +3,7 @@ from dash.dependencies import Input, Output
 import plotly.io as pio
 import dash
 
-from dashboard.utils_dashboard.utils_navs import build_nav_items
+from utils_dashboard.utils_navs import build_nav_items
 from server_instance import get_app
 
 from excel_manager import (

@@ -1,6 +1,6 @@
 from typing import Optional
-from dashboard.configurations.config import get_user_config
-from dashboard.schemas.navbarItem import NavItemMeta
+from configurations.config import get_user_config
+from schemas.navbarItem import NavItemMeta
 
 
 from pages.home.metadata import metadata as home_metadata
