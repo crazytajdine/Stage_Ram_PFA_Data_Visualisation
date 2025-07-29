@@ -14,7 +14,6 @@ from excel_manager import (
 )
 from utils_dashboard.utils_preference import get_nav_preferences, set_page_visibility
 
-
 from pages.settings.metadata import metadata
 
 app = get_app()
@@ -32,10 +31,12 @@ ID_SETTINGS_BUTTON_NAV = "settings-button-navbar"
 ID_PAGE_VISIBILITY_MSG = "page-visibility-message"
 
 ID_CONTAINER_VISIBILITY_CONTROLS = "page-visibility-controls"
+
 layout = html.Div(
     [
         dcc.Store(ID_TRIGGER_PARAMS_CHANGE_NAVBAR),
         html.H1("Paramètres", className="mb-4"),
+        
         # ── Fichier Excel
         dbc.Card(
             [
@@ -62,6 +63,7 @@ layout = html.Div(
             ],
             className="mb-4",
         ),
+        
         # ── Actualisation automatique
         dbc.Card(
             [
@@ -99,6 +101,7 @@ layout = html.Div(
             ],
             className="mb-4",
         ),
+        
         # ── Visibilité des pages
         dbc.Card(
             [
@@ -126,6 +129,10 @@ layout = html.Div(
                 ),
             ]
         ),
+        
+        # --- Stores & interval interne --------------------------------------
+        dcc.Store(id="auto-refresh-enabled",
+                  data=is_auto_refresh_enabled()),
     ]
 )
 
@@ -135,7 +142,7 @@ layout = html.Div(
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-# 1. Display current Excel path
+# 1. Display current Excel path (Updated from new file)
 @app.callback(
     Output(ID_CURRENT_PATH, "children"),
     Input(ID_UPDATE_PATH_MSG, "is_open"),
@@ -145,25 +152,27 @@ def display_current_path(_):
     return get_path_to_excel()
 
 
-# 2. Handle Excel path update
+# 2. Handle Excel path update (Updated from new file)
 @app.callback(
     Output(ID_UPDATE_PATH_MSG, "children"),
     Output(ID_UPDATE_PATH_MSG, "color"),
     Output(ID_UPDATE_PATH_MSG, "is_open"),
+    Output("is-path-store", "data", allow_duplicate=True),          # ➕  nouveau
     Input(ID_UPDATE_PATH_BTN, "n_clicks"),
     State(ID_NEW_PATH_INPUT, "value"),
     prevent_initial_call=True,
 )
-def handle_update_path(n_clicks, _, new_path):
+def handle_update_path(_, new_path):
     if not new_path:
-        return "Veuillez entrer un chemin.", "warning", True
+        return "Veuillez entrer un chemin.", "warning", True, dash.no_update
 
     success, msg = update_path_to_excel(new_path)
     color = "success" if success else "danger"
-    return msg, color, True
+    # si succès → on propage le chemin pour que root.py ré-évalue path_exits()
+    return msg, color, True, (new_path if success else dash.no_update)
 
 
-# 3. Toggle auto-refresh on/off
+# 3. Toggle auto-refresh on/off (Updated from new file)
 @app.callback(
     Output(ID_TOGGLE_REFRESH_MSG, "children"),
     Output(ID_TOGGLE_REFRESH_MSG, "color"),
@@ -172,45 +181,36 @@ def handle_update_path(n_clicks, _, new_path):
     Input(ID_TOGGLE_AUTO_REFRESH, "n_clicks"),
     prevent_initial_call=True,
 )
-def handle_toggle_refresh(n_clicks):
+def toggle_auto_refresh_cb(_):
     try:
         status = toggle_auto_refresh()
-        return (
-            f"Actualisation {'activée' if status else 'désactivée'}.",
-            "success",
-            True,
-            status,
-        )
+        return (f"Actualisation {'activée' if status else 'désactivée'}.",
+                "success", True, status)
     except Exception as e:
-        return f"Erreur : {e}", "danger", True, is_auto_refresh_enabled()
+        return f"Erreur : {e}", "danger", True, is_auto_refresh_enabled()
 
 
-# 4. Update the “Activée / Désactivée” text
+# 4. Update the "Activée / Désactivée" text (Updated from new file)
 @app.callback(
     Output(ID_AUTO_REFRESH_STATUS, "children"),
     Output(ID_AUTO_REFRESH_STATUS, "className"),
     Input("auto-refresh-enabled", "data"),
 )
-def update_auto_refresh_label(enabled):
-    return (
-        "Activée" if enabled else "Désactivée",
-        "text-success" if enabled else "text-danger",
-    )
+def update_status_text(enabled):
+    return ("Activée" if enabled else "Désactivée",
+            "text-success" if enabled else "text-danger")
 
 
-# 5. Update the last-refresh timestamp
+# 5. Update the last-refresh timestamp (Updated from new file)
 @app.callback(
     Output(ID_LAST_REFRESH_TIME, "children"),
-    Input("refresh-counter", "n_intervals"),
-    prevent_initial_call=False,
+    Input("refresh-counter", "n_intervals")
 )
 def update_refresh_time(_):
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
-# 6. Save page-visibility settings
-
-
+# 6. Save page-visibility settings (Original code)
 @app.callback(
     Output(ID_CONTAINER_VISIBILITY_CONTROLS, "children"),
     Input("url", "pathname"),

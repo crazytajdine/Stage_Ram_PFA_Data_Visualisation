@@ -287,10 +287,20 @@ df_unfiltered: pl.LazyFrame = None
 df: pl.LazyFrame = None
 total_df: pl.LazyFrame = None
 
-try:
-    load_excel_lazy(path_to_excel)
-except Exception as e:
-    print("couldn't load excel file with error :", e)
+if path_to_excel and path_to_excel.strip() != "":
+    try:
+        load_excel_lazy(path_to_excel)
+        print(f"Excel file loaded successfully from: {path_to_excel}")
+    except Exception as e:
+        print(f"Warning: Could not load Excel file at startup: {e}")
+        df_unfiltered = None
+        df_raw = None
+        df = None
+else:
+    print("No Excel path configured. Please set a path in the Settings page.")
+    df_unfiltered = None
+    df_raw = None
+    df = None
 
 modification_date = config.get("modification_date", get_latest_modification_time())
 
@@ -377,3 +387,29 @@ def add_callbacks():
             print(f"Error watching file: {e}")
 
         return dash.no_update
+
+    # ➕ NEW CALLBACK: Display modification time every second
+    @app.callback(
+        Output("modification-time-display", "children"),
+        add_watch_file(),  # This returns Input(ID_STORE_DATE_WATCHER, "data")
+        Input(ID_INTERVAL_WATCHER, "n_intervals")
+    )
+    def display_modification_time_every_second(stored_mod_time, n_intervals):
+        """Display the current modification time, updated every second"""
+        
+        if not path_to_excel:
+            return "No file path configured"
+        
+        # Get the latest modification time
+        current_mod_time = get_latest_modification_time()
+        
+        if current_mod_time is None:
+            return "Could not read file modification time"
+        
+        # Format for display
+        try:
+            dt = datetime.fromisoformat(current_mod_time)
+            formatted_time = dt.strftime("%Y-%m-%d %H:%M:%S")
+            return f"Last modified: {formatted_time} (Check #{n_intervals})"
+        except:
+            return f"Last modified: {current_mod_time} (Check #{n_intervals})"
