@@ -1,7 +1,7 @@
 from typing import Optional, Tuple
 import dash
 import polars as pl
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from dash import Input, Output, State
 from excel_manager import (
     COL_NAME_DEPARTURE_DATETIME,
@@ -94,6 +94,7 @@ layout = dbc.Card(
                                 id=FILTER_DATE_RANGE,
                                 clearable=True,
                                 display_format="DD-MM-YYYY",
+                                number_of_months_shown=2,
                             ),
                         ],
                         md=6,
@@ -313,7 +314,6 @@ def add_callbacks():
     )
     def update_filter_submit_button(filter_suggestions, filter_actual, segmentation):
 
-        print(segmentation)
         if filter_suggestions:
             filter_suggestions["fl_segmentation"] = segmentation
             filter_suggestions["fl_unit_segmentation"] = "d"

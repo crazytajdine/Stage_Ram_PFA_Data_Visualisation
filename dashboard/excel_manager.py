@@ -221,6 +221,7 @@ def get_count_df(
 
         min_segmentation = str(segmentation) + unit_segmentation
         max_segmentation = str(segmentation - 1) + unit_segmentation
+
         stmt = (
             stmt.with_columns(
                 pl.col(COL_NAME_DEPARTURE_DATETIME)
@@ -286,8 +287,10 @@ df_unfiltered: pl.LazyFrame = None
 df: pl.LazyFrame = None
 total_df: pl.LazyFrame = None
 
-
-load_excel_lazy(path_to_excel)
+try:
+    load_excel_lazy(path_to_excel)
+except Exception as e:
+    print("couldn't load excel file with error :", e)
 
 modification_date = config.get("modification_date", get_latest_modification_time())
 
@@ -318,7 +321,7 @@ def add_watcher_for_data():
 
 
 def update_df_unfiltered():
-
+    global path_to_excel
     load_excel_lazy(path_to_excel)
 
 
