@@ -9,7 +9,7 @@ import io
  # ─────────────── Third-party ───────────────
 import polars as pl
 import dash
-from dash import html, dcc, dash_table, Input, Output, no_update
+from dash import html, dcc, dash_table, Input, Output, State, no_update
 import dash_bootstrap_components as dbc
 import xlsxwriter
 
@@ -23,6 +23,9 @@ from excel_manager import (
     # COL_NAME_TOTAL_COUNT  # only needed if you reuse it here
  )
 from dash.dcc import send_bytes
+from components.filter import FILTER_STORE_ACTUAL
+from filter_state import get_filter_state
+
 
 DAYS_FR = ("Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche")
 DAY_NAME_MAP = {i: d for i, d in enumerate(DAYS_FR)}
@@ -130,8 +133,9 @@ layout = dbc.Container(
             html.H1("Analyse hebdomadaire des codes de retard"),
             html.P("Répartition des codes par jour de la semaine.", className="lead")
         ])),
-        dbc.Card(dbc.CardBody(dash_table.DataTable(id=ID_WEEKLY_TABLE)), className="mb-4"),
         dcc.Download(id=ID_DOWNLOAD),
+        dbc.Button("📥 Exporter Excel", id="weekly-export-btn", className="mt-2"),
+        dbc.Card(dbc.CardBody(dash_table.DataTable(id=ID_WEEKLY_TABLE)), className="mb-4"),
         dbc.Row(dbc.Col([
             html.Hr(),
             html.Small(id="last-update", className="text-muted")
@@ -165,18 +169,55 @@ def refresh_weekly_table(_):
 @app.callback(
     Output(ID_DOWNLOAD, "data"),
     Input("weekly-export-btn", "n_clicks"),
+    State(FILTER_STORE_ACTUAL, "data"),  # 👈 get current filters
     prevent_initial_call=True,
 )
-def export_to_excel(_):
+def export_to_excel(_, store_actual_data):
     # analyze_weekly_codes fetches its own data internally
     weekly = analyze_weekly_codes()
     if weekly.is_empty():
         raise dash.exceptions.PreventUpdate
+    filters = get_filter_state() or {}
+    start = filters.get("dt_start") or "ALL"
+    end = filters.get("dt_end") or "ALL"
+    seg = filters.get("fl_segmentation") or "ALL"
+    flotte = filters.get("fl_subtype") or "ALL"
+    matricule = filters.get("fl_matricule") or "ALL"
 
+    if isinstance(seg, str) and seg.endswith("d"):
+        seg = seg.replace("d", "j")
+
+    fname_parts = ["weekly_analysis"]
+
+    # Ajout des dates
+    if start != "ALL" and end != "ALL":
+        fname_parts.append(f"{start.replace('_', '/')}to{end.replace('_', '/')}")
+    else:
+        fname_parts.append("ALL_DATES")
+
+    # Ajout de la segmentation
+    if seg != "ALL":
+        fname_parts.append(f"seg{seg}")
+    else:
+        fname_parts.append("ALL_SEG")
+    # Ajout de la flotte
+    if flotte != "ALL":
+        fname_parts.append(f"flotte{flotte}")
+    else:
+        fname_parts.append("ALL_FLOTTE")
+    # Ajout du matricule
+    if matricule != "ALL":
+        fname_parts.append(f"matricule{matricule}")
+    else:
+        fname_parts.append("ALL_MATRICULE")
+
+    filename = "_".join(fname_parts) + ".xlsx"
+
+
+    # Create file
     buffer = io.BytesIO()
     with xlsxwriter.Workbook(buffer, {"in_memory": True}) as wb:
         weekly.write_excel(workbook=wb)
     buffer.seek(0)
 
-    fname = f"weekly_analysis_{datetime.now():%Y%m%d_%H%M}.xlsx"
-    return send_bytes(lambda s: s.write(buffer.getvalue()), filename=fname)
+    return send_bytes(lambda s: s.write(buffer.getvalue()), filename=filename)
