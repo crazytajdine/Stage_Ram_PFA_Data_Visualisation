@@ -39,7 +39,7 @@ app = get_app()
 config = get_user_config()
 
 path_to_excel = config.get("path_to_excel", "")
-auto_refresh = config.get("auto_refresh", True)
+auto_refresh_disabled = config.get("auto_refresh", True)
 
 
 count_excel_lazy = None
@@ -88,9 +88,7 @@ def create_dep_datetime(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
 
 
 def modify_modification_date(new_modification_date: float):
-    global config, modification_date
-
-    modification_date = new_modification_date
+    global config
 
     config = save_config_sys({"modification_date": new_modification_date})
 
@@ -128,20 +126,20 @@ def update_path_to_excel(path) -> tuple[bool, str]:
 
 
 def toggle_auto_refresh() -> bool:
-    global config, auto_refresh
+    global config, auto_refresh_disabled
 
-    auto_refresh = not auto_refresh
+    auto_refresh_disabled = not auto_refresh_disabled
 
-    config = save_config_sys({"auto_refresh": auto_refresh})
+    config = save_config_sys({"disabled_auto_refresh": auto_refresh_disabled})
 
-    print(f"Auto refresh set disabled to: {auto_refresh}")
+    print(f"Auto refresh set disabled to: {auto_refresh_disabled}")
 
-    return auto_refresh
+    return auto_refresh_disabled
 
 
-def is_auto_refresh_enabled() -> bool:
-    global auto_refresh
-    return auto_refresh
+def is_auto_refresh_disabled() -> bool:
+    global auto_refresh_disabled
+    return auto_refresh_disabled
 
 
 def load_excel_lazy(path):
@@ -258,13 +256,28 @@ def get_count_df(
     return stmt
 
 
+def get_modification_time_cashed() -> str:
+    global config
+
+    modification_date = config.get("modification_date", None)
+
+    if modification_date is None:
+        modification_date = get_latest_modification_time()
+
+    if modification_date:
+        modification_date = datetime.strptime(modification_date, "%Y-%m-%d %H:%M:%S")
+
+    return modification_date
+
+
 def get_latest_modification_time():
     global path_to_excel
     is_path_exists = path_exits()
     if not is_path_exists:
         return None
     latest_modification_timestamp = os.path.getmtime(path_to_excel)
-    readable_time = datetime.fromtimestamp(latest_modification_timestamp).isoformat()
+    readable_time = datetime.fromtimestamp(latest_modification_timestamp)
+    readable_time = readable_time.strftime("%Y-%m-%d %H:%M:%S")
 
     return readable_time
 
@@ -302,7 +315,7 @@ else:
     df_raw = None
     df = None
 
-modification_date = config.get("modification_date", get_latest_modification_time())
+modification_date = get_modification_time_cashed()
 
 
 store_excel = dcc.Store(id=ID_PATH_STORE, storage_type="local", data=path_to_excel)
@@ -315,7 +328,7 @@ store_latest_date_fetch = dcc.Store(
 store_trigger_change = dcc.Store(id=ID_DATA_STORE_TRIGGER)
 
 interval_watcher = dcc.Interval(
-    id=ID_INTERVAL_WATCHER, interval=1000, disabled=not auto_refresh
+    id=ID_INTERVAL_WATCHER, interval=1000, disabled=auto_refresh_disabled
 )
 
 
@@ -352,13 +365,13 @@ def add_callbacks():
         Input(ID_PATH_STORE, "data"),
     )
     def loaded_file(_):
-        global auto_refresh, config
+        global auto_refresh_disabled
 
-        is_path_correct = not (path_exits() and auto_refresh)
+        is_path_correct = path_exits() and (not auto_refresh_disabled)
 
         print(f"Setting interval watcher disabled to {is_path_correct}")
 
-        return is_path_correct
+        return not is_path_correct
 
     @app.callback(
         # output
@@ -369,14 +382,14 @@ def add_callbacks():
     )
     def watch_file(date_latest_fetch, _):
         global path_to_excel
-
+        print("watching every second")
         if not path_to_excel:
             return dash.no_update
         try:
             latest_modification_time = get_latest_modification_time()
 
             if latest_modification_time != date_latest_fetch:
-
+                print("file changed")
                 update_df_unfiltered()
                 modify_modification_date(latest_modification_time)
                 return latest_modification_time
@@ -387,29 +400,3 @@ def add_callbacks():
             print(f"Error watching file: {e}")
 
         return dash.no_update
-
-    # ➕ NEW CALLBACK: Display modification time every second
-    @app.callback(
-        Output("modification-time-display", "children"),
-        add_watch_file(),  # This returns Input(ID_STORE_DATE_WATCHER, "data")
-        Input(ID_INTERVAL_WATCHER, "n_intervals")
-    )
-    def display_modification_time_every_second(stored_mod_time, n_intervals):
-        """Display the current modification time, updated every second"""
-        
-        if not path_to_excel:
-            return "No file path configured"
-        
-        # Get the latest modification time
-        current_mod_time = get_latest_modification_time()
-        
-        if current_mod_time is None:
-            return "Could not read file modification time"
-        
-        # Format for display
-        try:
-            dt = datetime.fromisoformat(current_mod_time)
-            formatted_time = dt.strftime("%Y-%m-%d %H:%M:%S")
-            return f"Last modified: {formatted_time} (Check #{n_intervals})"
-        except:
-            return f"Last modified: {current_mod_time} (Check #{n_intervals})"

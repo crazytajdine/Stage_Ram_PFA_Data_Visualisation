@@ -63,6 +63,9 @@ def update_content_page(pathname, _):
 
     nav_items = build_nav_items(path_exists)
 
+    if not path_exists and nav_items:
+        return nav_items[0].page
+
     for nav_item in nav_items:
 
         is_selected = pathname == nav_item.href
