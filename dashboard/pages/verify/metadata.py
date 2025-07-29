@@ -3,7 +3,9 @@ from schemas.navbarItem import NavItemMeta
 
 metadata = NavItemMeta(
     name="Verify",
-    href="/verify",
+    href="/",
     preference_show=False,
-    title="Performance Metrics",
+    show_filter=False,
+    title="Verify",
+    show=False,
 )

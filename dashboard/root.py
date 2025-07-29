@@ -3,7 +3,7 @@ from dash.dependencies import Input, Output
 import plotly.io as pio
 import dash
 
-from utils_dashboard.utils_navs import build_nav_items
+from dashboard.utils_dashboard.utils_navs import build_nav_items
 from server_instance import get_app
 
 from excel_manager import (
@@ -60,6 +60,7 @@ def export_current_chart(_, fig_dict):
 )
 def update_content_page(pathname, _):
     path_exists = path_exits()
+
     nav_items = build_nav_items(path_exists)
 
     for nav_item in nav_items:

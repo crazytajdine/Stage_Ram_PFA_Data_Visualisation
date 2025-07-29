@@ -1,10 +1,11 @@
 # dashboard/utils_dashboard/utils_navs.py
 
-from typing import Any, Optional
-from configurations.config import get_user_config
+from typing import Any
 from configurations.nav_config import (
     NAV_CONFIG,
     NAV_CONFIG_VERIFY,
+    build_nav_items_meta,
+    get_page_visibility,
 )
 
 from schemas.navbarItem import NavItem, NavItemMeta
@@ -26,28 +27,11 @@ PAGE_MAP: dict[str, Any] = {
 }
 
 
-def get_page_visibility(page_key: str) -> Optional[bool]:
-    config = get_user_config()
-
-    return config.get("pages", {}).get(page_key, None)
-
-
 def build_nav_items(path_exists: bool) -> list[NavItem]:
 
-    meta_list: list[NavItemMeta] = NAV_CONFIG if path_exists else NAV_CONFIG_VERIFY
-    results = []
-    for item in meta_list:
-        is_visible_user = get_page_visibility(item.name)
-        if is_visible_user is None:
-            is_visible_user = item.show
+    pages_meta = build_nav_items_meta(path_exists)
 
-        if not is_visible_user:
-            continue
-
-        nav_item = NavItem(
-            **item.model_dump(),
-            page=PAGE_MAP[item.name],
-        )
-        results.append(nav_item)
-
+    results = [
+        NavItem(**item.model_dump(), page=PAGE_MAP[item.name]) for item in pages_meta
+    ]
     return results
