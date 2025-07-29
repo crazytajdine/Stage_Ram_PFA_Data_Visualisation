@@ -12,13 +12,19 @@ import plotly.express as px
 from server_instance import get_app
 import excel_manager
 import math
-
+from dash import ctx, no_update
+from dash.dcc import send_bytes
+import io
+import xlsxwriter
+from components.filter import FILTER_STORE_ACTUAL
+from filter_state import get_filter_state
 
 app = get_app()
 # ------------------------------------------------------------------ #
 # 1 ▸  Read & prepare data                                           #
 # ------------------------------------------------------------------ #
 time_period = excel_manager.COL_NAME_WINDOW_TIME
+time_period_max = excel_manager.COL_NAME_WINDOW_TIME_MAX
 
 
 # ------------------------------------------------------------------ #
@@ -185,6 +191,32 @@ It adds a new column to your table that tells you which time period each row bel
 
 """
 
+def build_filename(base: str, filters: dict[str, str | None]) -> str:
+    """
+    Construit un nom de fichier intelligent basé sur les filtres.
+    """
+    start = filters.get("dt_start") or "ALL"
+    end = filters.get("dt_end") or "ALL"
+    seg = filters.get("fl_segmentation") or "ALL"
+    flotte = filters.get("fl_subtype") or "ALL"
+    matricule = filters.get("fl_matricule") or "ALL"
+
+    if isinstance(seg, str) and seg.endswith("d"):
+        seg = seg.replace("d", "j")
+
+    parts = [base]
+
+    if start != "ALL" and end != "ALL":
+        parts.append(f"{start.replace('_', '/')}_to_{end.replace('_', '/')}")
+    else:
+        parts.append("ALL_DATES")
+
+    parts.append(f"seg{seg}" if seg != "ALL" else "ALL_SEG")
+    parts.append(f"flotte{flotte}" if flotte != "ALL" else "ALL_FLOTTE")
+    parts.append(f"matricule{matricule}" if matricule != "ALL" else "ALL_MATRICULE")
+
+    return "_".join(parts) + ".xlsx"
+
 # ------------------------------------------------------------------ #
 # 3 ▸  Layout factory                                                #
 # ------------------------------------------------------------------ #
@@ -213,7 +245,9 @@ def make_layout() -> html.Div:
     # ----- TABLE (placed last) -------------------------------------
     table_block = html.Div(
         [
-            html.H3("📋 Détail des codes de retard", className="h4 mt-4"),
+            html.H3("Détail des codes de retard", className="h4 mt-4"),
+            dcc.Download(id="download-table"),
+            dbc.Button("📥 Exporter Excel", id="export-btn", className="mt-2"),
             html.Div(id="table-container"),
         ]
     )
@@ -240,6 +274,46 @@ def make_layout() -> html.Div:
 # ------------------------------------------------------------------ #
 layout = make_layout()
 
+def build_structured_table(df: pl.DataFrame, segmentation: str | None) -> pl.DataFrame:
+    if df.is_empty():
+        return pl.DataFrame(
+            {time_period_max: [], "Famille": [], "Code": [], "Occurrences": [], "Aéroports": [], "Nb Aéroports": []}
+        )
+    
+
+    airport_counts = (
+        df.group_by([time_period_max, "FAMILLE_DR", "CODE_DR", "DEP_AP_SCHED"])  
+          .agg(pl.len().alias("ap_count"))
+    )
+
+    grouped = (
+        df.group_by([time_period_max, "FAMILLE_DR", "CODE_DR"])  
+        .agg([
+            pl.len().alias("Occurrences"),
+            pl.col("DEP_AP_SCHED").drop_nulls().alias("AP_list"),
+        ])
+        .join(
+            airport_counts.group_by([time_period_max, "FAMILLE_DR", "CODE_DR"]).agg([
+                pl.col("DEP_AP_SCHED").alias("airports"),
+                pl.col("ap_count").alias("counts")
+            ]),
+            on=[time_period_max, "FAMILLE_DR", "CODE_DR"],
+            how="left"
+        )
+        .with_columns([
+            pl.struct(["airports", "counts"]).map_elements(
+                lambda x: ", ".join(
+                    f"{ap} ({cnt})" for ap, cnt in sorted(zip(x["airports"], x["counts"]), key=lambda i: i[1], reverse=True)
+                ), return_dtype=pl.Utf8
+            ).alias("Aéroports"),
+            pl.col("AP_list").list.n_unique().alias("Nb Aéroports"),
+        ])
+        .select([time_period_max, "FAMILLE_DR", "CODE_DR", "Occurrences", "Aéroports", "Nb Aéroports"])
+        .rename({"CODE_DR": "Code", "FAMILLE_DR": "Famille"})  # ✅ ICI
+        .sort([time_period_max, "Famille", "Occurrences"], descending=[False, False, True])
+    )
+    return grouped
+
 
 
 plot_config = {
@@ -260,14 +334,23 @@ plot_config = {
         Output("stats-div", "children"),
         Output("charts-container", "children"),
         Output("table-container", "children"),
+        Output("download-table", "data"),
     ],
+    Input("export-btn", "n_clicks"),
     excel_manager.add_watcher_for_data(),  # watch for data changes
+    State(FILTER_STORE_ACTUAL, "data"),  # récupère segmentation + dates
     prevent_initial_call=False,
 )
-def build_outputs(_):
+def build_outputs(n_clicks, _, filters):
     """Build all output components based on filtered data"""
 
     df = excel_manager.get_df().collect() 
+    filters = filters or {}
+    segmentation = filters.get("fl_segmentation")
+    start = filters.get("dt_start", "")
+    end = filters.get("dt_end", "")
+
+
     # Get analysis
     summary = analyze_delay_codes_polars(df)
 
@@ -299,16 +382,16 @@ def build_outputs(_):
     # ---------- COMMON PERIOD TOTALS (used by every family chart) -------
     # 2️⃣ exact counts per (period, family, code)
     temporal_all = df.group_by(
-        [time_period, "FAMILLE_DR", "CODE_DR"]
+        [time_period_max, "FAMILLE_DR", "CODE_DR"]
     ).agg(pl.len().alias("count"))
 
     # 3️⃣ grand-total per period (all families, all codes)
-    period_totals = temporal_all.group_by(time_period).agg(
+    period_totals = temporal_all.group_by(time_period_max).agg(
         pl.col("count").sum().alias("period_total")
     )
 
     # 4️⃣ join + exact share
-    temporal_all = temporal_all.join(period_totals, on=time_period).with_columns(
+    temporal_all = temporal_all.join(period_totals, on=time_period_max).with_columns(
         (pl.col("count") / pl.col("period_total") * 100).alias("perc")
     )
 
@@ -318,7 +401,7 @@ def build_outputs(_):
         if not df.is_empty()
         else []
     )
-    all_periods = df.get_column(time_period).unique().sort().to_list()
+    all_periods = df.get_column(time_period_max).unique().sort().to_list()
     if not selected_codes:
         fig = go.Figure()
         fig.add_annotation(
@@ -354,8 +437,8 @@ def build_outputs(_):
                 rows = fam_data.filter(pl.col("CODE_DR") == code)
 
                 # maps in the exact grid order
-                perc_map = {r[time_period]: r["perc"] for r in rows.to_dicts()}
-                count_map = {r[time_period]: r["count"] for r in rows.to_dicts()}
+                perc_map = {r[time_period_max]: r["perc"] for r in rows.to_dicts()}
+                count_map = {r[time_period_max]: r["count"] for r in rows.to_dicts()}
 
                 y_vals = [perc_map.get(p, 0) for p in all_periods]
                 raw_counts = [count_map.get(p, 0) for p in all_periods]
@@ -433,17 +516,33 @@ def build_outputs(_):
             )
 
     # 3. Build table (independent of code and segmentation selection)
-    table_df = df
+    # --- Table structurée ---
+    segmentation = filters.get("fl_segmentation") if filters else None
 
-        # If data exists, ensure date column is properly typed
-    if not table_df.is_empty() and "DEP_DATE" in table_df.columns:
-        # Convert DEP_DATE back to date type if it's a string
-        if table_df.get_column("DEP_DATE").dtype == pl.Utf8:
-            table_df = table_df.with_columns(
-                pl.col("DEP_DATE").str.strptime(pl.Date, "%Y-%m-%d", strict=False)
+    # Prépare le DataFrame date-typed
+    if not df.is_empty() and excel_manager.COL_NAME_DEPARTURE_DATETIME in df.columns:
+        if df.get_column(excel_manager.COL_NAME_DEPARTURE_DATETIME).dtype == pl.Utf8:
+            df = df.with_columns(
+                pl.col(excel_manager.COL_NAME_DEPARTURE_DATETIME)
+                  .str.strptime(pl.Date, "%Y-%m-%d", strict=False)
             )
 
-    summary_table = analyze_delay_codes_for_table(table_df)
+    summary_table = build_structured_table(df, segmentation)
+    
+    data = summary_table.to_dicts()
+    last_date = None
+    last_family = None
+    for row in data:
+        if row[time_period_max] == last_date:
+            row[time_period_max] = ""
+        else:
+            last_date = row[time_period_max]
+
+        if row["Famille"] == last_family and not row[time_period_max]:
+            row["Famille"] = ""
+        else:
+            last_family = row["Famille"]
+
 
     if summary_table.is_empty():
         table = dbc.Alert(
@@ -452,15 +551,11 @@ def build_outputs(_):
             className="text-center",
         )
     else:
-        # Rename columns for display
-        summary_table = summary_table.rename(
-            {"CODE_DR": "Code", "Nb_AP": "Nb Aéroports"}
-        )
-
+        
         table = dash_table.DataTable(
             id="codes-table",
-            data=summary_table.to_dicts(),
-            columns=[{"name": col, "id": col} for col in summary_table.columns],
+            data=data,
+            columns=[{"name": c, "id": c} for c in summary_table.columns],
             style_header={
                 "backgroundColor": "#f8f9fa",
                 "color": "#495057",
@@ -490,11 +585,23 @@ def build_outputs(_):
             ],
             sort_action="native",
             filter_action="native",
-            page_size=8,
-            export_format="xlsx",
-            export_headers="display",  # nice human-readable headers
-            export_columns="all",  # include hidden cols if you like
+            page_size=8, # include hidden cols if you like
             style_table={"height": "500px", "overflowY": "auto"},
         )
 
-    return stats, family_figs, table
+    # --- Export Excel ---
+    triggered = ctx.triggered_id
+    if triggered == "export-btn" and not summary_table.is_empty():
+        buffer = io.BytesIO()
+        with xlsxwriter.Workbook(buffer, {"in_memory": True}) as wb:
+            ws = wb.add_worksheet()
+            for i, col in enumerate(summary_table.columns):
+                ws.write(0, i, col)
+            for r, row in enumerate(summary_table.iter_rows(), start=1):
+                for c, val in enumerate(row):
+                    ws.write(r, c, val)
+        buffer.seek(0)
+        fname = build_filename("retards_export", filters)
+        return stats, family_figs, table, send_bytes(lambda s: s.write(buffer.getvalue()), filename=fname)
+
+    return stats, family_figs, table, no_update

@@ -18,9 +18,18 @@ import xlsxwriter
 from io import BytesIO
 import time
 
-from excel_manager import get_df
-from server_instance import get_app
 
+from server_instance import get_app
+from excel_manager import (
+     get_df,
+     add_watcher_for_data,
+     COL_NAME_WINDOW_TIME_MAX,
+     COL_NAME_WINDOW_TIME,
+     COL_NAME_DEPARTURE_DATETIME,
+     COL_NAME_WINDOW_TIME,
+    # COL_NAME_TOTAL_COUNT  # only needed if you reuse it here
+ )
+    
 app = get_app()
 
 custom_css = {
@@ -60,106 +69,7 @@ layout = dbc.Container(
         html.Div(
             style=custom_css["container"],
             children=[
-                html.H1(
-                    "Royal Air Maroc - Visualisation Interactive des Vols et Retards",
-                    style=custom_css["header"],
-                    className="text-center",
-                ),
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            [
-                                dbc.Label("Type d'avion", className="fw-bold mb-2"),
-                                dcc.Dropdown(
-                                    id="ac-subtype",
-                                    options=[],
-                                    multi=True,
-                                    placeholder="Tous les types",
-                                    style={"background-color": "white"},
-                                ),
-                            ],
-                            md=3,
-                        ),
-                        dbc.Col(
-                            [
-                                dbc.Label("Immatriculation", className="fw-bold mb-2"),
-                                dcc.Dropdown(
-                                    id="ac-registration",
-                                    options=[],
-                                    multi=True,
-                                    placeholder="Toutes les immatriculations",
-                                    style={"background-color": "white"},
-                                ),
-                            ],
-                            md=3,
-                        ),
-                        dbc.Col(
-                            [
-                                dbc.Label(
-                                    "Date et heure de départ (début)",
-                                    className="fw-bold mb-2",
-                                ),
-                                dbc.Input(
-                                    id="dep-datetime-input-start",
-                                    type="datetime-local",
-                                    min="1900-01-01T00:00",
-                                    max="2100-12-31T23:59",
-                                    style={
-                                        "width": "100%",
-                                        "backgroundColor": custom_css["input"][
-                                            "background-color"
-                                        ],
-                                        "color": "black",
-                                        "border": custom_css["input"]["border"],
-                                    },
-                                ),
-                            ],
-                            md=3,
-                        ),
-                        dbc.Col(
-                            [
-                                dbc.Label(
-                                    "Date et heure d'arrivée (fin)",
-                                    className="fw-bold mb-2",
-                                ),
-                                dbc.Input(
-                                    id="dep-datetime-input-end",
-                                    type="datetime-local",
-                                    min="1900-01-01T00:00",
-                                    max="2100-12-31T23:59",
-                                    style={
-                                        "width": "100%",
-                                        "backgroundColor": custom_css["input"][
-                                            "background-color"
-                                        ],
-                                        "color": "black",
-                                        "border": custom_css["input"]["border"],
-                                    },
-                                ),
-                            ],
-                            md=3,
-                        ),
-                    ],
-                    className="mb-3 g-3",
-                ),
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            [
-                                dbc.Label("Code de retard", className="fw-bold mb-2"),
-                                dcc.Dropdown(
-                                    id="code-dr",
-                                    options=[],
-                                    multi=True,
-                                    placeholder="Tous les codes",
-                                    style={"background-color": "white"},
-                                ),
-                            ],
-                            md=12,
-                        ),
-                    ],
-                    className="mb-3",
-                ),
+
                 dbc.Alert(
                     id="summary-info",
                     color="info",
@@ -171,21 +81,6 @@ layout = dbc.Container(
                         "whiteSpace": "pre-line",
                     },
                 ),
-                dbc.Button(
-                    [html.I(className="fas fa-search me-2"), "Rechercher"],
-                    id="search-btn",
-                    color="primary",
-                    className="w-100 mb-4 py-2",
-                    style=custom_css["button"],
-                ),
-                dbc.Button(
-                    "Télécharger Excel",
-                    id="btn_download_excel",
-                    color="success",
-                    className="mb-3",
-                    n_clicks=0,
-                ),
-                dcc.Download(id="download-excel"),
                 dbc.Alert(
                     id="result-message",
                     is_open=False,
@@ -193,6 +88,8 @@ layout = dbc.Container(
                     className="mt-3",
                     style=custom_css["alert"],
                 ),
+                dcc.Download(id="search-download"),
+                dbc.Button("📥 Exporter Excel", id="weekly-export-btn", className="mt-2"),
                 dash_table.DataTable(
                     id="result-table",
                     columns=[],
@@ -218,40 +115,7 @@ layout = dbc.Container(
                         "margin-bottom": "40px",
                     },
                 ),
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            [
-                                dbc.Label(
-                                    "Taille de l’intervalle en jours pour regroupement",
-                                    className="fw-bold mt-3",
-                                ),
-                                dbc.Input(
-                                    id="interval-days-input",
-                                    type="number",
-                                    min=1,
-                                    step=1,
-                                    value=10,
-                                    style={"maxWidth": "150px"},
-                                    debounce=True,
-                                ),
-                            ],
-                            md=3,
-                        ),
-                        dbc.Col(
-                            dbc.Button(
-                                "Confirmer l'intervalle",
-                                id="confirm-interval-btn",
-                                color="secondary",
-                                className="mt-4",
-                                style={"maxWidth": "150px"},
-                            ),
-                            md=1,
-                        ),
-                    ],
-                    className="mb-2 g-1",
-                    style={"margin-bottom": "20px"},
-                ),
+
                 html.Div(
                     dcc.Graph(
                         id="bar-chart-interval",
@@ -271,191 +135,62 @@ layout = dbc.Container(
 )
 
 
-@app.callback(
-    Output("ac-subtype", "options"),
-    Output("ac-registration", "options"),
-    Output("code-dr", "options"),
-    Input("search-btn", "n_clicks"),
-)
-def populate_dropdown_options(n):
-    df = get_df()
-    if df is not None:
-        df = df.collect()
-        opts_subtype = (
-            [
-                {"label": v, "value": v}
-                for v in sorted(df.get_column("AC_SUBTYPE").unique().to_list())
-                if v
-            ]
-            if "AC_SUBTYPE" in df.columns
-            else []
+# ---------- Helpers (put near your imports) ---------------------------------
+from dash import no_update
+import plotly.graph_objects as go
+import polars as pl
+from datetime import datetime, timedelta
+import math
+import dash_bootstrap_components as dbc
+
+def convert_minutes_to_hours_minutes(minutes: int | float) -> str:
+    m = int(minutes or 0)
+    h, r = divmod(m, 60)
+    return f"{h}h{r:02d}"
+
+def _get_df_collected():
+    df_lazy = get_df()
+    if df_lazy is None:
+        return None
+    return df_lazy.collect()
+
+def _filter_and_prepare(df: pl.DataFrame) -> tuple[pl.DataFrame, str]:
+    """
+    Your data is already filtered upstream. We just compute summary text and
+    sort by 'Retard en min'. Returns (df_sorted, summary_text).
+    """
+    if df.is_empty():
+        return df, "Aucun résultat."
+
+    df = df.sort("Retard en min", descending=True)
+
+    nb_retard_15 = df.filter(pl.col("Retard en min") >= 15).height
+    df_max = df.filter(pl.col("Retard en min") > 0).limit(1)
+
+    if df_max.height > 0:
+        row = df_max[0]
+        subtype = row["AC_SUBTYPE"]
+        subtype = subtype.item() if hasattr(subtype, "item") else subtype
+        registration = row["AC_REGISTRATION"]
+        registration = registration.item() if hasattr(registration, "item") else registration
+        retard_min = row["Retard en min"]
+        retard_min = retard_min.item() if hasattr(retard_min, "item") else retard_min
+        retard_hm = convert_minutes_to_hours_minutes(retard_min)
+        vol_info = (
+            f"\nVol avec le plus grand retard : {subtype} {registration}, "
+            f"durée du retard : {retard_hm} ({retard_min} min)\n"
         )
-        opts_reg = (
-            [
-                {"label": v, "value": v}
-                for v in sorted(df.get_column("AC_REGISTRATION").unique().to_list())
-                if v
-            ]
-            if "AC_REGISTRATION" in df.columns
-            else []
-        )
-        opts_code = (
-            [
-                {"label": v, "value": v}
-                for v in sorted(df.get_column("CODE_DR").unique().to_list())
-                if v
-            ]
-            if "CODE_DR" in df.columns
-            else []
-        )
-        return opts_subtype, opts_reg, opts_code
     else:
-        return [], [], []
+        vol_info = "\nAucun vol avec retard supérieur à 0 min."
 
+    summary_text = f"Nombre de vols avec retard ≥ 15 min : {nb_retard_15}{vol_info}"
+    return df, summary_text
 
-@app.callback(
-    [
-        Output("summary-info", "children"),
-        Output("summary-info", "is_open"),
-        Output("result-message", "children"),
-        Output("result-message", "color"),
-        Output("result-message", "is_open"),
-        Output("result-table", "columns"),
-        Output("result-table", "data"),
-        Output("bar-chart-pct", "figure"),
-        Output("bar-chart-interval", "figure"),
-    ],
-    [
-        Input("search-btn", "n_clicks"),
-        Input("confirm-interval-btn", "n_clicks"),
-    ],
-    [
-        State("ac-subtype", "value"),
-        State("ac-registration", "value"),
-        State("code-dr", "value"),
-        State("dep-datetime-input-start", "value"),
-        State("dep-datetime-input-end", "value"),
-        State("interval-days-input", "value"),
-    ],
-)
-def update_outputs(
-    search_clicks,
-    confirm_clicks,
-    ac_types,
-    ac_regs,
-    codes_dr_vals,
-    dt_start_str,
-    dt_end_str,
-    interval_days,
-):
-    start_time = time.time()
-    ctx = callback_context
-    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0] if ctx.triggered else None
-
-    empty_fig = go.Figure()
-    empty_cols, empty_data = [], []
-
-    df = get_df()
-    if df is None:
-        error_alert = dbc.Alert(
-            "Aucun fichier Excel chargé. Veuillez charger un fichier Excel d'abord.",
-            color="danger",
-            className="mt-3",
-        )
-        if triggered_id == "search-btn":
-            return (
-                "",
-                False,
-                error_alert,
-                "danger",
-                True,
-                empty_cols,
-                empty_data,
-                empty_fig,
-                empty_fig,
-            )
-        else:
-            return (no_update,) * 9
-
-    df = df.collect()
-
-    try:
-        if ac_types:
-            vals_lower = [v.lower() for v in ac_types]
-            df = df.filter(pl.col("AC_SUBTYPE").str.to_lowercase().is_in(vals_lower))
-        if ac_regs:
-            vals_lower = [v.lower() for v in ac_regs]
-            df = df.filter(
-                pl.col("AC_REGISTRATION").str.to_lowercase().is_in(vals_lower)
-            )
-        if codes_dr_vals:
-            df = df.filter(pl.col("CODE_DR").is_in(codes_dr_vals))
-
-        dt_start = None
-        dt_end = None
-        if dt_start_str:
-            try:
-                dt_start = datetime.strptime(dt_start_str, "%Y-%m-%dT%H:%M")
-            except:
-                dt_start = None
-        if dt_end_str:
-            try:
-                dt_end = datetime.strptime(dt_end_str, "%Y-%m-%dT%H:%M")
-            except:
-                dt_end = None
-
-        if dt_start and dt_end:
-            df = df.filter(
-                (pl.col("DEP_DAY_SCHED") >= dt_start)
-                & (pl.col("DEP_DAY_SCHED") <= dt_end)
-            )
-        elif dt_start:
-            df = df.filter(pl.col("DEP_DAY_SCHED") >= dt_start)
-        elif dt_end:
-            df = df.filter(pl.col("DEP_DAY_SCHED") <= dt_end)
-
-        if df.is_empty():
-            warning_alert = dbc.Alert(
-                "Aucun résultat trouvé pour les critères spécifiés.",
-                color="warning",
-                className="mt-3",
-            )
-            return (
-                "",
-                False,
-                warning_alert,
-                "warning",
-                True,
-                empty_cols,
-                empty_data,
-                empty_fig,
-                empty_fig,
-            )
-
-        df = df.sort("Retard en min", descending=True)
-
-        nb_retard_15 = df.filter(pl.col("Retard en min") >= 15).height
-        df_max_retard = df.filter(pl.col("Retard en min") > 0).limit(1)
-        if df_max_retard.height > 0:
-            vol_max = df_max_retard[0]
-            subtype = vol_max["AC_SUBTYPE"]
-            subtype = subtype.item() if hasattr(subtype, "item") else subtype
-            registration = vol_max["AC_REGISTRATION"]
-            registration = (
-                registration.item() if hasattr(registration, "item") else registration
-            )
-            retard_min = vol_max["Retard en min"]
-            retard_min = (
-                retard_min.item() if hasattr(retard_min, "item") else retard_min
-            )
-            retard_hm = convert_minutes_to_hours_minutes(retard_min)
-            vol_info = f"\nVol avec le plus grand retard est {subtype} {registration}, durée du retard : {retard_hm} ({retard_min} min)\n"
-        else:
-            vol_info = "\nAucun vol avec retard supérieur à 0 min."
-
-        summary_text = f"Nombre de vols avec retard ≥ 15 min : {nb_retard_15}{vol_info}"
-
-        df_display = df.select(
+def _build_table(df: pl.DataFrame) -> tuple[list[dict], list[dict]]:
+    if df.is_empty():
+        return [], []
+    df_display = (
+        df.select(
             [
                 "AC_SUBTYPE",
                 "AC_REGISTRATION",
@@ -463,7 +198,8 @@ def update_outputs(
                 "Retard en min",
                 "CODE_DR",
             ]
-        ).rename(
+        )
+        .rename(
             {
                 "AC_SUBTYPE": "SUBTYPE",
                 "AC_REGISTRATION": "REGISTRATION",
@@ -472,162 +208,216 @@ def update_outputs(
                 "Retard en min": "RETARD (min)",
             }
         )
+    )
+    columns = [{"name": c, "id": c} for c in df_display.columns]
+    data = df_display.to_dicts()
+    return columns, data
 
-        columns = [{"name": col, "id": col} for col in df_display.columns]
-        data = df_display.to_dicts()
+def _build_pct_figure(df: pl.DataFrame) -> go.Figure:
+    if df.is_empty():
+        return go.Figure()
+    total = df.height
+    if total == 0:
+        return go.Figure()
 
-        total = df.height
-        count_15_plus = (
-            df.filter(pl.col("Retard en min") >= 15).height if total > 0 else 0
+    count_15_plus = df.filter(pl.col("Retard en min") >= 15).height
+    count_15_moins = total - count_15_plus
+    pct_15_plus = (count_15_plus / total) * 100
+    pct_15_moins = 100 - pct_15_plus
+
+    fig = go.Figure(
+        data=[
+            go.Bar(
+                x=["Retard < 15 min", "Retard ≥ 15 min"],
+                y=[pct_15_moins, pct_15_plus],
+            )
+        ]
+    )
+    fig.update_layout(
+        title="Pourcentage des vols par catégorie de retard",
+        yaxis_title="Pourcentage (%)",
+        xaxis_title="Catégorie",
+        yaxis=dict(range=[0, 100]),
+    )
+    return fig
+
+import polars as pl
+import plotly.graph_objects as go
+
+PERIOD_START = COL_NAME_WINDOW_TIME_MAX   # start of window
+PERIOD_END   = COL_NAME_WINDOW_TIME       # end of window (adjust if needed)
+
+def build_period_chart(df: pl.DataFrame) -> go.Figure:
+    if df.is_empty() or PERIOD_START not in df.columns:
+        return go.Figure()
+
+    has_end = PERIOD_END in df.columns and PERIOD_END != PERIOD_START
+
+    # ----- Build a "label" column -----
+    if has_end:
+        # Make "YYYY-MM-DD → YYYY-MM-DD"
+        df_lab = df.with_columns([
+            pl.col(PERIOD_START).cast(pl.Date).dt.strftime("%Y-%m-%d").alias("_start_s"),
+            pl.col(PERIOD_END).cast(pl.Date).dt.strftime("%Y-%m-%d").alias("_end_s"),
+        ]).with_columns(
+            (pl.col("_start_s") + pl.lit(" → ") + pl.col("_end_s")).alias("label"),
         )
-        count_15_moins = (
-            df.filter(pl.col("Retard en min") < 15).height if total > 0 else 0
-        )
-        pct_15_plus = (count_15_plus / total) * 100 if total > 0 else 0
-        pct_15_moins = (count_15_moins / total) * 100 if total > 0 else 0
-
-        fig_pct = go.Figure(
-            data=[
-                go.Bar(
-                    x=["Retard < 15 min", "Retard ≥ 15 min"],
-                    y=[pct_15_moins, pct_15_plus],
-                )
-            ]
-        )
-        fig_pct.update_layout(
-            title="Pourcentage des vols par catégorie de retard",
-            yaxis_title="Pourcentage (%)",
-            xaxis_title="Catégorie",
-            yaxis=dict(range=[0, 100]),
-        )
-
-        fig_interval = build_interval_figure(df, interval_days)
-
-        result_msg = dbc.Alert(
-            f"{len(data)} résultat(s) trouvé(s).", color="success", className="mt-3"
-        )
-
-        print(f"[INFO] update_outputs executed in {time.time() - start_time:.2f}s")
-        return (
-            summary_text,
-            True,
-            result_msg,
-            "success",
-            True,
-            columns,
-            data,
-            fig_pct,
-            fig_interval,
-        )
-
-    except Exception as e:
-        print(f"Exception dans le callback combiné: {e}")
-        return (
-            "",
-            False,
-            dbc.Alert(f"Erreur technique: {str(e)}", color="danger", className="mt-3"),
-            "danger",
-            True,
-            [],
-            [],
-            go.Figure(),
-            go.Figure(),
-        )
-
-
-def build_interval_figure(df, interval_days):
-    if not interval_days or interval_days <= 0:
-        interval_days = 1
-
-    dt_col = df.get_column("DEP_DAY_SCHED")
-    dt_min = dt_col.min()
-    dt_max = dt_col.max()
-
-    total_days = (dt_max - dt_min).days + 1
-
-    MAX_INTERVALS = 50  # Limite max d'intervalles pour éviter lenteurs
-
-    n_intervals = max(1, math.ceil(total_days / interval_days))
-    if n_intervals > MAX_INTERVALS:
-        n_intervals = MAX_INTERVALS
-        # recalcul interval_days pour étaler les intervalles
-        interval_days = math.ceil(total_days / n_intervals)
-
-    intervals = []
-    labels = []
-    for i in range(n_intervals):
-        start_int = dt_min + timedelta(days=i * interval_days)
-        end_int = min(
-            start_int
-            + timedelta(days=interval_days - 1, hours=23, minutes=59, seconds=59),
-            dt_max,
-        )
-        intervals.append((start_int, end_int))
-        labels.append(
-            f"{start_int.strftime('%Y-%m-%d')} → {end_int.strftime('%Y-%m-%d')}"
-        )
-
-    counts = []
-    for start_i, end_i in intervals:
-        count = df.filter(
-            (pl.col("DEP_DAY_SCHED") >= start_i) & (pl.col("DEP_DAY_SCHED") <= end_i)
-        ).height
-        counts.append(count)
-
-    total_vols = sum(counts) if counts else 1
-    percents = [100 * cnt / total_vols if total_vols > 0 else 0 for cnt in counts]
-
-    min_bar_height = 30
-    max_height = 1200
-    calculated_height = len(labels) * min_bar_height + 100
-    height = max(calculated_height, 400)
-    height = min(height, max_height)
-
-    if len(labels) > 20:
-        tickfont_size = 10
-    elif len(labels) > 10:
-        tickfont_size = 12
+        # Sort key on the real start date
+        sort_expr = pl.col(PERIOD_START).cast(pl.Date).alias("_sort")
+        label_col = "label"
     else:
-        tickfont_size = 16
+        # If the start column is already a string label with an arrow, use it
+        if df.schema[PERIOD_START] == pl.Utf8:
+            df_lab = df.rename({PERIOD_START: "label"})
+            # derive a sortable start date from the first 10 chars "YYYY-MM-DD"
+            df_lab = df_lab.with_columns(
+                pl.col("label")
+                  .str.slice(0, 10)
+                  .str.strptime(pl.Date, "%Y-%m-%d", strict=False)
+                  .alias("_sort")
+            )
+            label_col = "label"
+            sort_expr = pl.col("_sort")
+        else:
+            # Otherwise use the start date as label (formatted)
+            df_lab = df.with_columns(
+                pl.col(PERIOD_START).cast(pl.Date).dt.strftime("%Y-%m-%d").alias("label"),
+                pl.col(PERIOD_START).cast(pl.Date).alias("_sort"),
+            )
+            label_col = "label"
+            sort_expr = pl.col("_sort")
 
-    fig_interval = go.Figure(
+    # ----- Aggregate counts per label -----
+    counts_df = (
+        df_lab
+        .group_by([label_col, sort_expr])
+        .agg(pl.len().alias("count"))
+        .sort("_sort", descending=False)
+    )
+
+    total = counts_df["count"].sum()
+    if total == 0:
+        return go.Figure()
+
+    counts_df = counts_df.with_columns(
+        (pl.col("count") * 100 / total).alias("pct")
+    )
+
+    labels = counts_df[label_col].to_list()
+    counts = counts_df["count"].to_list()
+    pcts   = counts_df["pct"].to_list()
+
+    # ----- Plotly figure -----
+    fig = go.Figure(
         data=[
             go.Bar(
                 y=labels,
-                x=percents,
+                x=pcts,
                 orientation="h",
-                text=[f"{cnt} vols" for cnt in counts],
+                text=[f"{c} vols" for c in counts],
                 textposition="outside",
-                marker=dict(color="#d6452c"),
-                hoverinfo="x+y+text",
+                hovertemplate="%{y}<br>%{x:.2f}%<br>%{text}<extra></extra>",
             )
         ]
     )
 
-    fig_interval.update_layout(
-        title=f"Répartition des vols par intervalles de {interval_days} jour(s) (en %)",
+    # Auto height
+    n = len(labels)
+    height = min(max(400, 30 * n + 100), 1200)
+
+    fig.update_layout(
+        title="Répartition des vols par intervalles (en %)",
         yaxis_title="Intervalle de dates",
         xaxis_title="Pourcentage (%)",
         bargap=0.25,
         height=height,
-        margin=dict(l=140, r=60, t=60, b=60),
-        yaxis=dict(
-            tickfont=dict(size=tickfont_size), autorange="reversed", automargin=True
-        ),
-        xaxis=dict(tickfont=dict(size=14), range=[0, 105], automargin=True),
+        margin=dict(l=180, r=60, t=60, b=60),
+        yaxis=dict(autorange="reversed", automargin=True),
+        xaxis=dict(range=[0, 105], automargin=True),
         plot_bgcolor="#fff",
     )
+    return fig
 
-    return fig_interval
+# ---------------------------------------------------------------------------
+@app.callback(
+    Output("summary-info", "children"),
+    Output("summary-info", "is_open"),
+    Output("result-message", "children"),
+    Output("result-message", "color"),
+    Output("result-message", "is_open"),
+    add_watcher_for_data(),
+)
+def update_summary(_):
+    df = get_df()
+    if df is None:
+        alert = dbc.Alert("Aucun fichier Excel chargé. Veuillez charger un fichier Excel d'abord.",
+                          color="danger", className="mt-3")
+        return "", False, alert, "danger", True
+
+    df = df.collect()
+    if df.is_empty():
+        alert = dbc.Alert("Aucun résultat trouvé pour les critères spécifiés.",
+                          color="warning", className="mt-3")
+        return "", False, alert, "warning", True
+
+    df, summary_text = _filter_and_prepare(df)
+    result_msg = dbc.Alert(f"{df.height} résultat(s) trouvé(s).", color="success", className="mt-3")
+    return summary_text, True, result_msg, "success", True
+
+@app.callback(
+    Output("result-table", "columns"),
+    Output("result-table", "data"),
+    add_watcher_for_data(),
+    
+)
+def update_table(_):
+    df = get_df()
+    if df is None:
+        return [], []
+    df = df.collect()
+    if df.is_empty():
+        return [], []
+    df, _ = _filter_and_prepare(df)
+    columns, data = _build_table(df)
+    return columns, data
+
+@app.callback(
+    Output("bar-chart-pct", "figure"),
+    add_watcher_for_data(),
+)
+def update_pct_chart(_):
+    df = get_df()
+    if df is None:
+        return go.Figure()
+    df = df.collect()
+    if df.is_empty():
+        return go.Figure()
+    df, _ = _filter_and_prepare(df)
+    return _build_pct_figure(df)
+
+@app.callback(
+    Output("bar-chart-interval", "figure"),  # keep same id; chart meaning changed
+    add_watcher_for_data(),
+)
+def update_period_chart(_):
+    df = get_df()
+    if df is None:
+        return go.Figure()
+    df = df.collect()
+    if df.is_empty():
+        return go.Figure()
+    # No need for interval_days; we use the precomputed PERIOD_COL
+    return build_period_chart(df)
 
 
 @app.callback(
-    Output("download-excel", "data"),
-    Input("btn_download_excel", "n_clicks"),
+    Output("search-download", "data"),
+    Input("weekly-export-btn", "n_clicks"),
+    add_watcher_for_data(),
     State("result-table", "data"),
     prevent_initial_call=True,
 )
-def download_excel(n_clicks, table_data):
+def download_excel(n_clicks, _, table_data):
     if not n_clicks or not table_data:
         return no_update
 
