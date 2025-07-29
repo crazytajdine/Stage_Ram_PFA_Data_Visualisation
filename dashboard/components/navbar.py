@@ -49,6 +49,10 @@ def add_callback():
             if is_selected:
                 show_filter = nav_item.show_filter
                 title = nav_item.title
+
+            if not nav_item.show:
+                continue
+
             navbar.append(
                 dbc.NavItem(
                     dbc.NavLink(

@@ -263,7 +263,8 @@ def add_callbacks():
     def update_filter_options(store_data):
 
         base_lazy = get_df_unfiltered()  # your global LazyFrame
-
+        if base_lazy is None:
+            return [], [], None, None
         v_sub = split_views_by_exclusion(base_lazy, store_data, "fl_subtype")
         v_mat = split_views_by_exclusion(base_lazy, store_data, "fl_matricule")
         # v_date = split_views_by_exclusion(base_lazy, store_data, "dt_start", "dt_end")
