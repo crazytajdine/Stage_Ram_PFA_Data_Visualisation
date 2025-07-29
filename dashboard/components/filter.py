@@ -79,7 +79,6 @@ layout = dbc.Card(
                             id=FILTER_SEGMENTATION,
                             placeholder="Select segmentation (days)",
                             type="number",
-                            max=5,
                         ),
                     ]
                 ),
@@ -314,6 +313,7 @@ def add_callbacks():
     )
     def update_filter_submit_button(filter_suggestions, filter_actual, segmentation):
 
+        print(segmentation)
         if filter_suggestions:
             filter_suggestions["fl_segmentation"] = segmentation
             filter_suggestions["fl_unit_segmentation"] = "d"
