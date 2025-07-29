@@ -18,7 +18,6 @@ import xlsxwriter
 from io import BytesIO
 import time
 
-
 from server_instance import get_app
 from excel_manager import (
      get_df,
@@ -27,9 +26,9 @@ from excel_manager import (
      COL_NAME_WINDOW_TIME,
      COL_NAME_DEPARTURE_DATETIME,
      COL_NAME_WINDOW_TIME,
-    # COL_NAME_TOTAL_COUNT  # only needed if you reuse it here
- )
-    
+     # COL_NAME_TOTAL_COUNT  # only if reused
+)
+
 app = get_app()
 
 custom_css = {
@@ -57,12 +56,10 @@ custom_css = {
     "alert": {"border-radius": "4px", "font-size": "1rem"},
 }
 
-
 def convert_minutes_to_hours_minutes(minutes: int) -> str:
     heures = minutes // 60
     mins = minutes % 60
     return f"{heures}h {mins}m"
-
 
 layout = dbc.Container(
     [
@@ -88,8 +85,10 @@ layout = dbc.Container(
                     className="mt-3",
                     style=custom_css["alert"],
                 ),
-                dcc.Download(id="search-download"),
+
+                # Premier bouton et tableau + download
                 dbc.Button("📥 Exporter Excel", id="weekly-export-btn", className="mt-2"),
+                dcc.Download(id="search-download"),
                 dash_table.DataTable(
                     id="result-table",
                     columns=[],
@@ -103,6 +102,38 @@ layout = dbc.Container(
                     style_cell={"textAlign": "left"},
                     sort_action="native",
                 ),
+
+                # Graphique SUBTYPE %
+                html.Div(
+                    dcc.Graph(
+                        id="bar-chart-subtype-pct",
+                        style={"margin": "auto", "height": "400px", "width": "90%"},
+                    ),
+                    style={
+                        "display": "flex",
+                        "justifyContent": "center",
+                        "alignItems": "center",
+                        "margin-bottom": "40px",
+                    },
+                ),
+
+                # Deuxième bouton, tableau + download
+                html.Div(
+                    [
+                        dbc.Button("📥 Exporter Excel subtype", id="subtype-export-btn", className="mb-2"),
+                        dcc.Download(id="subtype-download"),
+                        dash_table.DataTable(
+                            id="subtype-table",
+                            columns=[],
+                            data=[],
+                            page_size=10,
+                            style_table={"overflowX": "auto", "margin-top": "10px", "margin-bottom": "40px"},
+                            style_cell={"textAlign": "left"},
+                            sort_action="native",
+                        ),
+                    ]
+                ),
+
                 html.Div(
                     dcc.Graph(
                         id="bar-chart-pct",
@@ -129,13 +160,11 @@ layout = dbc.Container(
                     },
                 ),
             ],
-        )
+        ),
     ],
     fluid=True,
 )
 
-
-# ---------- Helpers (put near your imports) ---------------------------------
 from dash import no_update
 import plotly.graph_objects as go
 import polars as pl
@@ -155,18 +184,11 @@ def _get_df_collected():
     return df_lazy.collect()
 
 def _filter_and_prepare(df: pl.DataFrame) -> tuple[pl.DataFrame, str]:
-    """
-    Your data is already filtered upstream. We just compute summary text and
-    sort by 'Retard en min'. Returns (df_sorted, summary_text).
-    """
     if df.is_empty():
         return df, "Aucun résultat."
-
     df = df.sort("Retard en min", descending=True)
-
     nb_retard_15 = df.filter(pl.col("Retard en min") >= 15).height
     df_max = df.filter(pl.col("Retard en min") > 0).limit(1)
-
     if df_max.height > 0:
         row = df_max[0]
         subtype = row["AC_SUBTYPE"]
@@ -182,7 +204,6 @@ def _filter_and_prepare(df: pl.DataFrame) -> tuple[pl.DataFrame, str]:
         )
     else:
         vol_info = "\nAucun vol avec retard supérieur à 0 min."
-
     summary_text = f"Nombre de vols avec retard ≥ 15 min : {nb_retard_15}{vol_info}"
     return df, summary_text
 
@@ -219,12 +240,10 @@ def _build_pct_figure(df: pl.DataFrame) -> go.Figure:
     total = df.height
     if total == 0:
         return go.Figure()
-
     count_15_plus = df.filter(pl.col("Retard en min") >= 15).height
     count_15_moins = total - count_15_plus
     pct_15_plus = (count_15_plus / total) * 100
     pct_15_moins = 100 - pct_15_plus
-
     fig = go.Figure(
         data=[
             go.Bar(
@@ -241,35 +260,94 @@ def _build_pct_figure(df: pl.DataFrame) -> go.Figure:
     )
     return fig
 
-import polars as pl
-import plotly.graph_objects as go
+def _build_subtype_pct_figure(df: pl.DataFrame) -> go.Figure:
+    if df.is_empty():
+        return go.Figure()
+    df_retard = df.filter(pl.col("Retard en min") > 0)
+    if df_retard.is_empty():
+        return go.Figure()
+    total = df_retard.height
+    counts = (
+        df_retard
+        .group_by("AC_SUBTYPE")
+        .agg(pl.count().alias("count"))
+        .sort("count", descending=True)
+    )
+    counts = counts.with_columns(
+        (pl.col("count") * 100 / total).alias("pct")
+    )
+    subtypes = counts["AC_SUBTYPE"].to_list()
+    pcts = counts["pct"].to_list()
+    counts_vals = counts["count"].to_list()
+    text_labels = [
+        f"{cnt} vols - {pct:.1f}%" for cnt, pct in zip(counts_vals, pcts)
+    ]
+    fig = go.Figure(
+        data=[
+            go.Bar(
+                x=pcts,
+                y=subtypes,
+                orientation="h",
+                text=text_labels,
+                textposition="outside",
+                hovertemplate="%{y}<br>%{text}<extra></extra>",
+            )
+        ]
+    )
+    height = min(max(400, 30 * len(subtypes) + 100), 1200)
+    fig.update_layout(
+        title="Répartition des vols en retard par SUBTYPE (%)",
+        xaxis_title="Pourcentage (%)",
+        yaxis_title="SUBTYPE",
+        yaxis=dict(autorange="reversed"),
+        height=height,
+        margin=dict(l=180, r=60, t=60, b=60),
+        xaxis=dict(range=[0, 105]),
+        plot_bgcolor="#fff",
+        bargap=0.25,
+    )
+    return fig
+
+def build_subtype_table_data(df: pl.DataFrame):
+    if df.is_empty():
+        return [], []
+    df_retard = df.filter(pl.col("Retard en min") > 0)
+    if df_retard.is_empty():
+        return [], []
+    total = df_retard.height
+    counts = (
+        df_retard
+        .group_by("AC_SUBTYPE")
+        .agg(pl.count().alias("count"))
+        .sort("count", descending=True)
+    )
+    counts = counts.with_columns(
+        (pl.col("count") * 100 / total).alias("pct")
+    )
+    counts_display = counts.rename({"AC_SUBTYPE": "SUBTYPE", "count": "NOMBRE", "pct": "POURCENTAGE (%)"})
+    columns = [{"name": c, "id": c} for c in counts_display.columns]
+    data = counts_display.to_dicts()
+    return columns, data
 
 PERIOD_START = COL_NAME_WINDOW_TIME_MAX   # start of window
-PERIOD_END   = COL_NAME_WINDOW_TIME       # end of window (adjust if needed)
+PERIOD_END   = COL_NAME_WINDOW_TIME       # end of window
 
 def build_period_chart(df: pl.DataFrame) -> go.Figure:
     if df.is_empty() or PERIOD_START not in df.columns:
         return go.Figure()
-
     has_end = PERIOD_END in df.columns and PERIOD_END != PERIOD_START
-
-    # ----- Build a "label" column -----
     if has_end:
-        # Make "YYYY-MM-DD → YYYY-MM-DD"
         df_lab = df.with_columns([
             pl.col(PERIOD_START).cast(pl.Date).dt.strftime("%Y-%m-%d").alias("_start_s"),
             pl.col(PERIOD_END).cast(pl.Date).dt.strftime("%Y-%m-%d").alias("_end_s"),
         ]).with_columns(
             (pl.col("_start_s") + pl.lit(" → ") + pl.col("_end_s")).alias("label"),
         )
-        # Sort key on the real start date
         sort_expr = pl.col(PERIOD_START).cast(pl.Date).alias("_sort")
         label_col = "label"
     else:
-        # If the start column is already a string label with an arrow, use it
         if df.schema[PERIOD_START] == pl.Utf8:
             df_lab = df.rename({PERIOD_START: "label"})
-            # derive a sortable start date from the first 10 chars "YYYY-MM-DD"
             df_lab = df_lab.with_columns(
                 pl.col("label")
                   .str.slice(0, 10)
@@ -279,35 +357,27 @@ def build_period_chart(df: pl.DataFrame) -> go.Figure:
             label_col = "label"
             sort_expr = pl.col("_sort")
         else:
-            # Otherwise use the start date as label (formatted)
             df_lab = df.with_columns(
                 pl.col(PERIOD_START).cast(pl.Date).dt.strftime("%Y-%m-%d").alias("label"),
                 pl.col(PERIOD_START).cast(pl.Date).alias("_sort"),
             )
             label_col = "label"
             sort_expr = pl.col("_sort")
-
-    # ----- Aggregate counts per label -----
     counts_df = (
         df_lab
         .group_by([label_col, sort_expr])
         .agg(pl.len().alias("count"))
         .sort("_sort", descending=False)
     )
-
     total = counts_df["count"].sum()
     if total == 0:
         return go.Figure()
-
     counts_df = counts_df.with_columns(
         (pl.col("count") * 100 / total).alias("pct")
     )
-
     labels = counts_df[label_col].to_list()
     counts = counts_df["count"].to_list()
     pcts   = counts_df["pct"].to_list()
-
-    # ----- Plotly figure -----
     fig = go.Figure(
         data=[
             go.Bar(
@@ -320,11 +390,8 @@ def build_period_chart(df: pl.DataFrame) -> go.Figure:
             )
         ]
     )
-
-    # Auto height
     n = len(labels)
     height = min(max(400, 30 * n + 100), 1200)
-
     fig.update_layout(
         title="Répartition des vols par intervalles (en %)",
         yaxis_title="Intervalle de dates",
@@ -338,7 +405,24 @@ def build_period_chart(df: pl.DataFrame) -> go.Figure:
     )
     return fig
 
-# ---------------------------------------------------------------------------
+# CALLBACKS --
+
+@app.callback(
+    Output("subtype-table", "columns"),
+    Output("subtype-table", "data"),
+    add_watcher_for_data(),
+)
+def update_subtype_table(_):
+    df = get_df()
+    if df is None:
+        return [], []
+    df = df.collect()
+    if df.is_empty():
+        return [], []
+    df, _ = _filter_and_prepare(df)
+    columns, data = build_subtype_table_data(df)
+    return columns, data
+
 @app.callback(
     Output("summary-info", "children"),
     Output("summary-info", "is_open"),
@@ -351,13 +435,13 @@ def update_summary(_):
     df = get_df()
     if df is None:
         alert = dbc.Alert("Aucun fichier Excel chargé. Veuillez charger un fichier Excel d'abord.",
-                          color="danger", className="mt-3")
+                         color="danger", className="mt-3")
         return "", False, alert, "danger", True
 
     df = df.collect()
     if df.is_empty():
         alert = dbc.Alert("Aucun résultat trouvé pour les critères spécifiés.",
-                          color="warning", className="mt-3")
+                         color="warning", className="mt-3")
         return "", False, alert, "warning", True
 
     df, summary_text = _filter_and_prepare(df)
@@ -368,7 +452,6 @@ def update_summary(_):
     Output("result-table", "columns"),
     Output("result-table", "data"),
     add_watcher_for_data(),
-    
 )
 def update_table(_):
     df = get_df()
@@ -396,7 +479,7 @@ def update_pct_chart(_):
     return _build_pct_figure(df)
 
 @app.callback(
-    Output("bar-chart-interval", "figure"),  # keep same id; chart meaning changed
+    Output("bar-chart-interval", "figure"),
     add_watcher_for_data(),
 )
 def update_period_chart(_):
@@ -406,10 +489,23 @@ def update_period_chart(_):
     df = df.collect()
     if df.is_empty():
         return go.Figure()
-    # No need for interval_days; we use the precomputed PERIOD_COL
     return build_period_chart(df)
 
+@app.callback(
+    Output("bar-chart-subtype-pct", "figure"),
+    add_watcher_for_data(),
+)
+def update_subtype_pct_chart(_):
+    df = get_df()
+    if df is None:
+        return go.Figure()
+    df = df.collect()
+    if df.is_empty():
+        return go.Figure()
+    df, _ = _filter_and_prepare(df)
+    return _build_subtype_pct_figure(df)
 
+# --- Callback téléchargement premier tableau ---
 @app.callback(
     Output("search-download", "data"),
     Input("weekly-export-btn", "n_clicks"),
@@ -422,16 +518,12 @@ def download_excel(n_clicks, _, table_data):
         return no_update
 
     df_to_download = pl.DataFrame(table_data)
-
     buf = BytesIO()
     workbook = xlsxwriter.Workbook(buf, {"in_memory": True})
     worksheet = workbook.add_worksheet("Vols filtrés")
 
-    # Écriture des en-têtes
     for j, col in enumerate(df_to_download.columns):
         worksheet.write(0, j, col)
-
-    # Écriture des données
     for i, row in enumerate(df_to_download.rows(), start=1):
         for j, value in enumerate(row):
             worksheet.write(i, j, value)
@@ -440,5 +532,32 @@ def download_excel(n_clicks, _, table_data):
     buf.seek(0)
 
     filename = "vols_filtres.xlsx"
+    return send_bytes(lambda out_io: out_io.write(buf.getvalue()), filename=filename)
 
+# --- Callback téléchargement deuxième tableau ---
+@app.callback(
+    Output("subtype-download", "data"),
+    Input("subtype-export-btn", "n_clicks"),
+    State("subtype-table", "data"),
+    prevent_initial_call=True,
+)
+def download_subtype_excel(n_clicks, table_data):
+    if not n_clicks or not table_data:
+        return no_update
+
+    df_to_download = pl.DataFrame(table_data)
+    buf = BytesIO()
+    workbook = xlsxwriter.Workbook(buf, {"in_memory": True})
+    worksheet = workbook.add_worksheet("Subtype Vols")
+
+    for j, col in enumerate(df_to_download.columns):
+        worksheet.write(0, j, col)
+    for i, row in enumerate(df_to_download.rows(), start=1):
+        for j, value in enumerate(row):
+            worksheet.write(i, j, value)
+
+    workbook.close()
+    buf.seek(0)
+
+    filename = "vols_subtype_filtres.xlsx"
     return send_bytes(lambda out_io: out_io.write(buf.getvalue()), filename=filename)
