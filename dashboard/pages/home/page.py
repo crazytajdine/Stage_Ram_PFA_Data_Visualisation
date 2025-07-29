@@ -509,11 +509,10 @@ def update_subtype_pct_chart(_):
 @app.callback(
     Output("search-download", "data"),
     Input("weekly-export-btn", "n_clicks"),
-    add_watcher_for_data(),
     State("result-table", "data"),
     prevent_initial_call=True,
 )
-def download_excel(n_clicks, _, table_data):
+def download_excel(n_clicks, table_data):
     if not n_clicks or not table_data:
         return no_update
 
