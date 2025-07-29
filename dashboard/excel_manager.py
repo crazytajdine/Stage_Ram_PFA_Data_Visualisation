@@ -91,9 +91,8 @@ def modify_modification_date(new_modification_date: float):
     global config, modification_date
 
     modification_date = new_modification_date
-    config["modification_date"] = new_modification_date
 
-    save_config_sys({"modification_date": new_modification_date})
+    config = save_config_sys({"modification_date": new_modification_date})
 
     print(f"Set modification date to to: {new_modification_date}")
 
@@ -122,9 +121,8 @@ def update_path_to_excel(path) -> tuple[bool, str]:
         return False, "Could not load the file, make sure it is a valid excel file."
 
     path_to_excel = path
-    config["path_to_excel"] = path
 
-    save_config_sys({"path_to_excel": path})
+    config = save_config_sys({"path_to_excel": path})
 
     return True, "Loaded The File successfully."
 
@@ -133,9 +131,8 @@ def toggle_auto_refresh() -> bool:
     global config, auto_refresh
 
     auto_refresh = not auto_refresh
-    config["auto_refresh"] = auto_refresh
 
-    save_config_sys({"auto_refresh": auto_refresh})
+    config = save_config_sys({"auto_refresh": auto_refresh})
 
     print(f"Auto refresh set disabled to: {auto_refresh}")
 
@@ -366,12 +363,6 @@ def add_callbacks():
             latest_modification_time = get_latest_modification_time()
 
             if latest_modification_time != date_latest_fetch:
-                print(
-                    "File changed old : ",
-                    date_latest_fetch,
-                    ", new: ",
-                    latest_modification_time,
-                )
 
                 update_df_unfiltered()
                 modify_modification_date(latest_modification_time)

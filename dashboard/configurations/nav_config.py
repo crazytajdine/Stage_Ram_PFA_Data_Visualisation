@@ -1,40 +1,16 @@
-from pydantic import BaseModel
-from typing import Any
-
-
-class NavItemMeta(BaseModel):
-    name: str
-    href: str
-    show: bool = True
-    preference_show: bool = True
-    preference: bool = True
-
-
-class NavItem(BaseModel):
-    name: str
-    href: str
-    page: Any
-    show: bool = True
-    preference_show: bool = True
-    preference: bool = True
-
+from pages.home.metadata import metadata as home_metadata
+from pages.tech.metadata import metadata as tech_metadata
+from pages.weekly.metadata import metadata as weekly_metadata
+from pages.performance_metrics.metadata import metadata as perf_metrics_metadata
+from pages.settings.metadata import metadata as settings_metadata
+from pages.verify.metadata import metadata as verify_metadata
 
 NAV_CONFIG = [
-    NavItemMeta(
-        name="Dashboard",
-        href="/",
-    ),
-    NavItemMeta(name="Analytics", href="/analytics"),
-    NavItemMeta(
-        name="Weekly",
-        href="/weekly",
-    ),
-    NavItemMeta(
-        name="Performance Metrics",
-        href="/Performance_Metrics",
-    ),
-    NavItemMeta(name="Settings", href="/settings", preference_show=False),
+    home_metadata,
+    tech_metadata,
+    weekly_metadata,
+    perf_metrics_metadata,
+    settings_metadata,
 ]
-NAV_CONFIG_VERIFY = [
-    NavItemMeta(name="Verify", href="/verify", preference_show=False),
-]
+
+NAV_CONFIG_VERIFY = [verify_metadata]
