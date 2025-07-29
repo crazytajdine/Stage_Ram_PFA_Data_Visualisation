@@ -168,6 +168,7 @@ def refresh_weekly_table(_):
 
 @app.callback(
     Output(ID_DOWNLOAD, "data"),
+    add_watcher_for_data(),
     Input("weekly-export-btn", "n_clicks"),
     State(FILTER_STORE_ACTUAL, "data"),  # 👈 get current filters
     prevent_initial_call=True,
