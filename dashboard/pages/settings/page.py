@@ -102,6 +102,33 @@ layout = html.Div(
             className="mb-4",
         ),
         
+        # ➕ NEW: File Monitoring Display
+        dbc.Card(
+            [
+                dbc.CardHeader("Surveillance du fichier"),
+                dbc.CardBody(
+                    [
+                        html.Div(
+                            id="modification-time-display",
+                            style={
+                                'padding': '15px',
+                                'background-color': '#f8f9fa',
+                                'border': '1px solid #dee2e6',
+                                'border-radius': '5px',
+                                'font-family': 'Consolas, Monaco, monospace',
+                                'font-size': '14px',
+                                'color': '#495057',
+                                'min-height': '50px',
+                                'display': 'flex',
+                                'align-items': 'center'
+                            }
+                        )
+                    ]
+                ),
+            ],
+            className="mb-4",
+        ),
+        
         # ── Visibilité des pages
         dbc.Card(
             [
@@ -133,6 +160,9 @@ layout = html.Div(
         # --- Stores & interval interne --------------------------------------
         dcc.Store(id="auto-refresh-enabled",
                   data=is_auto_refresh_enabled()),
+        dcc.Interval(id="refresh-counter",
+                     interval=10_000,           # 10 s
+                     n_intervals=0),
     ]
 )
 
@@ -142,7 +172,7 @@ layout = html.Div(
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-# 1. Display current Excel path (Updated from new file)
+# 1. Display current Excel path
 @app.callback(
     Output(ID_CURRENT_PATH, "children"),
     Input(ID_UPDATE_PATH_MSG, "is_open"),
@@ -152,7 +182,7 @@ def display_current_path(_):
     return get_path_to_excel()
 
 
-# 2. Handle Excel path update (Updated from new file)
+# 2. Handle Excel path update
 @app.callback(
     Output(ID_UPDATE_PATH_MSG, "children"),
     Output(ID_UPDATE_PATH_MSG, "color"),
@@ -172,7 +202,7 @@ def handle_update_path(_, new_path):
     return msg, color, True, (new_path if success else dash.no_update)
 
 
-# 3. Toggle auto-refresh on/off (Updated from new file)
+# 3. Toggle auto-refresh on/off
 @app.callback(
     Output(ID_TOGGLE_REFRESH_MSG, "children"),
     Output(ID_TOGGLE_REFRESH_MSG, "color"),
@@ -190,7 +220,7 @@ def toggle_auto_refresh_cb(_):
         return f"Erreur : {e}", "danger", True, is_auto_refresh_enabled()
 
 
-# 4. Update the "Activée / Désactivée" text (Updated from new file)
+# 4. Update the "Activée / Désactivée" text
 @app.callback(
     Output(ID_AUTO_REFRESH_STATUS, "children"),
     Output(ID_AUTO_REFRESH_STATUS, "className"),
@@ -201,7 +231,7 @@ def update_status_text(enabled):
             "text-success" if enabled else "text-danger")
 
 
-# 5. Update the last-refresh timestamp (Updated from new file)
+# 5. Update the last-refresh timestamp
 @app.callback(
     Output(ID_LAST_REFRESH_TIME, "children"),
     Input("refresh-counter", "n_intervals")
@@ -210,7 +240,7 @@ def update_refresh_time(_):
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
-# 6. Save page-visibility settings (Original code)
+# 6. Save page-visibility settings
 @app.callback(
     Output(ID_CONTAINER_VISIBILITY_CONTROLS, "children"),
     Input("url", "pathname"),
