@@ -415,19 +415,19 @@ def build_outputs(n_clicks, _, filters):
     )
 
     # 3️⃣ grand-total per period (all families, all codes)
-    period_totals = temporal_all.group_by(time_period_max).agg(
+    period_totals = temporal_all.group_by(time_period).agg(
         pl.col("count").sum().alias("period_total")
     )
 
     # 4️⃣ join + exact share
-    temporal_all = temporal_all.join(period_totals, on=time_period_max).with_columns(
+    temporal_all = temporal_all.join(period_totals, on=time_period).with_columns(
         (pl.col("count") / pl.col("period_total") * 100).alias("perc")
     )
 
     selected_codes = (
         df["CODE_DR"].unique().sort().to_list() if not df.is_empty() else []
     )
-    all_periods = df.get_column(time_period_max).unique().sort().to_list()
+    all_periods = df.get_column(time_period).unique().sort().to_list()
     if not selected_codes:
         fig = go.Figure()
         fig.add_annotation(
@@ -463,8 +463,8 @@ def build_outputs(n_clicks, _, filters):
                 rows = fam_data.filter(pl.col("CODE_DR") == code)
 
                 # maps in the exact grid order
-                perc_map = {r[time_period_max]: r["perc"] for r in rows.to_dicts()}
-                count_map = {r[time_period_max]: r["count"] for r in rows.to_dicts()}
+                perc_map = {r[time_period]: r["perc"] for r in rows.to_dicts()}
+                count_map = {r[time_period]: r["count"] for r in rows.to_dicts()}
 
                 y_vals = [perc_map.get(p, 0) for p in all_periods]
                 raw_counts = [count_map.get(p, 0) for p in all_periods]
@@ -560,12 +560,12 @@ def build_outputs(n_clicks, _, filters):
     last_date = None
     last_family = None
     for row in data:
-        if row[time_period_max] == last_date:
-            row[time_period_max] = ""
+        if row[time_period] == last_date:
+            row[time_period] = ""
         else:
-            last_date = row[time_period_max]
+            last_date = row[time_period]
 
-        if row["Famille"] == last_family and not row[time_period_max]:
+        if row["Famille"] == last_family and not row[time_period]:
             row["Famille"] = ""
         else:
             last_family = row["Famille"]
@@ -614,6 +614,46 @@ def build_outputs(n_clicks, _, filters):
             page_size=8,  # include hidden cols if you like
             style_table={"height": "500px", "overflowY": "auto"},
         )
+    fig_familles = go.Figure()
+
+    for famille in famille_share_df["FAMILLE_DR"].unique().sort():
+        rows = famille_share_df.filter(pl.col("FAMILLE_DR") == famille)
+        pct_map = {r[time_period]: r["percentage"] for r in rows.to_dicts()}
+        x_vals = [pct_map.get(p, 0) for p in all_periods]
+
+        fig_familles.add_trace(
+            go.Bar(
+                y=all_periods,
+                x=x_vals,
+                orientation="h",
+                name=famille,
+                text=[f"{x:.1f}%" if x else "" for x in x_vals],
+                textposition="inside",
+            )
+        )
+
+    fig_familles.update_layout(
+        barmode="stack",
+        title="Part de chaque famille dans les retards (par période)",
+        xaxis_title="Pourcentage (%)",
+        yaxis_title="Fenêtre temporelle",
+        height=600,
+        margin=dict(l=140, r=40, t=60, b=60),
+        plot_bgcolor="#fff",
+    )
+    # --- juste après avoir construit fig_familles ---------------------
+    # ▸ juste après avoir créé fig_familles  ⬇️
+    big_chart = html.Div(
+        dcc.Graph(
+            figure=fig_familles,
+            config=plot_config,
+            style={"width": "100%"},  # occupe 100 % de la div
+        ),
+        # ↓ la clé : span de la colonne 1 jusqu’à la dernière (‑1)
+        style={"gridColumn": "1 / -1"},  # ou "1 / span 2" si tu préfères
+    )
+
+    charts_out = [big_chart] + family_figs  # ensuite tes autres graphiques
 
     # --- Export Excel ---
     triggered = ctx.triggered_id
@@ -635,4 +675,4 @@ def build_outputs(n_clicks, _, filters):
             send_bytes(lambda s: s.write(buffer.getvalue()), filename=fname),
         )
 
-    return stats, family_figs, table, no_update
+    return stats, charts_out, table, no_update
