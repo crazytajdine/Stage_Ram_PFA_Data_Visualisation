@@ -1,0 +1,138 @@
+import dash_bootstrap_components as dbc
+from dash import html, dcc
+import plotly.express as px
+
+import polars as pl
+
+from excel_manager import (
+    COL_NAME_WINDOW_TIME,
+)
+
+
+def create_graph_bar_card(
+    df: pl.DataFrame,
+    x: str,
+    y: str,
+    title: str,
+    text=None,
+) -> dbc.Card | None:
+
+    if x not in df.columns:
+        return None
+
+    len_date = df.select(pl.col(x).len()).item()
+
+    # Create figure
+    fig = px.bar(df, x=x, y=y, title=title, text=text)
+    max_y = df[y].max() * 1.15
+
+    threshold_sep_x = 12
+    threshold_show_y = 20
+
+    # Update layout
+    fig.update_layout(
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        title_x=0.5,
+        margin=dict(t=50, b=30, l=20, r=20),
+        yaxis=dict(range=[0, max_y], visible=len_date > threshold_show_y),
+        yaxis_title="",
+        xaxis_title="",
+    )
+
+    # Style bars
+    fig.update_traces(
+        textposition="outside" if len_date <= threshold_show_y else "none",
+        marker_color="rgb(0, 123, 255)",
+        hovertemplate="%{x}<br>Percentage : %{text}<br>Detailed : %{y} <extra></extra>",
+        textfont_size=16,
+    )
+
+    # Handle short x-axis
+    unique_x = df[x].unique()
+    if len(unique_x) <= threshold_sep_x:
+        fig.update_xaxes(tickmode="array", tickvals=unique_x)
+
+    # Return the full card component
+    return dbc.Card(
+        dbc.CardBody([dcc.Graph(figure=fig)]),
+        className=f"mb-4",
+    )
+
+
+def generate_card_info(df: pl.DataFrame, col_name: str, title: str) -> dbc.Card:
+
+    assert df is not None and col_name is not None
+
+    latest_values = (
+        df.drop_nulls(pl.col(col_name))
+        .select(pl.col(col_name).tail(2))
+        .to_series()
+        .to_list()
+    )
+    # Calculate change
+    if COL_NAME_WINDOW_TIME in df.columns and len(latest_values) == 2:
+
+        last_year, this_year = latest_values
+        change = this_year - last_year
+    elif len(latest_values) == 1:
+
+        this_year = latest_values[0]
+        change = None
+    else:
+        this_year = None
+        change = None
+
+    # Determine display for change
+    if change is None:
+        change_div = html.Span("N/A", className="text-secondary")
+        stripe_color = "secondary"
+    else:
+        # positive vs negative
+        if change >= 0:
+            icon_cls = "bi bi-caret-up-fill"
+            color_cls = "text-success"
+            stripe_color = "success"
+        else:
+            icon_cls = "bi bi-caret-down-fill"
+            color_cls = "text-danger"
+            stripe_color = "danger"
+
+        change_div = html.Div(
+            [
+                html.I(className=f"{icon_cls} me-1 fs-5"),
+                html.Span(f"{abs(change):.2f}%", className="fs-6"),
+            ],
+            className=f"{color_cls} d-flex justify-content-center align-items-center",
+        )
+
+    return dbc.Card(
+        [
+            # Stripe (header) – fixed 4px height
+            dbc.CardHeader(
+                [
+                    html.Div(
+                        className=f"bg-{stripe_color} rounded-top mb-1",
+                        style={"height": "4px"},
+                    ),
+                    html.H5(title, className="text-muted px-4 mb-0"),
+                ],
+                className="p-0 border-0 text-center bg-transparent",
+            ),
+            # Body – fixed height (or flex‑fill if you want it to grow)
+            dbc.CardBody(
+                [
+                    html.H2(
+                        f"{this_year:.2f}%" if this_year else "N/A", className="m-0"
+                    ),
+                ],
+                className="d-flex flex-fill align-items-center justify-content-center px-4",
+            ),
+            # Footer – fixed height
+            dbc.CardFooter(
+                change_div,
+                className="text-center bg-transparent border-0",
+            ),
+        ],
+        className="d-flex flex-column shadow-sm rounded-2 w-100 h-100",
+    )
