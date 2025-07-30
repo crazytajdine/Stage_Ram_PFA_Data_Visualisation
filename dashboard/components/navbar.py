@@ -1,4 +1,5 @@
 from dash import Input, Output, dcc
+from configurations.nav_config import build_nav_items_meta
 from excel_manager import ID_PATH_STORE, path_exits
 from server_instance import get_app
 from utils_dashboard.utils_navs import build_nav_items
@@ -36,8 +37,8 @@ def add_callback():
     )
     def update_layout(pathname, _, n_clicks_settings):
         path_exists = path_exits()
-        nav_items = build_nav_items(path_exists)
-
+        nav_items = build_nav_items_meta(path_exists)
+        print("start navbar :", [(i.name, i.show) for i in nav_items])
         navbar = []
         title = "Filter"
         show_filter = True
