@@ -82,9 +82,10 @@ add_filter_callbacks()
 add_navbar_callback()
 
 
-def start_server():
+def start_server(start_dev=True):
+
     print("🔁 Starting Dash server…")
-    app.run(debug=True, use_reloader=True, port=8050)
+    app.run(debug=True, use_reloader=start_dev, port=8050)
 
 
 if __name__ == "__main__":
