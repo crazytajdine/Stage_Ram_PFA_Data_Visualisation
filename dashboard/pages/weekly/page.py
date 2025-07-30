@@ -50,12 +50,6 @@ HEADER_STYLE = CELL_STYLE | {
 # ------------------------------------------------------------------ #
 
 
-def get_day_name(date_val: date | str) -> str:
-    if isinstance(date_val, str):
-        date_val = datetime.fromisoformat(date_val).date()
-    return DAY_NAME_MAP[date_val.weekday()]
-
-
 def _blank_weekly_table() -> pl.DataFrame:
     return pl.DataFrame({
         "CODE_DR": ["-"],
@@ -63,63 +57,59 @@ def _blank_weekly_table() -> pl.DataFrame:
         "Total": [0]
     })
 
-
-def analyze_weekly_codes() -> pl.DataFrame:
+def analyze_weekly_codes() -> tuple[pl.DataFrame, list[str]]:
+    # ① read & sort chronologically ------------------------------------------------
     df_lazy = get_df()
     if df_lazy is None:
-        return _blank_weekly_table()
+        return _blank_weekly_table(), DAYS_FR
 
-    df = df_lazy.collect()
-    if df.is_empty():
-        return _blank_weekly_table()
-
-    # 💡 Vérifie la plage de dates (en jours) du DataFrame
-    if COL_NAME_DEPARTURE_DATETIME not in df.columns:
-        return _blank_weekly_table()
-
-    try:
-        dates = df.select(COL_NAME_DEPARTURE_DATETIME).to_series()
-        min_date = dates.min()
-        max_date = dates.max()
-
-        if (max_date - min_date).days >= 7:
-            return _blank_weekly_table()
-    except Exception:
-        # En cas de format incohérent ou conversion ratée
-        return _blank_weekly_table()
-
-    # Ajouter le nom du jour de la semaine
-    df = df.with_columns(
-        pl.col(COL_NAME_DEPARTURE_DATETIME)
-          .map_elements(get_day_name, pl.Utf8)
-          .alias("day_of_week")
+    df = (
+        df_lazy
+        .sort("DEP_DAY_SCHED", descending=False)   # oldest → newest
+        .collect()
     )
 
-    # Group by + pivot
+    if df.is_empty() or "DAY_OF_WEEK_DEP" not in df.columns:
+        return _blank_weekly_table(), DAYS_FR
+
+    # ② build the aggregation ------------------------------------------------------
+    # this already SUMS all flights that share the same French day name
     pivot = (
         df
-        .group_by(["CODE_DR", "day_of_week"])
+        .group_by(["CODE_DR", "DAY_OF_WEEK_DEP"])
         .agg(pl.len().alias("n"))
-        .pivot(values="n", index="CODE_DR", columns="day_of_week")
+        .pivot(values="n", index="CODE_DR", columns="DAY_OF_WEEK_DEP")
         .fill_null(0)
     )
 
-    # Ajouter les jours manquants
-    for day in DAYS_FR:
-        if day not in pivot.columns:
-            pivot = pivot.with_columns(pl.lit(0).cast(pl.Int64).alias(day))
+    # ③ extract the day names in *chronological* order, deduplicated ---------------
+    raw_days = (
+        df
+        .select("DEP_DAY_SCHED", "DAY_OF_WEEK_DEP")
+        .sort("DEP_DAY_SCHED")                       # keep chrono order
+        .get_column("DAY_OF_WEEK_DEP")
+        .to_list()
+    )
 
-    # Ordonner et totaliser
+    seen: set[str]      = set()
+    days_ordered: list[str] = []
+    for d in raw_days:          # preserves first‑appearance order
+        if d not in seen:
+            seen.add(d)
+            days_ordered.append(d)
+
+    if not days_ordered:                    # fallback, should not happen
+        return _blank_weekly_table(), DAYS_FR
+
+    # ④ re‑order columns + add Total ----------------------------------------------
     pivot = (
         pivot
-        .select("CODE_DR", *DAYS_FR)
-        .with_columns(pl.sum_horizontal(DAYS_FR).alias("Total"))
+        .select("CODE_DR", *days_ordered)           # no duplicates now
+        .with_columns(pl.sum_horizontal(days_ordered).alias("Total"))
         .sort("Total", descending=True)
     )
 
-    return pivot
-
-
+    return pivot, days_ordered
 
 # ------------------------------------------------------------------ #
 # 3 ▸  Layout                                                       #
@@ -155,29 +145,29 @@ layout = dbc.Container(
     add_watcher_for_data(),
 )
 def refresh_weekly_table(_):
-    weekly = analyze_weekly_codes()
+    weekly, days_ordered = analyze_weekly_codes()
     if weekly.is_empty():
         return [], [], "Aucune donnée"
 
-    cols = [{"id": "CODE_DR", "name": "Code"}] + [
-        {"id": d, "name": d} for d in DAYS_FR
-    ] + [{"id": "Total", "name": "Total"}]
+    columns = [{"id": "CODE_DR", "name": "Code"}] + \
+              [{"id": d, "name": d} for d in days_ordered] + \
+              [{"id": "Total", "name": "Total"}]
 
-    return weekly.to_dicts(), cols, f"Dernière mise à jour : {datetime.now():%d/%m/%Y %H:%M}"
+    return weekly.to_dicts(), columns, f"Dernière mise à jour : {datetime.now():%d/%m/%Y %H:%M}"
 
 
 @app.callback(
     Output(ID_DOWNLOAD, "data"),
-    add_watcher_for_data(),
     Input("weekly-export-btn", "n_clicks"),
     State(FILTER_STORE_ACTUAL, "data"),  # 👈 get current filters
     prevent_initial_call=True,
 )
-def export_to_excel(_, store_actual_data):
+def export_to_excel(n_clicks, _):
     # analyze_weekly_codes fetches its own data internally
-    weekly = analyze_weekly_codes()
+    weekly, days = analyze_weekly_codes()
     if weekly.is_empty():
         raise dash.exceptions.PreventUpdate
+
     filters = get_filter_state() or {}
     start = filters.get("dt_start") or "ALL"
     end = filters.get("dt_end") or "ALL"
