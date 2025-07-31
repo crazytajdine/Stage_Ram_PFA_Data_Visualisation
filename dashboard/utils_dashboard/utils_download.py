@@ -9,7 +9,7 @@ from dash import Input, Output, State, dcc
 
 from server_instance import get_app
 
-ID_DOWNLOAD = "weekly-download"
+ID_DOWNLOAD = "id-download"
 download_dash = dcc.Download(id=ID_DOWNLOAD)
 
 app = get_app()
@@ -51,6 +51,7 @@ def add_export_callbacks(
         Input(id_button, "n_clicks"),
         State(id_table, "data", allow_optional=True),
         prevent_initial_call=True,
+        allow_duplicate=True,
     )
     def export_to_excel(n_clicks, table_data):
 

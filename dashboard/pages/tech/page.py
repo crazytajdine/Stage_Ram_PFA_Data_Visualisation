@@ -9,13 +9,12 @@ from dash import Dash, html, dcc, dash_table, Input, Output, State
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 import plotly.express as px
+from dashboard.utils_dashboard.utils_download import add_export_callbacks
 from server_instance import get_app
 import excel_manager
 import math
 from dash import ctx, no_update
-from dash.dcc import send_bytes
 import io
-import xlsxwriter
 from components.filter import FILTER_STORE_ACTUAL
 
 app = get_app()
@@ -191,33 +190,6 @@ It adds a new column to your table that tells you which time period each row bel
 """
 
 
-def build_filename(base: str, filters: dict[str, str | None]) -> str:
-    """
-    Construit un nom de fichier intelligent basé sur les filtres.
-    """
-    start = filters.get("dt_start") or "ALL"
-    end = filters.get("dt_end") or "ALL"
-    seg = filters.get("fl_segmentation") or "ALL"
-    flotte = filters.get("fl_subtype") or "ALL"
-    matricule = filters.get("fl_matricule") or "ALL"
-
-    if isinstance(seg, str) and seg.endswith("d"):
-        seg = seg.replace("d", "j")
-
-    parts = [base]
-
-    if start != "ALL" and end != "ALL":
-        parts.append(f"{start.replace('_', '/')}_to_{end.replace('_', '/')}")
-    else:
-        parts.append("ALL_DATES")
-
-    parts.append(f"seg{seg}" if seg != "ALL" else "ALL_SEG")
-    parts.append(f"flotte{flotte}" if flotte != "ALL" else "ALL_FLOTTE")
-    parts.append(f"matricule{matricule}" if matricule != "ALL" else "ALL_MATRICULE")
-
-    return "_".join(parts) + ".xlsx"
-
-
 # ------------------------------------------------------------------ #
 # 3 ▸  Layout factory                                                #
 # ------------------------------------------------------------------ #
@@ -248,7 +220,7 @@ def make_layout() -> html.Div:
         [
             html.H3("Détail des codes de retard", className="h4 mt-4"),
             dcc.Download(id="download-table"),
-            dbc.Button("📥 Exporter Excel", id="export-btn", className="mt-2"),
+            dbc.Button("Exporter Excel", id="export-btn", className="mt-2"),
             html.Div(id="table-container"),
         ]
     )
@@ -276,7 +248,7 @@ def make_layout() -> html.Div:
 layout = make_layout()
 
 
-def build_structured_table(df: pl.DataFrame, segmentation: str | None) -> pl.DataFrame:
+def build_structured_table(df: pl.DataFrame) -> pl.DataFrame:
     if df.is_empty():
         return pl.DataFrame(
             {
@@ -363,21 +335,14 @@ plot_config = {
         Output("stats-div", "children"),
         Output("charts-container", "children"),
         Output("table-container", "children"),
-        Output("download-table", "data"),
     ],
-    Input("export-btn", "n_clicks"),
     excel_manager.add_watcher_for_data(),  # watch for data changes
-    State(FILTER_STORE_ACTUAL, "data"),  # récupère segmentation + dates
     prevent_initial_call=False,
 )
-def build_outputs(n_clicks, _, filters):
+def build_outputs(n_clicks):
     """Build all output components based on filtered data"""
 
     df = excel_manager.get_df().collect()
-    filters = filters or {}
-    segmentation = filters.get("fl_segmentation")
-    start = filters.get("dt_start", "")
-    end = filters.get("dt_end", "")
 
     # Get analysis
     summary = analyze_delay_codes_polars(df)
@@ -550,7 +515,6 @@ def build_outputs(n_clicks, _, filters):
 
     # 3. Build table (independent of code and segmentation selection)
     # --- Table structurée ---
-    segmentation = filters.get("fl_segmentation") if filters else None
 
     # Prépare le DataFrame date-typed
     if not df.is_empty() and excel_manager.COL_NAME_DEPARTURE_DATETIME in df.columns:
@@ -561,7 +525,7 @@ def build_outputs(n_clicks, _, filters):
                 )
             )
 
-    summary_table = build_structured_table(df, segmentation)
+    summary_table = build_structured_table(df)
 
     data = summary_table.to_dicts()
     last_date = None
@@ -662,24 +626,11 @@ def build_outputs(n_clicks, _, filters):
 
     charts_out = [big_chart] + family_figs  # ensuite tes autres graphiques
 
-    # --- Export Excel ---
-    triggered = ctx.triggered_id
-    if triggered == "export-btn" and not summary_table.is_empty():
-        buffer = io.BytesIO()
-        with xlsxwriter.Workbook(buffer, {"in_memory": True}) as wb:
-            ws = wb.add_worksheet()
-            for i, col in enumerate(summary_table.columns):
-                ws.write(0, i, col)
-            for r, row in enumerate(summary_table.iter_rows(), start=1):
-                for c, val in enumerate(row):
-                    ws.write(r, c, val)
-        buffer.seek(0)
-        fname = build_filename("retards_export", filters)
-        return (
-            stats,
-            family_figs,
-            table,
-            send_bytes(lambda s: s.write(buffer.getvalue()), filename=fname),
-        )
+    return stats, charts_out, table
 
-    return stats, charts_out, table, no_update
+
+add_export_callbacks(
+    id_table="codes-table",
+    id_button="export-btn",
+    name="codes-retard",
+)

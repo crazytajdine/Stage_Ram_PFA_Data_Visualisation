@@ -1,19 +1,17 @@
 from dash import (
     html,
     dcc,
-    Input,
     Output,
-    State,
     dash_table,
     no_update,
 )
-from dash.dcc import send_bytes
 import polars as pl
 import dash_bootstrap_components as dbc
 import plotly.graph_objs as go
 import xlsxwriter
 from io import BytesIO
 
+from utils_dashboard.utils_download import add_export_callbacks
 from server_instance import get_app
 from excel_manager import (
     get_df,
@@ -557,6 +555,18 @@ def download_subtype_excel(n_clicks, table_data):
     Input("interval-export-btn", "n_clicks"),
     State("interval-table", "data"),
     prevent_initial_call=True,
+)
+
+add_export_callbacks(
+    id_table="subtype-table",
+    id_button="subtype-export-btn",
+    name="vols_subtype_filtres",
+)
+
+add_export_callbacks(
+    id_table="interval-table",
+    id_button="interval-export-btn",
+    name="vols_intervalles",
 )
 def download_interval_excel(n_clicks, table_data):
     if not n_clicks or not table_data:
