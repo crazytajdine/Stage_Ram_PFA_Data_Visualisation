@@ -71,8 +71,8 @@ layout = dbc.Container(
                     page_size=10,
                     style_table={
                         "overflowX": "auto",
-                        "margin-top": "10px",
-                        "margin-bottom": "40px",
+                        "marginTop": "10px",
+                        "marginBottom": "40px",
                     },
                     style_cell={"textAlign": "left"},
                     sort_action="native",
@@ -87,7 +87,7 @@ layout = dbc.Container(
                         "display": "flex",
                         "justifyContent": "center",
                         "alignItems": "center",
-                        "margin-bottom": "40px",
+                        "marginBottom": "40px",
                     },
                 ),
                 # Deuxième bouton, tableau + download
@@ -106,8 +106,8 @@ layout = dbc.Container(
                             page_size=10,
                             style_table={
                                 "overflowX": "auto",
-                                "margin-top": "10px",
-                                "margin-bottom": "40px",
+                                "marginTop": "10px",
+                                "marginBottom": "40px",
                             },
                             style_cell={"textAlign": "left"},
                             sort_action="native",
@@ -123,7 +123,7 @@ layout = dbc.Container(
                         "display": "flex",
                         "justifyContent": "center",
                         "alignItems": "center",
-                        "margin-bottom": "40px",
+                        "marginBottom": "40px",
                     },
                 ),
                 html.Div(
@@ -132,7 +132,7 @@ layout = dbc.Container(
                         style={"margin": "auto", "width": "100%"},
                     ),
                     style={
-                        "margin-bottom": "15px",
+                        "marginBottom": "15px",
                         "background": "white",
                         "padding": "10px",
                         "borderRadius": "8px",

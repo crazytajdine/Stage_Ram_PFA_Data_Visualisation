@@ -2,7 +2,7 @@ from typing import Optional
 import dash
 import dash_bootstrap_components as dbc
 from dash import Output, dash_table
-from utils_dashboard.graph_utils import (
+from utils_dashboard.utils_graph import (
     create_graph_bar_card,
     create_graph_bar_horizontal_card,
     generate_card_info_change,
@@ -341,8 +341,8 @@ def create_layout(
             sort_action="native",
             style_table={
                 "overflowX": "auto",
-                "margin-top": "10px",
-                "margin-bottom": "40px",
+                "marginTop": "10px",
+                "marginBottom": "40px",
             },
             style_cell={"textAlign": "left"},
             sort_by=[{"column_id": COL_NAME_WINDOW_TIME, "direction": "desc"}],

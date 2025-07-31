@@ -2,32 +2,32 @@
 weekly_analysis_page.py – Weekly Analysis of Delay Codes
 """
 
- # ─────────────── Standard library ───────────────
+# ─────────────── Standard library ───────────────
 from datetime import datetime, date, timedelta
 import io
 
- # ─────────────── Third-party ───────────────
+# ─────────────── Third-party ───────────────
 import polars as pl
 import dash
 from dash import html, dcc, dash_table, Input, Output, State, no_update
 import dash_bootstrap_components as dbc
 import xlsxwriter
 
- # ─────────────── Application modules ───────────────
+# ─────────────── Application modules ───────────────
 from server_instance import get_app
 from excel_manager import (
-     get_df,
-     add_watcher_for_data,
-     COL_NAME_DEPARTURE_DATETIME,
-     COL_NAME_WINDOW_TIME,
+    get_df,
+    add_watcher_for_data,
+    COL_NAME_DEPARTURE_DATETIME,
+    COL_NAME_WINDOW_TIME,
     # COL_NAME_TOTAL_COUNT  # only needed if you reuse it here
- )
+)
 from dash.dcc import send_bytes
 from components.filter import FILTER_STORE_ACTUAL
-from filter_state import get_filter_state
+from utils_dashboard.utils_filter import get_filter_state
 
 
-DAYS_FR = ("Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche")
+DAYS_FR = ("Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche")
 DAY_NAME_MAP = {i: d for i, d in enumerate(DAYS_FR)}
 
 app = get_app()
@@ -51,11 +51,10 @@ HEADER_STYLE = CELL_STYLE | {
 
 
 def _blank_weekly_table() -> pl.DataFrame:
-    return pl.DataFrame({
-        "CODE_DR": ["-"],
-        **{day: [0] for day in DAYS_FR},
-        "Total": [0]
-    })
+    return pl.DataFrame(
+        {"CODE_DR": ["-"], **{day: [0] for day in DAYS_FR}, "Total": [0]}
+    )
+
 
 def analyze_weekly_codes() -> tuple[pl.DataFrame, list[str]]:
     # ① read & sort chronologically ------------------------------------------------
@@ -63,11 +62,7 @@ def analyze_weekly_codes() -> tuple[pl.DataFrame, list[str]]:
     if df_lazy is None:
         return _blank_weekly_table(), DAYS_FR
 
-    df = (
-        df_lazy
-        .sort("DEP_DAY_SCHED", descending=False)   # oldest → newest
-        .collect()
-    )
+    df = df_lazy.sort("DEP_DAY_SCHED", descending=False).collect()  # oldest → newest
 
     if df.is_empty() or "DAY_OF_WEEK_DEP" not in df.columns:
         return _blank_weekly_table(), DAYS_FR
@@ -75,8 +70,7 @@ def analyze_weekly_codes() -> tuple[pl.DataFrame, list[str]]:
     # ② build the aggregation ------------------------------------------------------
     # this already SUMS all flights that share the same French day name
     pivot = (
-        df
-        .group_by(["CODE_DR", "DAY_OF_WEEK_DEP"])
+        df.group_by(["CODE_DR", "DAY_OF_WEEK_DEP"])
         .agg(pl.len().alias("n"))
         .pivot(values="n", index="CODE_DR", columns="DAY_OF_WEEK_DEP")
         .fill_null(0)
@@ -84,53 +78,66 @@ def analyze_weekly_codes() -> tuple[pl.DataFrame, list[str]]:
 
     # ③ extract the day names in *chronological* order, deduplicated ---------------
     raw_days = (
-        df
-        .select("DEP_DAY_SCHED", "DAY_OF_WEEK_DEP")
-        .sort("DEP_DAY_SCHED")                       # keep chrono order
+        df.select("DEP_DAY_SCHED", "DAY_OF_WEEK_DEP")
+        .sort("DEP_DAY_SCHED")  # keep chrono order
         .get_column("DAY_OF_WEEK_DEP")
         .to_list()
     )
 
-    seen: set[str]      = set()
+    seen: set[str] = set()
     days_ordered: list[str] = []
-    for d in raw_days:          # preserves first‑appearance order
+    for d in raw_days:  # preserves first‑appearance order
         if d not in seen:
             seen.add(d)
             days_ordered.append(d)
 
-    if not days_ordered:                    # fallback, should not happen
+    if not days_ordered:  # fallback, should not happen
         return _blank_weekly_table(), DAYS_FR
 
     # ④ re‑order columns + add Total ----------------------------------------------
     pivot = (
-        pivot
-        .select("CODE_DR", *days_ordered)           # no duplicates now
+        pivot.select("CODE_DR", *days_ordered)  # no duplicates now
         .with_columns(pl.sum_horizontal(days_ordered).alias("Total"))
         .sort("Total", descending=True)
     )
 
     return pivot, days_ordered
 
+
 # ------------------------------------------------------------------ #
 # 3 ▸  Layout                                                       #
 # ------------------------------------------------------------------ #
 ID_WEEKLY_TABLE = "weekly-table"
-ID_DOWNLOAD      = "weekly-download"
+ID_DOWNLOAD = "weekly-download"
 
 layout = dbc.Container(
-    fluid=True, className="p-4", children=[
-        dbc.Row(dbc.Col([
-            html.H1("Analyse hebdomadaire des codes de retard"),
-            html.P("Répartition des codes par jour de la semaine.", className="lead")
-        ])),
+    fluid=True,
+    className="p-4",
+    children=[
+        dbc.Row(
+            dbc.Col(
+                [
+                    html.H1("Analyse hebdomadaire des codes de retard"),
+                    html.P(
+                        "Répartition des codes par jour de la semaine.",
+                        className="lead",
+                    ),
+                ]
+            )
+        ),
         dcc.Download(id=ID_DOWNLOAD),
         dbc.Button("📥 Exporter Excel", id="weekly-export-btn", className="mt-2"),
-        dbc.Card(dbc.CardBody(dash_table.DataTable(id=ID_WEEKLY_TABLE)), className="mb-4"),
-        dbc.Row(dbc.Col([
-            html.Hr(),
-            html.Small(id="last-update", className="text-muted")
-        ], className="text-center"))
-])
+        dbc.Card(
+            dbc.CardBody(dash_table.DataTable(id=ID_WEEKLY_TABLE)), className="mb-4"
+        ),
+        dbc.Row(
+            dbc.Col(
+                [html.Hr(), html.Small(id="last-update", className="text-muted")],
+                className="text-center",
+            )
+        ),
+    ],
+)
 
 
 # ------------------------------------------------------------------ #
@@ -149,11 +156,17 @@ def refresh_weekly_table(_):
     if weekly.is_empty():
         return [], [], "Aucune donnée"
 
-    columns = [{"id": "CODE_DR", "name": "Code"}] + \
-              [{"id": d, "name": d} for d in days_ordered] + \
-              [{"id": "Total", "name": "Total"}]
+    columns = (
+        [{"id": "CODE_DR", "name": "Code"}]
+        + [{"id": d, "name": d} for d in days_ordered]
+        + [{"id": "Total", "name": "Total"}]
+    )
 
-    return weekly.to_dicts(), columns, f"Dernière mise à jour : {datetime.now():%d/%m/%Y %H:%M}"
+    return (
+        weekly.to_dicts(),
+        columns,
+        f"Dernière mise à jour : {datetime.now():%d/%m/%Y %H:%M}",
+    )
 
 
 @app.callback(
@@ -203,7 +216,6 @@ def export_to_excel(n_clicks, _):
         fname_parts.append("ALL_MATRICULE")
 
     filename = "_".join(fname_parts) + ".xlsx"
-
 
     # Create file
     buffer = io.BytesIO()
