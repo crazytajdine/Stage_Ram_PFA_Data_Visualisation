@@ -4,7 +4,8 @@ import dash_bootstrap_components as dbc
 from dash import Output, dash_table
 from utils_dashboard.graph_utils import (
     create_graph_bar_card,
-    generate_card_info,
+    create_graph_bar_horizontal_card,
+    generate_card_info_change,
 )
 from server_instance import get_app
 
@@ -276,40 +277,40 @@ def create_layout(
     if result is None:
         return dash.no_update
 
-    card1 = generate_card_info(
+    card1 = generate_card_info_change(
         result,
         COL_NAME_PER_FLIGHTS_NOT_DELAYED,
         "Percentage of On-Time Flights",
     )  # example first card
-    card2 = generate_card_info(
+    card2 = generate_card_info_change(
         result,
         COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN,
         "Percentage of On-Time or Delays Less Than 15 Minutes",
     )  # example second card
-    card3 = generate_card_info(
+    card3 = generate_card_info_change(
         result,
         COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46,
         "Percentage of On-Time or less than 15 Minutes, or Delays Not Due to Reasons 41/46",
     )  # example second card
 
-    fig1 = create_graph_bar_card(
+    fig1 = create_graph_bar_horizontal_card(
         result,
-        COL_NAME_WINDOW_TIME,
         COL_NAME_PER_FLIGHTS_NOT_DELAYED,
+        COL_NAME_WINDOW_TIME,
         "Percentage of On-Time Flights",
         COL_NAME_PER_FLIGHTS_NOT_DELAYED_SHOW,
     )
-    fig2 = create_graph_bar_card(
+    fig2 = create_graph_bar_horizontal_card(
         result,
-        COL_NAME_WINDOW_TIME,
         COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN,
+        COL_NAME_WINDOW_TIME,
         "Percentage of On-Time or Delays Less Than 15 Minutes",
         COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN_SHOW,
     )
-    fig3 = create_graph_bar_card(
+    fig3 = create_graph_bar_horizontal_card(
         result,
-        COL_NAME_WINDOW_TIME,
         COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46,
+        COL_NAME_WINDOW_TIME,
         "Percentage of On-Time or less than 15 Minutes, or Delays Not Due to Reasons 41/46",
         COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46_SHOW,
     )

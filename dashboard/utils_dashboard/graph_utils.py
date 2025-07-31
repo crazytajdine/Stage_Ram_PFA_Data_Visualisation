@@ -10,11 +10,7 @@ from excel_manager import (
 
 
 def create_graph_bar_card(
-    df: pl.DataFrame,
-    x: str,
-    y: str,
-    title: str,
-    text=None,
+    df: pl.DataFrame, x: str, y: str, title: str, text=None
 ) -> dbc.Card | None:
 
     if x not in df.columns:
@@ -24,10 +20,11 @@ def create_graph_bar_card(
 
     # Create figure
     fig = px.bar(df, x=x, y=y, title=title, text=text)
-    max_y = df[y].max() * 1.15
 
     threshold_sep_x = 12
     threshold_show_y = 20
+
+    fig.update_xaxes(tickformat="%y-%m-%d")
 
     # Update layout
     fig.update_layout(
@@ -35,14 +32,14 @@ def create_graph_bar_card(
         paper_bgcolor="rgba(0,0,0,0)",
         title_x=0.5,
         margin=dict(t=50, b=30, l=20, r=20),
-        yaxis=dict(range=[0, max_y], visible=len_date > threshold_show_y),
+        yaxis=dict(range=[0, 115], visible=len_date > threshold_show_y),
         yaxis_title="",
         xaxis_title="",
     )
 
     # Style bars
     fig.update_traces(
-        textposition="outside" if len_date <= threshold_show_y else "none",
+        textposition="auto" if len_date <= threshold_show_y else "none",
         marker_color="rgb(0, 123, 255)",
         hovertemplate="%{x}<br>Percentage : %{text}<br>Detailed : %{y} <extra></extra>",
         textfont_size=16,
@@ -60,7 +57,54 @@ def create_graph_bar_card(
     )
 
 
-def generate_card_info(df: pl.DataFrame, col_name: str, title: str) -> dbc.Card:
+def create_graph_bar_horizontal_card(
+    df: pl.DataFrame, x: str, y: str, title: str, text=None
+) -> dbc.Card | None:
+
+    if x not in df.columns:
+        return None
+
+    len_date = df.select(pl.col(x).len()).item()
+
+    threshold_sep_y = 20
+    threshold_show_x = 20
+
+    # Create figure
+    fig = px.bar(df, x=x, y=y, title=title, text=text, orientation="h")
+
+    fig.update_yaxes(tickformat="%y-%m-%d")
+
+    # Update layout
+    fig.update_layout(
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        title_x=0.5,
+        margin=dict(t=50, b=30, l=20, r=20),
+        xaxis=dict(range=[0, 115], visible=len_date > threshold_show_x),
+        yaxis_title="",
+        xaxis_title="",
+    )
+
+    # Style bars
+    fig.update_traces(
+        textposition="auto" if len_date <= threshold_show_x else "none",
+        marker_color="rgb(0, 123, 255)",
+        hovertemplate="%{x}<br>Percentage : %{text}<br>Detailed : %{y} <extra></extra>",
+        textfont_size=16,
+    )
+
+    unique_y = df[y].unique()
+    if len(unique_y) <= threshold_sep_y:
+        fig.update_yaxes(tickmode="array", tickvals=unique_y)
+
+    # Return the full card component
+    return dbc.Card(
+        dbc.CardBody([dcc.Graph(figure=fig)]),
+        className=f"mb-4",
+    )
+
+
+def generate_card_info_change(df: pl.DataFrame, col_name: str, title: str) -> dbc.Card:
 
     assert df is not None and col_name is not None
 
