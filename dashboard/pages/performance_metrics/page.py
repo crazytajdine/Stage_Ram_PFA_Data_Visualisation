@@ -1,10 +1,10 @@
 from typing import Optional
 import dash
 import dash_bootstrap_components as dbc
-from dash import Output, dash_table
-from utils_dashboard.graph_utils import (
+from dash import Input, Output, State, dash_table
+from utils_dashboard.utils_graph import (
     create_graph_bar_card,
-    generate_card_info,
+    generate_card_info_change,
 )
 from server_instance import get_app
 
@@ -17,6 +17,10 @@ from excel_manager import (
     COL_NAME_TOTAL_COUNT,
     COL_NAME_WINDOW_TIME,
     get_total_df,
+)
+
+from utils_dashboard.utils_download import (
+    add_export_callbacks,
 )
 
 
@@ -49,7 +53,8 @@ ID_CARD_DELAY = "card_delay"
 ID_CARD_DELAY_15MIN = "card_delay_15min"
 ID_CARD_DELAY_15MIN_41_42 = "card_delay_15min_41_42"
 
-ID_TABLE = "result_table_percentage"
+ID_TABLE_CONTAINER = "result_table_percentage"
+ID_TABLE = "result_table"
 
 app = get_app()
 
@@ -242,12 +247,20 @@ layout = dbc.Container(
             ],
             className="g-4 justify-content-center",
         ),
+        dbc.Button("Export Excel", id="export-pre-metrics-btn", className="mt-2"),
         dbc.Row(
-            id=ID_TABLE,
+            id=ID_TABLE_CONTAINER,
         ),
     ],
     fluid=True,
     className="p-4",
+)
+
+
+add_export_callbacks(
+    ID_TABLE,
+    "export-pre-metrics-btn",
+    "performance_metrics",
 )
 
 
@@ -259,7 +272,7 @@ layout = dbc.Container(
         Output(ID_GRAPH_DELAY, "children"),
         Output(ID_GRAPH_DELAY_15MIN, "children"),
         Output(ID_GRAPH_DELAY_41_42_15MIN, "children"),
-        Output(ID_TABLE, "children"),
+        Output(ID_TABLE_CONTAINER, "children"),
     ],
     add_watcher_for_data(),
 )
@@ -276,17 +289,17 @@ def create_layout(
     if result is None:
         return dash.no_update
 
-    card1 = generate_card_info(
+    card1 = generate_card_info_change(
         result,
         COL_NAME_PER_FLIGHTS_NOT_DELAYED,
         "Percentage of On-Time Flights",
     )  # example first card
-    card2 = generate_card_info(
+    card2 = generate_card_info_change(
         result,
         COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN,
         "Percentage of On-Time or Delays Less Than 15 Minutes",
     )  # example second card
-    card3 = generate_card_info(
+    card3 = generate_card_info_change(
         result,
         COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46,
         "Percentage of On-Time or less than 15 Minutes, or Delays Not Due to Reasons 41/46",
@@ -336,18 +349,16 @@ def create_layout(
         table = dash_table.DataTable(
             data=table_data,
             columns=table_col_names,
+            id=ID_TABLE,
             page_size=10,
             sort_action="native",
             style_table={
                 "overflowX": "auto",
-                "margin-top": "10px",
-                "margin-bottom": "40px",
+                "marginTop": "10px",
+                "marginBottom": "40px",
             },
             style_cell={"textAlign": "left"},
             sort_by=[{"column_id": COL_NAME_WINDOW_TIME, "direction": "desc"}],
-            export_format="xlsx",
-            export_headers="display",
-            export_columns="all",
         )
 
     return card1, card2, card3, fig1, fig2, fig3, table

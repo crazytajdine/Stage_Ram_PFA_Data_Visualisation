@@ -3,6 +3,7 @@ import dash
 import polars as pl
 from datetime import date, datetime, timedelta
 from dash import Input, Output, State
+from utils_dashboard.utils_filter import set_name_from_filter
 from excel_manager import (
     COL_NAME_DEPARTURE_DATETIME,
     COL_NAME_WINDOW_TIME,
@@ -16,12 +17,14 @@ from excel_manager import (
 )
 from server_instance import get_app
 import dash_bootstrap_components as dbc
+from schemas.filter import FilterType
 
 from dash import html, dcc
 
 FILTER_SUBTYPE = "filter-subtype"
 FILTER_MATRICULE = "filter-matricule"
 FILTER_SEGMENTATION = "filter-segmentation"
+FILTER_SEGMENTATION_UNIT = "filter-segmentation_unit"
 FILTER_DATE_RANGE = "filter-date-range"
 FILTER_SUBMIT_BTN = "filter-go-btn"
 # FILTER_RESET_BTN = "filter-reset-btn"
@@ -45,24 +48,24 @@ layout = dbc.Card(
                 [
                     dbc.Col(
                         [
-                            html.Label("Type d'avion (Flotte)"),
+                            html.Label("Subtype :"),
                             dcc.Dropdown(
                                 id=FILTER_SUBTYPE,
                                 options=[],
                                 multi=True,
-                                placeholder="Tous les types",
+                                placeholder="All Options",
                             ),
                         ],
                         md=6,
                     ),
                     dbc.Col(
                         [
-                            html.Label("Matricule"),
+                            html.Label("Matricule :"),
                             dcc.Dropdown(
                                 id=FILTER_MATRICULE,
                                 options=[],
                                 multi=True,
-                                placeholder="Tous les matricules",
+                                placeholder="All Options",
                             ),
                         ],
                         md=6,
@@ -74,13 +77,29 @@ layout = dbc.Card(
             dbc.Row(
                 dbc.Col(
                     [
-                        html.Label("Segmentation"),
-                        dbc.Input(
-                            id=FILTER_SEGMENTATION,
-                            placeholder="Select segmentation (days)",
-                            type="number",
+                        html.Label("Segmentation :", htmlFor=FILTER_SEGMENTATION),
+                        dbc.InputGroup(
+                            [
+                                dbc.Input(
+                                    id=FILTER_SEGMENTATION,
+                                    placeholder="Select segmentation",
+                                    type="number",
+                                    min=0,
+                                ),
+                                dbc.Select(
+                                    id=FILTER_SEGMENTATION_UNIT,
+                                    options=[
+                                        {"label": "Day", "value": "d"},
+                                        {"label": "Week", "value": "w"},
+                                        {"label": "Month", "value": "mo"},
+                                        {"label": "Year", "value": "y"},
+                                    ],
+                                    value="d",
+                                ),
+                            ],
                         ),
-                    ]
+                    ],
+                    md=6,
                 ),
                 className="mb-3",
             ),
@@ -89,7 +108,9 @@ layout = dbc.Card(
                 [
                     dbc.Col(
                         [
-                            html.Label("Date :"),
+                            html.Label(
+                                "Date :", className="me-2", htmlFor=FILTER_DATE_RANGE
+                            ),
                             dcc.DatePickerRange(
                                 id=FILTER_DATE_RANGE,
                                 clearable=True,
@@ -132,14 +153,14 @@ layout = dbc.Card(
 
 
 def apply_filters(
-    df: pl.LazyFrame, filters: Optional[dict], is_suggestions=False
+    df: pl.LazyFrame, filters: FilterType, is_suggestions=False
 ) -> Tuple[pl.LazyFrame, Optional[pl.LazyFrame]]:
     total_df = None
 
     segmentation = filters.get("fl_segmentation") if filters else None
     unit_segmentation = filters.get("fl_unit_segmentation") if filters else None
-    subtypes = filters.get("fl_subtype") if filters else None
-    matricules = filters.get("fl_matricule") if filters else None
+    subtypes = filters.get("fl_subtypes") if filters else None
+    matricules = filters.get("fl_matricules") if filters else None
     min_dt = filters.get("dt_start") if filters else None
     max_dt = filters.get("dt_end") if filters else None
 
@@ -242,13 +263,47 @@ def split_views_by_exclusion(
     return view_matricule
 
 
-def compare_filters(filter1: Optional[dict], filter2: Optional[dict]):
+def check_segmentation(filter1: FilterType, filter2: FilterType) -> bool:
 
-    filter1 = {k: v for k, v in filter1.items() if v is not None} if filter1 else {}
+    unit1 = filter1.get("fl_unit_segmentation")
+    unit2 = filter2.get("fl_unit_segmentation")
 
-    filter2 = {k: v for k, v in filter2.items() if v is not None} if filter2 else {}
+    segment1 = filter1.get("fl_segmentation")
+    segment2 = filter2.get("fl_segmentation")
+    if segment1 == segment2:
 
-    return filter1 == filter2
+        if segment1 and segment2 and (unit1 != unit2):
+
+            return False
+
+        return True
+
+    return False
+
+
+def compare_filters(filter1: FilterType, filter2: FilterType):
+
+    is_segments_similar = check_segmentation(filter1, filter2)
+
+    print(filter1, filter2)
+    filter1 = get_filter_without_segmentation_and_none(filter1)
+
+    filter2 = get_filter_without_segmentation_and_none(filter2)
+
+    print(filter1, filter2)
+    return is_segments_similar and (filter1 == filter2)
+
+
+def get_filter_without_segmentation_and_none(filter: FilterType):
+    return (
+        {
+            k: v
+            for k, v in filter.items()
+            if v and (k not in ["fl_unit_segmentation", "fl_segmentation"])
+        }
+        if filter
+        else {}
+    )
 
 
 def add_callbacks():
@@ -265,8 +320,8 @@ def add_callbacks():
         base_lazy = get_df_unfiltered()  # your global LazyFrame
         if base_lazy is None:
             return [], [], None, None
-        v_sub = split_views_by_exclusion(base_lazy, store_data, "fl_subtype")
-        v_mat = split_views_by_exclusion(base_lazy, store_data, "fl_matricule")
+        v_sub = split_views_by_exclusion(base_lazy, store_data, "fl_subtypes")
+        v_mat = split_views_by_exclusion(base_lazy, store_data, "fl_matricules")
         # v_date = split_views_by_exclusion(base_lazy, store_data, "dt_start", "dt_end")
 
         # subtype dropdown
@@ -312,12 +367,15 @@ def add_callbacks():
         Input(FILTER_STORE_ACTUAL, "data"),
         # since i am not putting segmentation and unit into data
         Input(FILTER_SEGMENTATION, "value"),
+        Input(FILTER_SEGMENTATION_UNIT, "value"),
     )
-    def update_filter_submit_button(filter_suggestions, filter_actual, segmentation):
+    def update_filter_submit_button(
+        filter_suggestions, filter_actual, segmentation, segmentation_segmentation_unit
+    ):
 
         if filter_suggestions:
             filter_suggestions["fl_segmentation"] = segmentation
-            filter_suggestions["fl_unit_segmentation"] = "d"
+            filter_suggestions["fl_unit_segmentation"] = segmentation_segmentation_unit
 
         color = (
             "primary"
@@ -334,15 +392,15 @@ def add_callbacks():
         Input(FILTER_DATE_RANGE, "start_date"),
         Input(FILTER_DATE_RANGE, "end_date"),
     )
-    def update_filter_store_suggestions(fl_subtype, fl_matricule, dt_start, dt_end):
+    def update_filter_store_suggestions(fl_subtypes, fl_matricules, dt_start, dt_end):
 
         print(
-            f"Filtering data with: {fl_subtype}, {fl_matricule}, {dt_start}, {dt_end}"
+            f"Filtering data with: {fl_subtypes}, {fl_matricules}, {dt_start}, {dt_end}"
         )
 
         return {
-            "fl_subtype": fl_subtype,
-            "fl_matricule": fl_matricule,
+            "fl_subtypes": fl_subtypes,
+            "fl_matricules": fl_matricules,
             "dt_start": dt_start,
             "dt_end": dt_end,
         }
@@ -352,7 +410,7 @@ def add_callbacks():
         add_watch_file(),
         Input(FILTER_STORE_ACTUAL, "data"),
     )
-    def filter_data(_, filter_store_data):
+    def filter_data(_, filter_store_data: FilterType):
 
         df = get_df_unfiltered()
 
@@ -360,6 +418,8 @@ def add_callbacks():
             return {"payload": [], "count": 0}
 
         df, total_df = apply_filters(df, filter_store_data)
+
+        set_name_from_filter(filter_store_data)
 
         update_df(df, total_df)
 
@@ -371,13 +431,17 @@ def add_callbacks():
         State(FILTER_STORE_SUGGESTIONS, "data"),
         # since they will not take effect in the suggestions
         State(FILTER_SEGMENTATION, "value"),
+        State(FILTER_SEGMENTATION_UNIT, "value"),
     )
     def submit_filter(
-        n_clicks, store_suggestions_data: Optional[dict], segmentation: Optional[int]
+        n_clicks,
+        store_suggestions_data: FilterType,
+        segmentation: Optional[int],
+        segmentation_segmentation_unit: Optional[str],
     ):
         data = store_suggestions_data if store_suggestions_data else {}
         data["fl_segmentation"] = segmentation
-        data["fl_unit_segmentation"] = "d"
+        data["fl_unit_segmentation"] = segmentation_segmentation_unit
         return data
 
 

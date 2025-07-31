@@ -6,10 +6,13 @@ import dash_bootstrap_components as dbc
 
 from server_instance import get_app
 from excel_manager import (
+    ID_INTERVAL_WATCHER,
     get_path_to_excel,
     update_path_to_excel,
     toggle_auto_refresh,
-    is_auto_refresh_enabled,
+    is_auto_refresh_disabled,
+    get_modification_time_cashed,
+    add_watch_file,
     ID_PATH_STORE,
 )
 from utils_dashboard.utils_preference import get_nav_preferences, set_page_visibility
@@ -36,26 +39,25 @@ layout = html.Div(
     [
         dcc.Store(ID_TRIGGER_PARAMS_CHANGE_NAVBAR),
         html.H1("Paramètres", className="mb-4"),
-        
         # ── Fichier Excel
         dbc.Card(
             [
                 dbc.CardHeader("Fichier Excel"),
                 dbc.CardBody(
                     [
-                        dbc.Label("Chemin actuel :", className="fw-bold"),
-                        html.Div(id=ID_CURRENT_PATH, className="mb-3"),
+                        dbc.Label("Chemin actuel :", className="fw-bold me-2"),
+                        html.Span(id=ID_CURRENT_PATH, className="mb-3"),
                         dbc.Input(
                             id=ID_NEW_PATH_INPUT,
                             placeholder="Entrez un nouveau chemin…",
                             type="text",
-                            className="mb-2",
+                            className="my-2",
                         ),
                         dbc.Button(
                             "Mettre à jour",
                             id=ID_UPDATE_PATH_BTN,
                             color="primary",
-                            className="mb-2",
+                            className="my-2",
                         ),
                         dbc.Alert(id=ID_UPDATE_PATH_MSG, is_open=False),
                     ]
@@ -63,7 +65,6 @@ layout = html.Div(
             ],
             className="mb-4",
         ),
-        
         # ── Actualisation automatique
         dbc.Card(
             [
@@ -72,21 +73,22 @@ layout = html.Div(
                     [
                         html.Div(
                             [
-                                dbc.Label("Statut :", className="fw-bold me-2"),
+                                dbc.Label("Statut :", className="fw-bold me-2 mb-0"),
                                 html.Span(id=ID_AUTO_REFRESH_STATUS),
                             ],
-                            className="mb-2 d-flex align-items-center",
+                            className=" d-flex align-items-center mb-2",
                         ),
                         html.Div(
                             [
                                 dbc.Label(
-                                    "Dernière actualisation :", className="fw-bold me-2"
+                                    "Dernière actualisation :",
+                                    className="fw-bold me-2 ",
                                 ),
                                 html.Span(
                                     id=ID_LAST_REFRESH_TIME, className="text-muted"
                                 ),
                             ],
-                            className="mb-3 d-flex align-items-center",
+                            className="mb-3 d-flex  ",
                         ),
                         dbc.Button(
                             "Basculer l'état",
@@ -101,7 +103,6 @@ layout = html.Div(
             ],
             className="mb-4",
         ),
-        
         # ➕ NEW: File Monitoring Display
         dbc.Card(
             [
@@ -111,24 +112,23 @@ layout = html.Div(
                         html.Div(
                             id="modification-time-display",
                             style={
-                                'padding': '15px',
-                                'background-color': '#f8f9fa',
-                                'border': '1px solid #dee2e6',
-                                'border-radius': '5px',
-                                'font-family': 'Consolas, Monaco, monospace',
-                                'font-size': '14px',
-                                'color': '#495057',
-                                'min-height': '50px',
-                                'display': 'flex',
-                                'align-items': 'center'
-                            }
+                                "padding": "15px",
+                                "background-color": "#f8f9fa",
+                                "border": "1px solid #dee2e6",
+                                "border-radius": "5px",
+                                "font-family": "Consolas, Monaco, monospace",
+                                "font-size": "14px",
+                                "color": "#495057",
+                                "min-height": "50px",
+                                "display": "flex",
+                                "align-items": "center",
+                            },
                         )
                     ]
                 ),
             ],
             className="mb-4",
         ),
-        
         # ── Visibilité des pages
         dbc.Card(
             [
@@ -156,13 +156,7 @@ layout = html.Div(
                 ),
             ]
         ),
-        
         # --- Stores & interval interne --------------------------------------
-        dcc.Store(id="auto-refresh-enabled",
-                  data=is_auto_refresh_enabled()),
-        dcc.Interval(id="refresh-counter",
-                     interval=10_000,           # 10 s
-                     n_intervals=0),
     ]
 )
 
@@ -187,7 +181,7 @@ def display_current_path(_):
     Output(ID_UPDATE_PATH_MSG, "children"),
     Output(ID_UPDATE_PATH_MSG, "color"),
     Output(ID_UPDATE_PATH_MSG, "is_open"),
-    Output("is-path-store", "data", allow_duplicate=True),          # ➕  nouveau
+    Output("is-path-store", "data", allow_duplicate=True),  # ➕  nouveau
     Input(ID_UPDATE_PATH_BTN, "n_clicks"),
     State(ID_NEW_PATH_INPUT, "value"),
     prevent_initial_call=True,
@@ -207,37 +201,48 @@ def handle_update_path(_, new_path):
     Output(ID_TOGGLE_REFRESH_MSG, "children"),
     Output(ID_TOGGLE_REFRESH_MSG, "color"),
     Output(ID_TOGGLE_REFRESH_MSG, "is_open"),
-    Output("auto-refresh-enabled", "data"),
+    Output(ID_INTERVAL_WATCHER, "disabled", allow_duplicate=True),
     Input(ID_TOGGLE_AUTO_REFRESH, "n_clicks"),
     prevent_initial_call=True,
 )
-def toggle_auto_refresh_cb(_):
+def toggle_auto_refresh_cb(n_clicks):
+    if not n_clicks:
+        raise dash.exceptions.PreventUpdate
+
     try:
         status = toggle_auto_refresh()
-        return (f"Actualisation {'activée' if status else 'désactivée'}.",
-                "success", True, status)
+        return (
+            f"Actualisation {'activée' if status else 'désactivée'}.",
+            "success",
+            False,
+            status,
+        )
     except Exception as e:
-        return f"Erreur : {e}", "danger", True, is_auto_refresh_enabled()
+        return f"Erreur : {e}", "danger", False, is_auto_refresh_disabled()
 
 
 # 4. Update the "Activée / Désactivée" text
 @app.callback(
     Output(ID_AUTO_REFRESH_STATUS, "children"),
     Output(ID_AUTO_REFRESH_STATUS, "className"),
-    Input("auto-refresh-enabled", "data"),
+    Input(
+        ID_INTERVAL_WATCHER,
+        "disabled",
+    ),
 )
-def update_status_text(enabled):
-    return ("Activée" if enabled else "Désactivée",
-            "text-success" if enabled else "text-danger")
+def update_status_text(disabled):
+    return (
+        "Activée" if not disabled else "Désactivée",
+        "text-success" if not disabled else "text-danger",
+    )
 
 
 # 5. Update the last-refresh timestamp
-@app.callback(
-    Output(ID_LAST_REFRESH_TIME, "children"),
-    Input("refresh-counter", "n_intervals")
-)
+@app.callback(Output(ID_LAST_REFRESH_TIME, "children"), add_watch_file())
 def update_refresh_time(_):
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    modification_time = get_modification_time_cashed()
+    return str(modification_time)
 
 
 # 6. Save page-visibility settings
@@ -248,7 +253,6 @@ def update_refresh_time(_):
 def update_page_visibility_controls(pathname):
     if pathname == metadata.href:
         nav_preferences = get_nav_preferences()
-        print(nav_preferences)
         checkboxes = [
             dbc.Checkbox(
                 id={"type": "page-checkbox", "index": page_label},

@@ -64,9 +64,8 @@ class MainWindow(QMainWindow):
 # Bootstrap Qt application ---------------------------------------
 # ---------------------------------------------------------------
 if __name__ == "__main__":
-    # Spin up Dash in a daemon thread so Qt owns the m
-    # ain loop
-    threading.Thread(target=start_server, daemon=False).start()
+
+    threading.Thread(target=start_server, args=(False,), daemon=True).start()
 
     qt_app = QApplication(sys.argv)
     window = MainWindow()

@@ -17,7 +17,6 @@ from dash.dcc import send_bytes
 import io
 import xlsxwriter
 from components.filter import FILTER_STORE_ACTUAL
-from filter_state import get_filter_state
 
 app = get_app()
 # ------------------------------------------------------------------ #
@@ -191,6 +190,7 @@ It adds a new column to your table that tells you which time period each row bel
 
 """
 
+
 def build_filename(base: str, filters: dict[str, str | None]) -> str:
     """
     Construit un nom de fichier intelligent basé sur les filtres.
@@ -216,6 +216,7 @@ def build_filename(base: str, filters: dict[str, str | None]) -> str:
     parts.append(f"matricule{matricule}" if matricule != "ALL" else "ALL_MATRICULE")
 
     return "_".join(parts) + ".xlsx"
+
 
 # ------------------------------------------------------------------ #
 # 3 ▸  Layout factory                                                #
@@ -274,46 +275,74 @@ def make_layout() -> html.Div:
 # ------------------------------------------------------------------ #
 layout = make_layout()
 
+
 def build_structured_table(df: pl.DataFrame, segmentation: str | None) -> pl.DataFrame:
     if df.is_empty():
         return pl.DataFrame(
-            {time_period: [], "Famille": [], "Code": [], "Occurrences": [], "Aéroports": [], "Nb Aéroports": []}
+            {
+                time_period: [],
+                "Famille": [],
+                "Code": [],
+                "Occurrences": [],
+                "Aéroports": [],
+                "Nb Aéroports": [],
+            }
         )
-    
 
-    airport_counts = (
-        df.group_by([time_period, "FAMILLE_DR", "CODE_DR", "DEP_AP_SCHED"])  
-          .agg(pl.len().alias("ap_count"))
-    )
+    airport_counts = df.group_by(
+        [time_period, "FAMILLE_DR", "CODE_DR", "DEP_AP_SCHED"]
+    ).agg(pl.len().alias("ap_count"))
 
     grouped = (
-        df.group_by([time_period, "FAMILLE_DR", "CODE_DR"])  
-        .agg([
-            pl.len().alias("Occurrences"),
-            pl.col("DEP_AP_SCHED").drop_nulls().alias("AP_list"),
-        ])
-        .join(
-            airport_counts.group_by([time_period, "FAMILLE_DR", "CODE_DR"]).agg([
-                pl.col("DEP_AP_SCHED").alias("airports"),
-                pl.col("ap_count").alias("counts")
-            ]),
-            on=[time_period, "FAMILLE_DR", "CODE_DR"],
-            how="left"
+        df.group_by([time_period, "FAMILLE_DR", "CODE_DR"])
+        .agg(
+            [
+                pl.len().alias("Occurrences"),
+                pl.col("DEP_AP_SCHED").drop_nulls().alias("AP_list"),
+            ]
         )
-        .with_columns([
-            pl.struct(["airports", "counts"]).map_elements(
-                lambda x: ", ".join(
-                    f"{ap} ({cnt})" for ap, cnt in sorted(zip(x["airports"], x["counts"]), key=lambda i: i[1], reverse=True)
-                ), return_dtype=pl.Utf8
-            ).alias("Aéroports"),
-            pl.col("AP_list").list.n_unique().alias("Nb Aéroports"),
-        ])
-        .select([time_period, "FAMILLE_DR", "CODE_DR", "Occurrences", "Aéroports", "Nb Aéroports"])
+        .join(
+            airport_counts.group_by([time_period, "FAMILLE_DR", "CODE_DR"]).agg(
+                [
+                    pl.col("DEP_AP_SCHED").alias("airports"),
+                    pl.col("ap_count").alias("counts"),
+                ]
+            ),
+            on=[time_period, "FAMILLE_DR", "CODE_DR"],
+            how="left",
+        )
+        .with_columns(
+            [
+                pl.struct(["airports", "counts"])
+                .map_elements(
+                    lambda x: ", ".join(
+                        f"{ap} ({cnt})"
+                        for ap, cnt in sorted(
+                            zip(x["airports"], x["counts"]),
+                            key=lambda i: i[1],
+                            reverse=True,
+                        )
+                    ),
+                    return_dtype=pl.Utf8,
+                )
+                .alias("Aéroports"),
+                pl.col("AP_list").list.n_unique().alias("Nb Aéroports"),
+            ]
+        )
+        .select(
+            [
+                time_period,
+                "FAMILLE_DR",
+                "CODE_DR",
+                "Occurrences",
+                "Aéroports",
+                "Nb Aéroports",
+            ]
+        )
         .rename({"CODE_DR": "Code", "FAMILLE_DR": "Famille"})  # ✅ ICI
         .sort([time_period, "Famille", "Occurrences"], descending=[False, False, True])
     )
     return grouped
-
 
 
 plot_config = {
@@ -344,12 +373,11 @@ plot_config = {
 def build_outputs(n_clicks, _, filters):
     """Build all output components based on filtered data"""
 
-    df = excel_manager.get_df().collect() 
+    df = excel_manager.get_df().collect()
     filters = filters or {}
     segmentation = filters.get("fl_segmentation")
     start = filters.get("dt_start", "")
     end = filters.get("dt_end", "")
-
 
     # Get analysis
     summary = analyze_delay_codes_polars(df)
@@ -377,13 +405,12 @@ def build_outputs(n_clicks, _, filters):
         ]
     )
     # 2. Build temporal bar chart
-  
 
     # ---------- COMMON PERIOD TOTALS (used by every family chart) -------
     # 2️⃣ exact counts per (period, family, code)
-    temporal_all = df.group_by(
-        [time_period, "FAMILLE_DR", "CODE_DR"]
-    ).agg(pl.len().alias("count"))
+    temporal_all = df.group_by([time_period, "FAMILLE_DR", "CODE_DR"]).agg(
+        pl.len().alias("count")
+    )
 
     # 3️⃣ grand-total per period (all families, all codes)
     period_totals = temporal_all.group_by(time_period).agg(
@@ -396,18 +423,16 @@ def build_outputs(n_clicks, _, filters):
     )
     # (Re-)use temporal_all
     famille_share_df = (
-        temporal_all
-        .group_by([time_period, "FAMILLE_DR"])
+        temporal_all.group_by([time_period, "FAMILLE_DR"])
         .agg(pl.col("count").sum().alias("famille_count"))
         .join(period_totals, on=time_period)
-        .with_columns((pl.col("famille_count") / pl.col("period_total") * 100).alias("percentage"))
+        .with_columns(
+            (pl.col("famille_count") / pl.col("period_total") * 100).alias("percentage")
+        )
     )
 
-
     selected_codes = (
-        df["CODE_DR"].unique().sort().to_list()
-        if not df.is_empty()
-        else []
+        df["CODE_DR"].unique().sort().to_list() if not df.is_empty() else []
     )
     all_periods = df.get_column(time_period).unique().sort().to_list()
     if not selected_codes:
@@ -531,12 +556,13 @@ def build_outputs(n_clicks, _, filters):
     if not df.is_empty() and excel_manager.COL_NAME_DEPARTURE_DATETIME in df.columns:
         if df.get_column(excel_manager.COL_NAME_DEPARTURE_DATETIME).dtype == pl.Utf8:
             df = df.with_columns(
-                pl.col(excel_manager.COL_NAME_DEPARTURE_DATETIME)
-                  .str.strptime(pl.Date, "%Y-%m-%d", strict=False)
+                pl.col(excel_manager.COL_NAME_DEPARTURE_DATETIME).str.strptime(
+                    pl.Date, "%Y-%m-%d", strict=False
+                )
             )
 
     summary_table = build_structured_table(df, segmentation)
-    
+
     data = summary_table.to_dicts()
     last_date = None
     last_family = None
@@ -551,7 +577,6 @@ def build_outputs(n_clicks, _, filters):
         else:
             last_family = row["Famille"]
 
-
     if summary_table.is_empty():
         table = dbc.Alert(
             "Aucun code de retard trouvé dans la sélection",
@@ -559,7 +584,7 @@ def build_outputs(n_clicks, _, filters):
             className="text-center",
         )
     else:
-        
+
         table = dash_table.DataTable(
             id="codes-table",
             data=data,
@@ -593,7 +618,7 @@ def build_outputs(n_clicks, _, filters):
             ],
             sort_action="native",
             filter_action="native",
-            page_size=8, # include hidden cols if you like
+            page_size=8,  # include hidden cols if you like
             style_table={"height": "500px", "overflowY": "auto"},
         )
     fig_familles = go.Figure()
@@ -623,19 +648,19 @@ def build_outputs(n_clicks, _, filters):
         margin=dict(l=140, r=40, t=60, b=60),
         plot_bgcolor="#fff",
     )
-        # --- juste après avoir construit fig_familles ---------------------
+    # --- juste après avoir construit fig_familles ---------------------
     # ▸ juste après avoir créé fig_familles  ⬇️
     big_chart = html.Div(
         dcc.Graph(
             figure=fig_familles,
             config=plot_config,
-            style={"width": "100%"}          # occupe 100 % de la div
+            style={"width": "100%"},  # occupe 100 % de la div
         ),
         # ↓ la clé : span de la colonne 1 jusqu’à la dernière (‑1)
-        style={"gridColumn": "1 / -1"}       # ou "1 / span 2" si tu préfères
+        style={"gridColumn": "1 / -1"},  # ou "1 / span 2" si tu préfères
     )
 
-    charts_out = [big_chart] + family_figs     # ensuite tes autres graphiques
+    charts_out = [big_chart] + family_figs  # ensuite tes autres graphiques
 
     # --- Export Excel ---
     triggered = ctx.triggered_id
@@ -650,7 +675,11 @@ def build_outputs(n_clicks, _, filters):
                     ws.write(r, c, val)
         buffer.seek(0)
         fname = build_filename("retards_export", filters)
-        return stats, family_figs, table, send_bytes(lambda s: s.write(buffer.getvalue()), filename=fname)
+        return (
+            stats,
+            family_figs,
+            table,
+            send_bytes(lambda s: s.write(buffer.getvalue()), filename=fname),
+        )
 
     return stats, charts_out, table, no_update
-

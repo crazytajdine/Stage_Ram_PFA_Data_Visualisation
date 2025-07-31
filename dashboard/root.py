@@ -6,6 +6,8 @@ import dash
 from utils_dashboard.utils_navs import build_nav_items
 from server_instance import get_app
 
+from utils_dashboard.utils_download import download_dash
+
 from excel_manager import (
     ID_PATH_STORE,
     hookers as excel_hookers,
@@ -25,6 +27,7 @@ app = get_app()
 
 app.layout = html.Div(
     [
+        download_dash,
         # hookers
         *excel_hookers,
         # Barre de navigation
@@ -63,6 +66,9 @@ def update_content_page(pathname, _):
 
     nav_items = build_nav_items(path_exists)
 
+    if not path_exists and nav_items:
+        return nav_items[0].page
+
     for nav_item in nav_items:
 
         is_selected = pathname == nav_item.href
@@ -79,9 +85,10 @@ add_filter_callbacks()
 add_navbar_callback()
 
 
-def start_server():
+def start_server(start_dev=True):
+
     print("🔁 Starting Dash server…")
-    app.run(debug=True, use_reloader=True, port=8050)
+    app.run(debug=True, use_reloader=start_dev, port=8050)
 
 
 if __name__ == "__main__":
