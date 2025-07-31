@@ -159,6 +159,23 @@ layout = dbc.Container(
                         "borderRadius": "8px",
                     },
                 ),
+                html.Div(
+    [
+        dbc.Button("📥 Exporter Excel intervalles", id="interval-export-btn", className="mb-2"),
+        dcc.Download(id="interval-download"),
+        dash_table.DataTable(
+            id="interval-table",
+            columns=[],
+            data=[],
+            page_size=10,
+            style_table={"overflowX": "auto", "margin-top": "10px", "margin-bottom": "40px"},
+            style_cell={"textAlign": "left"},
+            sort_action="native",
+        ),
+    ],
+    style={"margin-bottom": "40px"},
+)
+
             ],
         ),
     ],
@@ -559,4 +576,83 @@ def download_subtype_excel(n_clicks, table_data):
     buf.seek(0)
 
     filename = "vols_subtype_filtres.xlsx"
+    return send_bytes(lambda out_io: out_io.write(buf.getvalue()), filename=filename)
+def build_interval_table_data(df: pl.DataFrame) -> tuple[list[dict], list[dict]]:
+    if df.is_empty() or PERIOD_START not in df.columns:
+        return [], []
+
+    has_end = PERIOD_END in df.columns and PERIOD_END != PERIOD_START
+    if has_end:
+        df_lab = df.with_columns([
+            pl.col(PERIOD_START).cast(pl.Date).alias("WINDOW_DATETIME_DEP"),
+            pl.col(PERIOD_END).cast(pl.Date).alias("WINDOW_DATETIME_DEP_MAX"),
+        ])
+    else:
+        df_lab = df.with_columns([
+            pl.col(PERIOD_START).cast(pl.Date).alias("WINDOW_DATETIME_DEP"),
+            pl.col(PERIOD_START).cast(pl.Date).alias("WINDOW_DATETIME_DEP_MAX"),
+        ])
+
+    counts_df = (
+        df_lab
+        .group_by(["WINDOW_DATETIME_DEP", "WINDOW_DATETIME_DEP_MAX"])
+        .agg(pl.count().alias("nbr_de_vol"))
+        .sort("WINDOW_DATETIME_DEP", descending=False)
+    )
+
+    total = counts_df["nbr_de_vol"].sum()
+    if total == 0:
+        return [], []
+
+    counts_df = counts_df.with_columns(
+        (pl.col("nbr_de_vol") * 100 / total).round(2).alias("pourcentage")
+    )
+
+    columns = [
+        {"name": "Min_Date", "id": "WINDOW_DATETIME_DEP", "type": "datetime"},
+        {"name": "Max_Date", "id": "WINDOW_DATETIME_DEP_MAX", "type": "datetime"},
+        {"name": "Nbr_de_vol", "id": "nbr_de_vol", "type": "numeric"},
+        {"name": "Pourcentage", "id": "pourcentage", "type": "numeric", "format": {"specifier": ".2f"}},
+    ]
+    data = counts_df.to_dicts()
+    return columns, data
+@app.callback(
+    Output("interval-table", "columns"),
+    Output("interval-table", "data"),
+    add_watcher_for_data(),
+)
+def update_interval_table(_):
+    df = get_df()
+    if df is None:
+        return [], []
+    df = df.collect()
+    if df.is_empty():
+        return [], []
+    columns, data = build_interval_table_data(df)
+    return columns, data
+@app.callback(
+    Output("interval-download", "data"),
+    Input("interval-export-btn", "n_clicks"),
+    State("interval-table", "data"),
+    prevent_initial_call=True,
+)
+def download_interval_excel(n_clicks, table_data):
+    if not n_clicks or not table_data:
+        return no_update
+
+    df_to_download = pl.DataFrame(table_data)
+    buf = BytesIO()
+    workbook = xlsxwriter.Workbook(buf, {"in_memory": True})
+    worksheet = workbook.add_worksheet("Répartition intervalles")
+
+    for j, col in enumerate(df_to_download.columns):
+        worksheet.write(0, j, col)
+    for i, row in enumerate(df_to_download.rows(), start=1):
+        for j, value in enumerate(row):
+            worksheet.write(i, j, value)
+
+    workbook.close()
+    buf.seek(0)
+
+    filename = "vols_intervalles.xlsx"
     return send_bytes(lambda out_io: out_io.write(buf.getvalue()), filename=filename)
