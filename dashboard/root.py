@@ -6,6 +6,8 @@ import dash
 from utils_dashboard.utils_navs import build_nav_items
 from server_instance import get_app
 
+from utils_dashboard.utils_download import download_dash
+
 from excel_manager import (
     ID_PATH_STORE,
     hookers as excel_hookers,
@@ -25,6 +27,7 @@ app = get_app()
 
 app.layout = html.Div(
     [
+        download_dash,
         # hookers
         *excel_hookers,
         # Barre de navigation

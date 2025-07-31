@@ -205,7 +205,10 @@ def handle_update_path(_, new_path):
     Input(ID_TOGGLE_AUTO_REFRESH, "n_clicks"),
     prevent_initial_call=True,
 )
-def toggle_auto_refresh_cb(_):
+def toggle_auto_refresh_cb(n_clicks):
+    if not n_clicks:
+        raise dash.exceptions.PreventUpdate
+
     try:
         status = toggle_auto_refresh()
         return (

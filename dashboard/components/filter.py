@@ -3,6 +3,7 @@ import dash
 import polars as pl
 from datetime import date, datetime, timedelta
 from dash import Input, Output, State
+from utils_dashboard.utils_filter import set_name_from_filter
 from excel_manager import (
     COL_NAME_DEPARTURE_DATETIME,
     COL_NAME_WINDOW_TIME,
@@ -158,8 +159,8 @@ def apply_filters(
 
     segmentation = filters.get("fl_segmentation") if filters else None
     unit_segmentation = filters.get("fl_unit_segmentation") if filters else None
-    subtypes = filters.get("fl_subtype") if filters else None
-    matricules = filters.get("fl_matricule") if filters else None
+    subtypes = filters.get("fl_subtypes") if filters else None
+    matricules = filters.get("fl_matricules") if filters else None
     min_dt = filters.get("dt_start") if filters else None
     max_dt = filters.get("dt_end") if filters else None
 
@@ -319,8 +320,8 @@ def add_callbacks():
         base_lazy = get_df_unfiltered()  # your global LazyFrame
         if base_lazy is None:
             return [], [], None, None
-        v_sub = split_views_by_exclusion(base_lazy, store_data, "fl_subtype")
-        v_mat = split_views_by_exclusion(base_lazy, store_data, "fl_matricule")
+        v_sub = split_views_by_exclusion(base_lazy, store_data, "fl_subtypes")
+        v_mat = split_views_by_exclusion(base_lazy, store_data, "fl_matricules")
         # v_date = split_views_by_exclusion(base_lazy, store_data, "dt_start", "dt_end")
 
         # subtype dropdown
@@ -391,15 +392,15 @@ def add_callbacks():
         Input(FILTER_DATE_RANGE, "start_date"),
         Input(FILTER_DATE_RANGE, "end_date"),
     )
-    def update_filter_store_suggestions(fl_subtype, fl_matricule, dt_start, dt_end):
+    def update_filter_store_suggestions(fl_subtypes, fl_matricules, dt_start, dt_end):
 
         print(
-            f"Filtering data with: {fl_subtype}, {fl_matricule}, {dt_start}, {dt_end}"
+            f"Filtering data with: {fl_subtypes}, {fl_matricules}, {dt_start}, {dt_end}"
         )
 
         return {
-            "fl_subtype": fl_subtype,
-            "fl_matricule": fl_matricule,
+            "fl_subtypes": fl_subtypes,
+            "fl_matricules": fl_matricules,
             "dt_start": dt_start,
             "dt_end": dt_end,
         }
@@ -409,7 +410,7 @@ def add_callbacks():
         add_watch_file(),
         Input(FILTER_STORE_ACTUAL, "data"),
     )
-    def filter_data(_, filter_store_data):
+    def filter_data(_, filter_store_data: FilterType):
 
         df = get_df_unfiltered()
 
@@ -417,6 +418,8 @@ def add_callbacks():
             return {"payload": [], "count": 0}
 
         df, total_df = apply_filters(df, filter_store_data)
+
+        set_name_from_filter(filter_store_data)
 
         update_df(df, total_df)
 
