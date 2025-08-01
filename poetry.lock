@@ -296,14 +296,14 @@ test = ["pytest"]
 
 [[package]]
 name = "dash"
-version = "3.1.1"
+version = "3.2.0"
 description = "A Python framework for building reactive web-apps. Developed by Plotly."
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "dash-3.1.1-py3-none-any.whl", hash = "sha256:66fff37e79c6aa114cd55aea13683d1e9afe0e3f96b35388baca95ff6cfdad23"},
-    {file = "dash-3.1.1.tar.gz", hash = "sha256:916b31cec46da0a3339da0e9df9f446126aa7f293c0544e07adf9fe4ba060b18"},
+    {file = "dash-3.2.0-py3-none-any.whl", hash = "sha256:4c1819588d83bed2cbcf5807daa5c2380c8c85789a6935a733f018f04ad8a6a2"},
+    {file = "dash-3.2.0.tar.gz", hash = "sha256:93300b9b99498f8b8ed267e61c455b4ee1282c7e4d4b518600eec87ce6ddea55"},
 ]
 
 [package.dependencies]
