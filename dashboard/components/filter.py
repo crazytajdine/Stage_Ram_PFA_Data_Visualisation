@@ -17,7 +17,7 @@ from excel_manager import (
 )
 from server_instance import get_app
 import dash_bootstrap_components as dbc
-from schemas.filter import FilterType
+from schemas.filter import FilterKey, FilterType
 
 from dash import html, dcc
 
@@ -26,10 +26,12 @@ FILTER_MATRICULE = "filter-matricule"
 FILTER_SEGMENTATION = "filter-segmentation"
 FILTER_SEGMENTATION_UNIT = "filter-segmentation_unit"
 FILTER_DATE_RANGE = "filter-date-range"
+FILTER_DELAY_CODE = "filter-delay-code"
 FILTER_SUBMIT_BTN = "filter-go-btn"
 # FILTER_RESET_BTN = "filter-reset-btn"
 FILTER_STORE_SUGGESTIONS = "filter-store-suggestions"
 FILTER_STORE_ACTUAL = "filter-store-actual"
+
 
 ID_FILTER_CONTAINER = "filter-container"
 
@@ -75,32 +77,46 @@ layout = dbc.Card(
             ),
             # segmentation
             dbc.Row(
-                dbc.Col(
-                    [
-                        html.Label("Segmentation :", htmlFor=FILTER_SEGMENTATION),
-                        dbc.InputGroup(
-                            [
-                                dbc.Input(
-                                    id=FILTER_SEGMENTATION,
-                                    placeholder="Select segmentation",
-                                    type="number",
-                                    min=0,
-                                ),
-                                dbc.Select(
-                                    id=FILTER_SEGMENTATION_UNIT,
-                                    options=[
-                                        {"label": "Day", "value": "d"},
-                                        {"label": "Week", "value": "w"},
-                                        {"label": "Month", "value": "mo"},
-                                        {"label": "Year", "value": "y"},
-                                    ],
-                                    value="d",
-                                ),
-                            ],
-                        ),
-                    ],
-                    md=6,
-                ),
+                [
+                    dbc.Col(
+                        [
+                            html.Label("Segmentation :", htmlFor=FILTER_SEGMENTATION),
+                            dbc.InputGroup(
+                                [
+                                    dbc.Input(
+                                        id=FILTER_SEGMENTATION,
+                                        placeholder="Select segmentation",
+                                        type="number",
+                                        min=0,
+                                    ),
+                                    dbc.Select(
+                                        id=FILTER_SEGMENTATION_UNIT,
+                                        options=[
+                                            {"label": "Day", "value": "d"},
+                                            {"label": "Week", "value": "w"},
+                                            {"label": "Month", "value": "mo"},
+                                            {"label": "Year", "value": "y"},
+                                        ],
+                                        value="d",
+                                    ),
+                                ],
+                            ),
+                        ],
+                        md=6,
+                    ),
+                    dbc.Col(
+                        [
+                            html.Label("Delay Code :"),
+                            dcc.Dropdown(
+                                id=FILTER_DELAY_CODE,
+                                options=[],
+                                multi=True,
+                                placeholder="All Options",
+                            ),
+                        ],
+                        md=6,
+                    ),
+                ],
                 className="mb-3",
             ),
             # dates
@@ -159,6 +175,7 @@ def apply_filters(
 
     segmentation = filters.get("fl_segmentation") if filters else None
     unit_segmentation = filters.get("fl_unit_segmentation") if filters else None
+    code_delays = filters.get("fl_code_delays") if filters else None
     subtypes = filters.get("fl_subtypes") if filters else None
     matricules = filters.get("fl_matricules") if filters else None
     min_dt = filters.get("dt_start") if filters else None
@@ -193,6 +210,9 @@ def apply_filters(
             stmt_end = pl.col(COL_NAME_DEPARTURE_DATETIME).max()
         else:
             stmt_end = pl.lit(max_total_dt)
+
+    if code_delays:
+        df = df.filter(pl.col("CODE_DR").is_in(code_delays))
 
     if not is_suggestions:
         total_df = get_count_df(segmentation, unit_segmentation, start, end)
@@ -252,7 +272,7 @@ def apply_filters(
 
 
 def split_views_by_exclusion(
-    df: pl.LazyFrame, filters: dict, *excludes: str
+    df: pl.LazyFrame, filters: dict, *excludes: FilterKey
 ) -> pl.LazyFrame:
 
     # exclude matricule
@@ -311,6 +331,7 @@ def add_callbacks():
     @app.callback(
         Output(FILTER_SUBTYPE, "options"),
         Output(FILTER_MATRICULE, "options"),
+        Output(FILTER_DELAY_CODE, "options"),
         Output(FILTER_DATE_RANGE, "min_date_allowed"),
         Output(FILTER_DATE_RANGE, "max_date_allowed"),
         Input(FILTER_STORE_SUGGESTIONS, "data"),
@@ -322,7 +343,14 @@ def add_callbacks():
             return [], [], None, None
         v_sub = split_views_by_exclusion(base_lazy, store_data, "fl_subtypes")
         v_mat = split_views_by_exclusion(base_lazy, store_data, "fl_matricules")
+        v_delay = split_views_by_exclusion(base_lazy, store_data, "fl_code_delays")
+
         # v_date = split_views_by_exclusion(base_lazy, store_data, "dt_start", "dt_end")
+
+        df_delay = v_delay.collect()
+        delay_codes = sorted(
+            df_delay.get_column("CODE_DR").drop_nulls().unique().to_list()
+        )
 
         # subtype dropdown
         df_sub = v_sub.collect()
@@ -357,6 +385,7 @@ def add_callbacks():
         return (
             to_options(subtypes),
             to_options(matricules),
+            to_options(delay_codes),
             dt_min_iso,
             dt_max_iso,
         )
@@ -389,18 +418,22 @@ def add_callbacks():
         Output(FILTER_STORE_SUGGESTIONS, "data"),
         Input(FILTER_SUBTYPE, "value"),
         Input(FILTER_MATRICULE, "value"),
+        Input(FILTER_DELAY_CODE, "value"),
         Input(FILTER_DATE_RANGE, "start_date"),
         Input(FILTER_DATE_RANGE, "end_date"),
     )
-    def update_filter_store_suggestions(fl_subtypes, fl_matricules, dt_start, dt_end):
+    def update_filter_store_suggestions(
+        fl_subtypes, fl_matricules, fl_code_delays, dt_start, dt_end
+    ) -> FilterType:
 
         print(
-            f"Filtering data with: {fl_subtypes}, {fl_matricules}, {dt_start}, {dt_end}"
+            f"Filtering data with: {fl_subtypes}, {fl_matricules}, {fl_code_delays}, {dt_start}, {dt_end}"
         )
 
         return {
             "fl_subtypes": fl_subtypes,
             "fl_matricules": fl_matricules,
+            "fl_code_delays": fl_code_delays,
             "dt_start": dt_start,
             "dt_end": dt_end,
         }
@@ -438,7 +471,7 @@ def add_callbacks():
         store_suggestions_data: FilterType,
         segmentation: Optional[int],
         segmentation_segmentation_unit: Optional[str],
-    ):
+    ) -> FilterType:
         data = store_suggestions_data if store_suggestions_data else {}
         data["fl_segmentation"] = segmentation
         data["fl_unit_segmentation"] = segmentation_segmentation_unit

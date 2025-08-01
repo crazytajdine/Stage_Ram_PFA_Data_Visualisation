@@ -1,7 +1,7 @@
 from typing import Optional
 import dash
 import dash_bootstrap_components as dbc
-from dash import Input, Output, State, dash_table
+from dash import Output, dash_table
 from utils_dashboard.utils_graph import (
     create_graph_bar_card,
     generate_card_info_change,

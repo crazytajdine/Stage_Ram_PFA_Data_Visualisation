@@ -34,7 +34,7 @@ def set_name_from_filter(filters: FilterType) -> None:
 
     # Ajout des codes delay
     if code_delays:
-        fname_parts.append(f"delays_{'_'.join(code_delays)}")
+        fname_parts.append(f"delays_{'_'.join(str(cd) for cd in code_delays)}")
     else:
         fname_parts.append("all_delays")
 
