@@ -179,9 +179,7 @@ def calculate_graph_info_with_period(df: pl.LazyFrame) -> pl.LazyFrame:
         [
             (
                 pl.col(col)
-                .round(2)
-                .cast(pl.Utf8)
-                .map_elements(lambda v: f"{v}%", return_dtype=pl.Utf8)
+                .map_elements(lambda v: f"{v:.2f}%", return_dtype=pl.Utf8)
                 .alias(show_col)
             )
             for col, show_col in columns_to_format
