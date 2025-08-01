@@ -106,43 +106,50 @@ def create_graph_bar_horizontal_card(
     )
 
 
-def generate_card_info_change(df: pl.DataFrame, col_name: str, title: str) -> dbc.Card:
-
+def generate_card_info_change(
+    df: pl.DataFrame,
+    col_name: str,
+    title: str,
+    include_footer: bool = True,
+) -> dbc.Card:
     assert df is not None and col_name is not None
 
+    # pull last two non-null values
     latest_values = (
         df.drop_nulls(pl.col(col_name))
         .select(pl.col(col_name).tail(2))
         .to_series()
         .to_list()
     )
-    # Calculate change
-    if COL_NAME_WINDOW_TIME in df.columns and len(latest_values) == 2:
 
+    # calc current value and change
+    if COL_NAME_WINDOW_TIME in df.columns and len(latest_values) == 2:
         last_year, this_year = latest_values
         change = this_year - last_year
     elif len(latest_values) == 1:
-
         this_year = latest_values[0]
         change = None
     else:
         this_year = None
         change = None
 
-    # Determine display for change
+    # prepare change display
     if change is None:
         change_div = html.Span("N/A", className="text-secondary")
         stripe_color = "secondary"
     else:
-        # positive vs negative
         if change >= 0:
-            icon_cls = "bi bi-caret-up-fill"
-            color_cls = "text-success"
-            stripe_color = "success"
+            icon_cls, color_cls, stripe_color = (
+                "bi-caret-up-fill",
+                "text-success",
+                "success",
+            )
         else:
-            icon_cls = "bi bi-caret-down-fill"
-            color_cls = "text-danger"
-            stripe_color = "danger"
+            icon_cls, color_cls, stripe_color = (
+                "bi-caret-down-fill",
+                "text-danger",
+                "danger",
+            )
 
         change_div = html.Div(
             [
@@ -152,33 +159,40 @@ def generate_card_info_change(df: pl.DataFrame, col_name: str, title: str) -> db
             className=f"{color_cls} d-flex justify-content-center align-items-center",
         )
 
-    return dbc.Card(
-        [
-            # Stripe (header) – fixed 4px height
-            dbc.CardHeader(
-                [
-                    html.Div(
-                        className=f"bg-{stripe_color} rounded-top mb-1",
-                        style={"height": "4px"},
-                    ),
-                    html.H5(title, className="text-muted px-4 mb-0"),
-                ],
-                className="p-0 border-0 text-center bg-transparent",
-            ),
-            # Body – fixed height (or flex‑fill if you want it to grow)
-            dbc.CardBody(
-                [
-                    html.H2(
-                        f"{this_year:.2f}%" if this_year else "N/A", className="m-0"
-                    ),
-                ],
-                className="d-flex flex-fill align-items-center justify-content-center px-4",
-            ),
-            # Footer – fixed height
+    # build children list
+    children = [
+        dbc.CardHeader(
+            [
+                html.Div(
+                    className=f"bg-{stripe_color} rounded-top mb-1",
+                    style={"height": "4px"},
+                ),
+                html.H5(title, className="text-muted px-4 mb-0"),
+            ],
+            className="p-0 border-0 text-center bg-transparent",
+        ),
+        # main value
+        dbc.CardBody(
+            [
+                html.H2(
+                    f"{this_year:.2f}%" if this_year is not None else "N/A",
+                    className="m-0",
+                ),
+            ],
+            className="d-flex flex-fill align-items-center justify-content-center px-4",
+        ),
+    ]
+
+    # conditionally add footer
+    if include_footer:
+        children.append(
             dbc.CardFooter(
                 change_div,
                 className="text-center bg-transparent border-0",
-            ),
-        ],
+            )
+        )
+
+    return dbc.Card(
+        children,
         className="d-flex flex-column shadow-sm rounded-2 w-100 h-100",
     )

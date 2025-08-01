@@ -13,7 +13,6 @@ from excel_manager import (
     is_auto_refresh_disabled,
     get_modification_time_cashed,
     add_watch_file,
-    ID_PATH_STORE,
 )
 from utils_dashboard.utils_preference import get_nav_preferences, set_page_visibility
 
@@ -98,32 +97,6 @@ layout = html.Div(
                         dbc.Alert(
                             id=ID_TOGGLE_REFRESH_MSG, is_open=False, className="mt-3"
                         ),
-                    ]
-                ),
-            ],
-            className="mb-4",
-        ),
-        # ➕ NEW: File Monitoring Display
-        dbc.Card(
-            [
-                dbc.CardHeader("Surveillance du fichier"),
-                dbc.CardBody(
-                    [
-                        html.Div(
-                            id="modification-time-display",
-                            style={
-                                "padding": "15px",
-                                "background-color": "#f8f9fa",
-                                "border": "1px solid #dee2e6",
-                                "border-radius": "5px",
-                                "font-family": "Consolas, Monaco, monospace",
-                                "font-size": "14px",
-                                "color": "#495057",
-                                "min-height": "50px",
-                                "display": "flex",
-                                "align-items": "center",
-                            },
-                        )
                     ]
                 ),
             ],
