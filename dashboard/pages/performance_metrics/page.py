@@ -45,16 +45,16 @@ COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46_SHOW = (
     "per_delayed_flights_15min__not_with_41_46_SHOW"
 )
 
-ID_GRAPH_DELAY = "graph_delay"
-ID_GRAPH_DELAY_15MIN = "graph_delay_15min"
-ID_GRAPH_DELAY_41_42_15MIN = "graph_delay_41_42_15min"
+ID_GRAPH_DELAY = "graph_delay_metrics"
+ID_GRAPH_DELAY_15MIN = "graph_delay_15min_metrics"
+ID_GRAPH_DELAY_41_46_15MIN = "graph_delay_41_46_15min_metrics"
 
-ID_CARD_DELAY = "card_delay"
-ID_CARD_DELAY_15MIN = "card_delay_15min"
-ID_CARD_DELAY_15MIN_41_42 = "card_delay_15min_41_42"
+ID_CARD_DELAY = "card_delay_metrics"
+ID_CARD_DELAY_15MIN = "card_delay_15min_metrics"
+ID_CARD_DELAY_15MIN_41_46 = "card_delay_15min_41_46_metrics"
 
-ID_TABLE_CONTAINER = "result_table_percentage"
-ID_TABLE = "result_table"
+ID_TABLE_CONTAINER = "result_table_percentage_metrics"
+ID_TABLE = "result_table_metrics"
 
 app = get_app()
 
@@ -225,7 +225,7 @@ layout = dbc.Container(
             [
                 dbc.Col(id=ID_CARD_DELAY, md=4),
                 dbc.Col(id=ID_CARD_DELAY_15MIN, md=4),
-                dbc.Col(id=ID_CARD_DELAY_15MIN_41_42, md=4),
+                dbc.Col(id=ID_CARD_DELAY_15MIN_41_46, md=4),
             ],
             className="g-4 mb-5",
             justify="center",
@@ -240,7 +240,7 @@ layout = dbc.Container(
                     id=ID_GRAPH_DELAY_15MIN,
                 ),
                 dbc.Col(
-                    id=ID_GRAPH_DELAY_41_42_15MIN,
+                    id=ID_GRAPH_DELAY_41_46_15MIN,
                     lg=12,
                     xl=12,
                 ),
@@ -268,10 +268,10 @@ add_export_callbacks(
     [
         Output(ID_CARD_DELAY, "children"),
         Output(ID_CARD_DELAY_15MIN, "children"),
-        Output(ID_CARD_DELAY_15MIN_41_42, "children"),
+        Output(ID_CARD_DELAY_15MIN_41_46, "children"),
         Output(ID_GRAPH_DELAY, "children"),
         Output(ID_GRAPH_DELAY_15MIN, "children"),
-        Output(ID_GRAPH_DELAY_41_42_15MIN, "children"),
+        Output(ID_GRAPH_DELAY_41_46_15MIN, "children"),
         Output(ID_TABLE_CONTAINER, "children"),
     ],
     add_watcher_for_data(),
