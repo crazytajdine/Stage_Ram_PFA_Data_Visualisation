@@ -19,6 +19,9 @@ def get_download_trigger():
     return Output(ID_DOWNLOAD, "data", allow_duplicate=True)
 
 
+import logging
+
+
 def export_excel(
     df: pl.DataFrame,
     name: str,

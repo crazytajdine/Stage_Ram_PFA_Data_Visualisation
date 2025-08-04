@@ -3,20 +3,21 @@ import threading
 from pathlib import Path
 
 # Start Dash server in the background -----------------------------
+from dashboard.configurations.log_config import init_log
 from dashboard.root import start_server  # ⚠️ your Dash app factory
 
 # Qt imports ------------------------------------------------------
 from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
+
+from configurations.config import get_base_config
+
+
 # Qt >= 6.5 moved the download class into QtWebEngineCore
 # Fall‑back to the old location so one file works on both Qt 5 & Qt 6
-try:
-    from PySide6.QtWebEngineCore import QWebEngineDownloadRequest  # Qt 6.5+
-except ImportError:  # Qt 5 / early Qt 6
-    from PySide6.QtWebEngineWidgets import (
-        QWebEngineDownloadItem as QWebEngineDownloadRequest,
-    )
+
+from PySide6.QtWebEngineCore import QWebEngineDownloadRequest  # Qt 6.5+
 
 from PySide6.QtCore import QUrl
 
@@ -24,6 +25,8 @@ from PySide6.QtCore import QUrl
 # ---------------------------------------------------------------
 # Main window embeds the Dash app and forces downloads to ~/Downloads
 # ---------------------------------------------------------------
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -64,6 +67,13 @@ class MainWindow(QMainWindow):
 # Bootstrap Qt application ---------------------------------------
 # ---------------------------------------------------------------
 if __name__ == "__main__":
+
+    config = get_base_config()
+    log_file = config.get("log", {}).get(
+        "log_file_desktop_app", "logs/dashboard_desktop_app.log"
+    )
+
+    init_log(log_file)
 
     threading.Thread(target=start_server, args=(False,), daemon=True).start()
 

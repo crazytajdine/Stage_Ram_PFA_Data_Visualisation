@@ -1,8 +1,10 @@
-from dash import html, dcc, Output, Input, State
+from dash import html, Output, Input, State
 from dash.dependencies import Input, Output
 import plotly.io as pio
 import dash
 
+from configurations.config import get_base_config
+from configurations.log_config import init_log
 from utils_dashboard.utils_navs import build_nav_items
 from server_instance import get_app
 
@@ -92,5 +94,10 @@ def start_server(start_dev=True):
 
 
 if __name__ == "__main__":
+
+    config = get_base_config()
+    log_file = config.get("log", {}).get("log_file_server", "logs/dashboard_server.log")
+
+    init_log(log_file)
 
     start_server()

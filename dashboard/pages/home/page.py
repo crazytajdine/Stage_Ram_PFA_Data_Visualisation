@@ -80,6 +80,7 @@ def _build_pct_figure(df: pl.DataFrame) -> go.Figure:
     if df.is_empty():
         return go.Figure()
     total = df.height
+
     if total == 0:
         return go.Figure()
     count_15_plus = df.filter(pl.col("Retard en min") >= 15).height
