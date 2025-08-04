@@ -1,5 +1,6 @@
 # utils_graph.py
 
+from typing import Literal
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 import plotly.express as px
@@ -12,7 +13,13 @@ from excel_manager import (
 
 
 def create_graph_bar_card(
-    df: pl.DataFrame, x: str, y: str, title: str, text=None, color: str | None = None, barmode: str = "group"
+    df: pl.DataFrame,
+    x: str,
+    y: str,
+    title: str,
+    text=None,
+    color: str | None = None,
+    barmode: Literal["group", "stacked"] = "group",
 ) -> dbc.Card | None:
 
     if x not in df.columns:
@@ -21,7 +28,7 @@ def create_graph_bar_card(
     len_date = df.select(pl.col(x).len()).item()
 
     # Create figure
-    fig = px.bar(df, x=x, y=y, title=title, text=text,barmode=barmode, color=color)
+    fig = px.bar(df, x=x, y=y, title=title, text=text, barmode=barmode, color=color)
 
     threshold_sep_x = 12
     threshold_show_y = 20
@@ -60,7 +67,13 @@ def create_graph_bar_card(
 
 
 def create_graph_bar_horizontal_card(
-    df: pl.DataFrame, x: str, y: str, title: str, text=None,  color: str | None = None, barmode: str = "group"
+    df: pl.DataFrame,
+    x: str,
+    y: str,
+    title: str,
+    text=None,
+    color: str | None = None,
+    barmode: str = "group",
 ) -> dbc.Card | None:
 
     if x not in df.columns:
@@ -72,7 +85,16 @@ def create_graph_bar_horizontal_card(
     threshold_show_x = 20
 
     # Create figure
-    fig = px.bar(df, x=x, y=y, title=title, text=text, orientation="h",barmode=barmode, color=color)
+    fig = px.bar(
+        df,
+        x=x,
+        y=y,
+        title=title,
+        text=text,
+        orientation="h",
+        barmode=barmode,
+        color=color,
+    )
 
     fig.update_yaxes(tickformat="%y-%m-%d")
 

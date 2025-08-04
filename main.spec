@@ -4,11 +4,12 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 from PyInstaller.building.build_main import Analysis, PYZ, EXE
 
 
-from config import config, config_path
+from dashboard.configurations.config import get_base_config, config_path
 
 # ---------------------------------------------------------------------------
 # Generic settings
 # ---------------------------------------------------------------------------
+config = get_base_config()
 ROOT_SCRIPT = os.path.join("dashboard", "root.py")
 PLOTLY_DATAS = collect_data_files("plotly", include_py_files=False)
 FASTEXCEL_DATAS = collect_data_files("fastexcel", include_py_files=False)
@@ -17,18 +18,10 @@ hiddenimports = [*collect_submodules("fastexcel")]
 
 SYSTEM = platform.system().lower()  # 'windows', 'darwin', 'linux', etc.
 
-DEFAULT_EXE_NAMES = {
-    "windows": "-x86_64-pc-windows-msvc",
-    "darwin": "-aarch64-apple-darwin",
-    "linux": "-x86_64-linux",
-}
 
-NAME_OF_EXE = config.get("exe", {}).get(
-    "name_of_python_exe", "server_dashboard"
-) + DEFAULT_EXE_NAMES.get(SYSTEM, "")
+NAME_OF_EXE = config.get("exe", {}).get("name_of_python_exe", "server_dashboard")
 
-
-datas = PLOTLY_DATAS + FASTEXCEL_DATAS + [(config_path, ".")]
+datas = PLOTLY_DATAS + FASTEXCEL_DATAS + [(config_path, "configurations/")]
 
 
 # Fallback to empty string if not found
@@ -48,10 +41,10 @@ a = Analysis(
     runtime_hooks=[],
     excludes=[],
     noarchive=False,
-    optimize=0,
+    optimize=2, 
 )
 
-pyz = PYZ(a.pure)
+pyz = PYZ(a.pure,optimize=2)
 
 exe = EXE(
     pyz,
