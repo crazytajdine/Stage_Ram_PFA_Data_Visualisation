@@ -128,7 +128,6 @@ layout = dbc.Container(
                 dbc.Alert(
                     id="result-message",
                     is_open=False,
-                    dismissable=True,
                     className="mt-3",
                 ),
                 # Premier bouton + tableau + export
@@ -351,6 +350,7 @@ def update_category(_):
         x=COL_NAME_WINDOW_TIME,
         y=COL_NAME_CATEGORY_GT_15MIN_MEAN,
         color=COL_NAME_CATEGORY_GT_15MIN,
+        legend_title="Category of delay",
         title="Delay per category",
     )
     # table

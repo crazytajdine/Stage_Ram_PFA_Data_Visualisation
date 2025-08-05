@@ -24,6 +24,7 @@ def create_bar_figure(
     unit: str = "%",
     color: str | None = None,
     barmode: Literal["group", "stacked"] = "group",
+    legend_title: str | None = None,
 ) -> go.Figure | None:
 
     if x not in df.columns or y not in df.columns:
@@ -64,6 +65,9 @@ def create_bar_figure(
         xaxis_title="",
     )
 
+    if legend_title is not None:
+        fig.update_layout(legend_title_text=legend_title)
+
     hover_template_base = (
         "%{x}<br>Percentage : %{text}<br>Detailed : %{y}<extra></extra>"
     )
@@ -90,6 +94,7 @@ def create_bar_horizontal_figure(
     unit: str = "%",
     color: str | None = None,
     barmode: str = "group",
+    legend_title: str | None = None,
 ) -> go.Figure | None:
 
     if x not in df.columns or y not in df.columns:
@@ -131,6 +136,8 @@ def create_bar_horizontal_figure(
         hovertemplate="%{y}<br>Percentage : %{text}<br>Detailed : %{x} <extra></extra>",
         textfont_size=16,
     )
+    if legend_title is not None:
+        fig.update_layout(legend_title_text=legend_title)
 
     unique_y = df[y].unique()
     if len(unique_y) <= threshold_sep_y:
