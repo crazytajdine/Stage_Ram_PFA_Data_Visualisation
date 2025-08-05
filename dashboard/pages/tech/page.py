@@ -16,6 +16,7 @@ import math
 from dash import ctx, no_update
 import io
 from components.filter import FILTER_STORE_ACTUAL
+from dashboard.utils_dashboard.utils_graph import create_bar_figure, create_bar_horizontal_figure, create_graph_bar_card
 
 app = get_app()
 # ------------------------------------------------------------------ #
@@ -205,15 +206,15 @@ def make_layout() -> html.Div:
 
     # ----- CHART GRID ----------------------------------------------
     charts_block = html.Div(
-        id="charts-container",
-        children=[],
-        style={
-            "display": "grid",
-            "gridTemplateColumns": "repeat(2, 1fr)",
-            "gap": "16px",
-            "alignItems": "start",
-        },
-    )
+    id="charts-container",
+    children=[],
+    style={
+        "display": "grid",
+        "gridTemplateColumns": "1fr",   # ← au lieu de repeat(2, 1fr)
+        "gap": "16px",
+        "alignItems": "start",
+    },
+)
 
     # ----- TABLE (placed last) -------------------------------------
     table_block = html.Div(
@@ -396,122 +397,75 @@ def build_outputs(n_clicks):
         )
     )
 
-    selected_codes = (
-        df["DELAY_CODE"].unique().sort().to_list() if not df.is_empty() else []
-    )
-    all_periods = df.get_column(time_period).unique().sort().to_list()
-    if not selected_codes:
-        fig = go.Figure()
-        fig.add_annotation(
-            text="Aucune donnée pour les codes sélectionnés",
-            xref="paper",
-            yref="paper",
-            x=0.5,
-            y=0.5,
-            showarrow=False,
-            font=dict(size=16, color="#a0a7b9"),
-        )
-    else:
-        # Group by time period and code
-        # ---------- FAMILY-LEVEL CHARTS ------------------------------------
-        family_figs = []  # list of Graph components to return
 
-        # consistent colour map across all charts
-        all_unique_codes = df["DELAY_CODE"].unique().sort().to_list()
-        palette = px.colors.qualitative.Set3
-        color_map = {
-            c: palette[i % len(palette)] for i, c in enumerate(all_unique_codes)
-        }
+    # Group by time period and code
+    # ---------- FAMILY-LEVEL CHARTS ------------------------------------
+    family_figs = []  # list of Graph components to return
 
-        for fam in temporal_all["FAMILLE_DR"].unique().sort():
-            fam_data = temporal_all.filter(pl.col("FAMILLE_DR") == fam)
+    # consistent colour map across all charts
+    all_unique_codes = df["DELAY_CODE"].unique().sort().to_list()
+    palette = px.colors.qualitative.Set3
+    color_map = {
+        c: palette[i % len(palette)] for i, c in enumerate(all_unique_codes)
+    }
 
-            if fam_data.is_empty():
-                continue
+ # ------------------------------------------------------------------
+    # Construire les onglets (une Tab par famille)
+    tab_children = []
 
-            fig = go.Figure()
+    for fam in temporal_all["FAMILLE_DR"].unique().sort():
+        fam_data = temporal_all.filter(pl.col("FAMILLE_DR") == fam)
 
-            for code in fam_data["DELAY_CODE"].unique().sort():
-                rows = fam_data.filter(pl.col("DELAY_CODE") == code)
-
-                # maps in the exact grid order
-                perc_map = {r[time_period]: r["perc"] for r in rows.to_dicts()}
-                count_map = {r[time_period]: r["count"] for r in rows.to_dicts()}
-
-                y_vals = [perc_map.get(p, 0) for p in all_periods]
-                raw_counts = [count_map.get(p, 0) for p in all_periods]
-
-                fig.add_trace(
-                    go.Bar(
-                        x=all_periods,
-                        y=y_vals,
-                        name=code,
-                        marker_color=color_map.get(code, "#cccccc"),
-                        customdata=list(zip(raw_counts, y_vals)),
-                        hovertemplate=(
-                            "<b>%{meta}</b><br>"
-                            "Période : %{x}<br>"
-                            "Occur. : %{customdata[0]}<br>"
-                            "Pourc. : %{customdata[1]:.2f}%<extra></extra>"
-                        ),
-                        meta=code,
-                        text=[
-                            f"{v:.2f} %" if v else "" for v in y_vals
-                        ],  # optional labels
-                        textposition="outside",
-                        cliponaxis=False,
+        dts = (
+            fam_data.group_by(time_period, "DELAY_CODE")
+                    .agg(
+                        pl.col("count").sum().alias("all_counts"),
+                        pl.col("perc").sum().alias("y_vals"),
                     )
-                )
+                    .with_columns(pl.col("DELAY_CODE").cast(pl.Utf8))
+        )
 
-            HEADER_H = 36  # grey bar height (px) – keep padding inside this
-            FIG_H = 420  # visible Plotly canvas height
-            WRAP_H = HEADER_H + FIG_H
-            # build the bar­chart …
-            fig.update_layout(
-                yaxis=dict(
-                    range=[0, 100],
-                    tickformat=".0f",
-                    dtick=10,
-                    title="Pourcentage (%)",
-                ),
-                bargap=0.2,
-                height=FIG_H,
-                margin=dict(
-                    l=40, r=10, t=20, b=70
-                ),  # b = 70 leaves room for “outside” labels
-            )
+        fig = create_bar_figure(
+            df=dts,
+            x=time_period,
+            y="y_vals",
+            title=fam,
+            unit="%",
+            color="DELAY_CODE",
+            barmode="group",
+            legend_title=fam,
+        )
 
-            # ---- grey-header “card” ------------------------------------------
-            family_figs.append(
-                html.Div(
-                    [
-                        # header bar
-                        html.Div(
-                            f"Famille : {fam}",
-                            style={
-                                "background": "#6c757d",
-                                "color": "#fff",
-                                "height": f"{HEADER_H}px",
-                                "display": "flex",
-                                "alignItems": "center",
-                                "paddingLeft": "12px",
-                                "fontWeight": 600,
-                                "borderTopLeftRadius": "6px",
-                                "borderTopRightRadius": "6px",
-                            },
-                        ),
-                        # graph
-                        dcc.Graph(id="codes-chart", figure=fig, config=plot_config),
-                    ],
-                    style={
-                        "border": "1px solid #dee2e6",
-                        "borderRadius": "6px",
-                        "overflow": "hidden",
-                        "overflow": "visible",
-                        "background": "#ffffff",
-                    },
-                )
+        # ➜ un onglet ; inutile de mettre un id sur le Graph
+        tab_children.append(
+            dcc.Tab(
+                label=fam,          # texte de l’onglet
+                value=fam,          # valeur (pour l’état actif)
+                children=[
+                    dcc.Graph(figure=fig, config=plot_config, style={"height": 450})
+                ],
+                
             )
+        )
+
+    # composant Tabs complet
+    family_tabs = dcc.Tabs(
+        id="family-tabs",
+        value=tab_children[0].value if tab_children else None,  # premier actif
+        children=tab_children,
+        persistence=True,
+        colors={
+            "background": "#ffffff",
+            "primary": "#0d6efd",
+            "border": "#dee2e6",
+        },
+        style={                         # ← ajoutez ceci
+        "width": "100%",            # occupe toute la colonne
+        "display": "flex",          # les onglets se comportent comme flex-items
+        "justifyContent": "center", # centrés horizontalement
+        },
+    )
+
 
     # 3. Build table (independent of code and segmentation selection)
     # --- Table structurée ---
@@ -585,33 +539,17 @@ def build_outputs(n_clicks):
             page_size=8,  # include hidden cols if you like
             style_table={"height": "500px", "overflowY": "auto"},
         )
-    fig_familles = go.Figure()
 
     for famille in famille_share_df["FAMILLE_DR"].unique().sort():
-        rows = famille_share_df.filter(pl.col("FAMILLE_DR") == famille)
-        pct_map = {r[time_period]: r["percentage"] for r in rows.to_dicts()}
-        x_vals = [pct_map.get(p, 0) for p in all_periods]
-
-        fig_familles.add_trace(
-            go.Bar(
-                y=all_periods,
-                x=x_vals,
-                orientation="h",
-                name=famille,
-                text=[f"{x:.1f}%" if x else "" for x in x_vals],
-                textposition="inside",
-            )
+        fig_familles = create_bar_horizontal_figure(
+            df=famille_share_df,
+            x="percentage",
+            y=time_period,
+            title=f"{famille}",
+            unit="%",
+            color="FAMILLE_DR",
+            barmode="stack",
         )
-
-    fig_familles.update_layout(
-        barmode="stack",
-        title="Part de chaque famille dans les retards (par période)",
-        xaxis_title="Pourcentage (%)",
-        yaxis_title="Fenêtre temporelle",
-        height=600,
-        margin=dict(l=140, r=40, t=60, b=60),
-        plot_bgcolor="#fff",
-    )
     # --- juste après avoir construit fig_familles ---------------------
     # ▸ juste après avoir créé fig_familles  ⬇️
     big_chart = html.Div(
@@ -624,7 +562,10 @@ def build_outputs(n_clicks):
         style={"gridColumn": "1 / -1"},  # ou "1 / span 2" si tu préfères
     )
 
-    charts_out = [big_chart] + family_figs  # ensuite tes autres graphiques
+    charts_out = [
+    big_chart,     # graphique global (déjà défini plus haut)
+    family_tabs,   # barre d’onglets avec un seul graph visible
+]
 
     return stats, charts_out, table
 
