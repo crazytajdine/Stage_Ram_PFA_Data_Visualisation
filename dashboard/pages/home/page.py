@@ -57,6 +57,28 @@ TABLE_NAMES_RENAME = {
 app = get_app()
 
 
+# def process_subtype_pct_data(df: pl.LazyFrame) -> pl.LazyFrame:
+#     # Step 1: group by window and subtype
+#     grouped = df.group_by(
+#         [COL_NAME_WINDOW_TIME_MAX, COL_NAME_WINDOW_TIME, "AC_SUBTYPE"]
+#     ).agg(pl.count().alias(COL_NAME_COUNT_FLIGHTS))
+
+#     # Step 2: calculate the percentage by window
+#     result = grouped.with_columns(
+#         (
+#             pl.col(COL_NAME_COUNT_FLIGHTS)
+#             * 100
+#             / pl.col(COL_NAME_COUNT_FLIGHTS)
+#             .sum()
+#             .over([COL_NAME_WINDOW_TIME_MAX, COL_NAME_WINDOW_TIME])
+#         )
+#         .round(2)
+#         .alias(COL_NAME_PERCENTAGE_DELAY)
+#     )
+
+#     return result.sort(COL_NAME_WINDOW_TIME)
+
+
 def process_subtype_pct_data(df: pl.LazyFrame) -> pl.LazyFrame:
     counts = df.group_by("AC_SUBTYPE").agg(pl.count().alias(COL_NAME_COUNT_FLIGHTS))
 
@@ -144,6 +166,16 @@ layout = dbc.Container(
                     },
                     style_cell={"textAlign": "left"},
                     sort_action="native",
+                    style_data_conditional=[
+                        {
+                            "if": {"row_index": "odd"},
+                            "backgroundColor": "#f8f9fa",  # light gray
+                        },
+                        {
+                            "if": {"row_index": "even"},
+                            "backgroundColor": "white",
+                        },
+                    ],
                 ),
                 # Graphique subtype pct
                 html.Div(
@@ -178,6 +210,16 @@ layout = dbc.Container(
                             },
                             style_cell={"textAlign": "left"},
                             sort_action="native",
+                            style_data_conditional=[
+                                {
+                                    "if": {"row_index": "odd"},
+                                    "backgroundColor": "#f8f9fa",  # light gray
+                                },
+                                {
+                                    "if": {"row_index": "even"},
+                                    "backgroundColor": "white",
+                                },
+                            ],
                         ),
                     ]
                 ),
@@ -213,6 +255,16 @@ layout = dbc.Container(
                             },
                             style_cell={"textAlign": "left"},
                             sort_action="native",
+                            style_data_conditional=[
+                                {
+                                    "if": {"row_index": "odd"},
+                                    "backgroundColor": "#f8f9fa",  # light gray
+                                },
+                                {
+                                    "if": {"row_index": "even"},
+                                    "backgroundColor": "white",
+                                },
+                            ],
                         ),
                     ],
                     style={"marginBottom": "40px"},
@@ -250,6 +302,16 @@ layout = dbc.Container(
                             },
                             style_cell={"textAlign": "left"},
                             sort_action="native",
+                            style_data_conditional=[
+                                {
+                                    "if": {"row_index": "odd"},
+                                    "backgroundColor": "#f8f9fa",  # light gray
+                                },
+                                {
+                                    "if": {"row_index": "even"},
+                                    "backgroundColor": "white",
+                                },
+                            ],
                         ),
                     ],
                     style={"marginBottom": "40px"},
@@ -326,6 +388,17 @@ def update_subtype(_):
         y=COL_NAME_SUBTYPE,
         title="Delayed flights by SUBTYPE (%)",
     )
+
+    # fig = create_bar_horizontal_figure(
+    #     df_sub,
+    #     x=COL_NAME_PERCENTAGE_DELAY,
+    #     y=COL_NAME_WINDOW_TIME,
+    #     title="Delayed flights by SUBTYPE (%) per time window",
+    #     color="AC_SUBTYPE",
+    #     legend_title="Subtype",
+    #     barmode="stack",
+    # )
+
     # table
     cols = [{"name": TABLE_NAMES_RENAME.get(c, c), "id": c} for c in df_sub.columns]
     data = df_sub.to_dicts()
@@ -351,7 +424,7 @@ def update_category(_):
         y=COL_NAME_CATEGORY_GT_15MIN_MEAN,
         color=COL_NAME_CATEGORY_GT_15MIN,
         legend_title="Category of delay",
-        title="Delay per category",
+        title="Flight delays ≥15 min vs <15 min (per time window)",
     )
     # table
     display_cols = [
@@ -387,7 +460,7 @@ def update_interval(_):
         df_period,
         x=COL_NAME_PERCENTAGE_DELAY,
         y=COL_NAME_WINDOW_TIME,
-        title="Distribution of flights by intervals",
+        title="Distribution of flights by time intervals",
     )
     # table
     cols = [{"name": TABLE_NAMES_RENAME.get(c, c), "id": c} for c in df_period.columns]
@@ -400,5 +473,10 @@ for tbl, btn, name in [
     (ID_SUMMERY_TABLE, "result-export-btn", "vols_filtres"),
     (ID_TABLE_SUBTYPE_PR_DELAY_MEAN, "subtype-export-btn", "vols_subtype_filtres"),
     (ID_TABLE_FLIGHT_DELAY, "interval-export-btn", "vols_intervalles"),
+    (
+        ID_TABLE_CATEGORY_DELAY_GT_15MIN,
+        "category-export-btn",
+        "vols_lt_15min_vs_gt_15min_filtres",
+    ),
 ]:
     add_export_callbacks(id_table=tbl, id_button=btn, name=name)

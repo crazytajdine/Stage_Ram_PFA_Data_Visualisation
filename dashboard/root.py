@@ -25,6 +25,8 @@ from components.navbar import (
     add_callback as add_navbar_callback,
 )
 
+from components.title import layout as tittle_layout
+
 app = get_app()
 server = get_server()
 
@@ -35,6 +37,8 @@ app.layout = html.Div(
         *excel_hookers,
         # Barre de navigation
         navbar_layout,
+        # Title
+        tittle_layout,
         # Filters
         filter_layout,
         # Contenu principal

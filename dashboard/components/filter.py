@@ -35,7 +35,6 @@ FILTER_STORE_ACTUAL = "filter-store-actual"
 
 ID_FILTER_CONTAINER = "filter-container"
 
-ID_FILTER_TITLE = "filter_title"
 
 app = get_app()
 
@@ -45,7 +44,7 @@ layout = dbc.Card(
         [
             dcc.Store(id=FILTER_STORE_SUGGESTIONS),
             dcc.Store(id=FILTER_STORE_ACTUAL),
-            html.H2("Title", id=ID_FILTER_TITLE),
+            html.H4("Filter", className="mb-3"),
             dbc.Row(
                 [
                     dbc.Col(
@@ -240,7 +239,7 @@ def apply_filters(
     # Filter by SEGMENTATION
     if segmentation:
         min_segmentation = str(segmentation) + unit_segmentation
-        max_segmentation = str(segmentation - 1) + unit_segmentation
+        max_segmentation = str(segmentation) + unit_segmentation
 
         df = df.with_columns(
             pl.col(COL_NAME_DEPARTURE_DATETIME)
@@ -249,6 +248,7 @@ def apply_filters(
         ).with_columns(
             pl.col(COL_NAME_WINDOW_TIME)
             .dt.offset_by(max_segmentation)
+            .dt.offset_by("-1d")
             .alias(COL_NAME_WINDOW_TIME_MAX),
         )
 

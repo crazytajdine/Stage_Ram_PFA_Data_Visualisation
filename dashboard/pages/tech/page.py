@@ -26,13 +26,27 @@ time_period = excel_manager.COL_NAME_WINDOW_TIME
 time_period_max = excel_manager.COL_NAME_WINDOW_TIME_MAX
 
 
+TABLE_NAMES_RENAME = {
+    "Code": "Delay Code",
+    "Famille": "Family",
+    "Occurrences": "Number of Occurrences",
+    "Aeroports": "Concerned Airports",
+    "count_aeroports": "Number of Airports",
+    time_period: "Time Window",
+    time_period_max: "Max Time Window",
+    "FAMILLE_DR": "Family",
+    "DELAY_CODE": "Delay Code",
+    "count": "Number of Occurrences of Delay Code",
+}
+
+
 # ------------------------------------------------------------------ #
 # 2 ▸  Helper – aggregate per code                                   #
 # ------------------------------------------------------------------ #
 def analyze_delay_codes_polars(frame: pl.DataFrame) -> pl.DataFrame:
     """
     Return a Polars frame with:
-        CODE_DR | Occurrences | Description | Aéroports | Nb_AP
+        CODE_DR | Occurrences | Description | Aeroports | Nb_AP
     """
     if frame.is_empty():
         return pl.DataFrame(
@@ -40,7 +54,7 @@ def analyze_delay_codes_polars(frame: pl.DataFrame) -> pl.DataFrame:
                 "DELAY_CODE": [],
                 "Occurrences": [],
                 "Description": [],
-                "Aéroports": [],
+                "Aeroports": [],
                 "Nb_AP": [],
             }
         )
@@ -85,11 +99,11 @@ def analyze_delay_codes_polars(frame: pl.DataFrame) -> pl.DataFrame:
                     ),
                     return_dtype=pl.Utf8,
                 )
-                .alias("Aéroports"),
+                .alias("Aeroports"),
                 pl.col("AP_list").list.n_unique().alias("Nb_AP"),
             ]
         )
-        .select(["DELAY_CODE", "Occurrences", "Description", "Aéroports", "Nb_AP"])
+        .select(["DELAY_CODE", "Occurrences", "Description", "Aeroports", "Nb_AP"])
         .sort("Occurrences", descending=True)
     )
     return agg
@@ -105,7 +119,7 @@ def analyze_delay_codes_for_table(frame: pl.DataFrame) -> pl.DataFrame:
             {
                 "DELAY_CODE": [],
                 "Occurrences": [],
-                "Aéroports": [],
+                "Aeroports": [],
                 "Nb_AP": [],
             }
         )
@@ -150,11 +164,11 @@ def analyze_delay_codes_for_table(frame: pl.DataFrame) -> pl.DataFrame:
                     ),
                     return_dtype=pl.Utf8,
                 )
-                .alias("Aéroports"),
+                .alias("Aeroports"),
                 pl.col("AP_list").list.n_unique().alias("Nb_AP"),
             ]
         )
-        .select(["DELAY_CODE", "Description", "Occurrences", "Aéroports", "Nb_AP"])
+        .select(["DELAY_CODE", "Description", "Occurrences", "Aeroports", "Nb_AP"])
         .sort("Occurrences", descending=True)
     )
     return agg
@@ -194,15 +208,15 @@ It adds a new column to your table that tells you which time period each row bel
 # ------------------------------------------------------------------ #
 # 3 ▸  Layout factory                                                #
 # ------------------------------------------------------------------ #
-def make_layout() -> html.Div:
-    # ----- FILTERS + STATS -----------------------------------------
-    stats_block = html.Div(
-        [
-            # ── stats ───────────────────────────────────────────────
-            html.H3("Statistiques", className="h4"),
-            dbc.Card(html.Div(id="stats-div", className="p-3"), className="mb-4"),
-        ]
-    )
+
+# ----- FILTERS + STATS -----------------------------------------
+stats_block = html.Div(
+    [
+        # ── Stats ───────────────────────────────────────────────
+        html.H3("Statistics", className="h4"),
+        dbc.Card(html.Div(id="stats-div", className="p-3"), className="mb-4"),
+    ]
+)
 
     # ----- CHART GRID ----------------------------------------------
     charts_block = html.Div(
@@ -216,37 +230,24 @@ def make_layout() -> html.Div:
     },
 )
 
-    # ----- TABLE (placed last) -------------------------------------
-    table_block = html.Div(
-        [
-            html.H3("Détail des codes de retard", className="h4 mt-4"),
-            dcc.Download(id="download-table"),
-            dbc.Button("Exporter Excel", id="export-btn", className="mt-2"),
-            html.Div(id="table-container"),
-        ]
-    )
-
-    # ----- PAGE ----------------------------------------------------
-    return dbc.Container(
-        fluid=True,
-        className="px-4",
-        children=[
-            stats_block,
-            charts_block,
-            table_block,
-            html.Hr(style={"height": 1, "background": "#202736", "border": 0}),
-            html.P(
-                f"Dernière mise à jour : {datetime.now():%d/%m/%Y %H:%M}",
-                className="text-center text-muted small",
-            ),
-        ],
-    )
+# ----- TABLE (placed last) -------------------------------------
+table_block = html.Div(
+    [
+        html.H3("Delay Code Details", className="h4 mt-4"),
+        dbc.Button("Export Excel", id="export-btn", className="mt-2"),
+        html.Div(id="table-container"),
+    ]
+)
 
 
 # ------------------------------------------------------------------ #
 # 4 ▸  Dash app & callbacks                                          #
 # ------------------------------------------------------------------ #
-layout = make_layout()
+layout = dbc.Container(
+    fluid=True,
+    className="px-4",
+    children=[stats_block, charts_block, table_block],
+)
 
 
 def build_structured_table(df: pl.DataFrame) -> pl.DataFrame:
@@ -254,11 +255,12 @@ def build_structured_table(df: pl.DataFrame) -> pl.DataFrame:
         return pl.DataFrame(
             {
                 time_period: [],
+                time_period_max: [],
                 "Famille": [],
                 "Code": [],
                 "Occurrences": [],
-                "Aéroports": [],
-                "Nb Aéroports": [],
+                "Aeroports": [],
+                "count_aeroports": [],
             }
         )
 
@@ -298,8 +300,8 @@ def build_structured_table(df: pl.DataFrame) -> pl.DataFrame:
                     ),
                     return_dtype=pl.Utf8,
                 )
-                .alias("Aéroports"),
-                pl.col("AP_list").list.n_unique().alias("Nb Aéroports"),
+                .alias("Aeroports"),
+                pl.col("AP_list").list.n_unique().alias("count_aeroports"),
             ]
         )
         .select(
@@ -308,8 +310,8 @@ def build_structured_table(df: pl.DataFrame) -> pl.DataFrame:
                 "FAMILLE_DR",
                 "DELAY_CODE",
                 "Occurrences",
-                "Aéroports",
-                "Nb Aéroports",
+                "Aeroports",
+                "count_aeroports",
             ]
         )
         .rename({"DELAY_CODE": "Code", "FAMILLE_DR": "Famille"})  # ✅ ICI
@@ -375,7 +377,7 @@ def build_outputs(n_clicks):
     # ---------- COMMON PERIOD TOTALS (used by every family chart) -------
     # 2️⃣ exact counts per (period, family, code)
     temporal_all = df.group_by([time_period, "FAMILLE_DR", "DELAY_CODE"]).agg(
-        pl.len().alias("count")
+        pl.len().alias("count"), pl.col(time_period_max).first().alias(time_period_max)
     )
 
     # 3️⃣ grand-total per period (all families, all codes)
@@ -479,21 +481,11 @@ def build_outputs(n_clicks):
                 )
             )
 
-    summary_table = build_structured_table(df)
+    summary_table = temporal_all.select(
+        [time_period, time_period_max, "FAMILLE_DR", "DELAY_CODE", "count"]
+    )
 
     data = summary_table.to_dicts()
-    last_date = None
-    last_family = None
-    for row in data:
-        if row[time_period] == last_date:
-            row[time_period] = ""
-        else:
-            last_date = row[time_period]
-
-        if row["Famille"] == last_family and not row[time_period]:
-            row["Famille"] = ""
-        else:
-            last_family = row["Famille"]
 
     if summary_table.is_empty():
         table = dbc.Alert(
@@ -506,38 +498,28 @@ def build_outputs(n_clicks):
         table = dash_table.DataTable(
             id="codes-table",
             data=data,
-            columns=[{"name": c, "id": c} for c in summary_table.columns],
-            style_header={
-                "backgroundColor": "#f8f9fa",
-                "color": "#495057",
-                "fontWeight": "bold",
-                "border": "1px solid #dee2e6",
-                "fontSize": "12px",
+            columns=[
+                {"name": TABLE_NAMES_RENAME.get(c, c), "id": c}
+                for c in summary_table.columns
+            ],
+            style_table={
+                "overflowX": "auto",
+                "marginTop": "10px",
+                "marginBottom": "40px",
             },
-            style_cell={
-                "backgroundColor": "white",
-                "color": "#495057",
-                "border": "1px solid #dee2e6",
-                "textAlign": "left",
-                "padding": "8px",
-                "fontSize": "11px",
-                "whiteSpace": "normal",
-                "height": "auto",
-            },
+            style_cell={"textAlign": "left"},
+            sort_action="native",
+            page_size=30,
             style_data_conditional=[
-                {"if": {"row_index": "odd"}, "backgroundColor": "#f8f9fa"},
                 {
-                    "if": {"column_id": "Aéroports"},
-                    "textAlign": "left",
-                    "whiteSpace": "normal",
-                    "height": "auto",
-                    "minWidth": "200px",
+                    "if": {"row_index": "odd"},
+                    "backgroundColor": "#f8f9fa",  # light gray
+                },
+                {
+                    "if": {"row_index": "even"},
+                    "backgroundColor": "white",
                 },
             ],
-            sort_action="native",
-            filter_action="native",
-            page_size=8,  # include hidden cols if you like
-            style_table={"height": "500px", "overflowY": "auto"},
         )
 
     for famille in famille_share_df["FAMILLE_DR"].unique().sort():
