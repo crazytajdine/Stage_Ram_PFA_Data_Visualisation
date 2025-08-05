@@ -104,8 +104,7 @@ layout = dbc.Container(
         dbc.Row(
             dbc.Col(
                 [
-                    html.H1("Weekly Analysis of Delay Codes"),
-                    html.P(
+                    html.H2(
                         "Distribution of codes by day of the week.",
                         className="lead",
                     ),
