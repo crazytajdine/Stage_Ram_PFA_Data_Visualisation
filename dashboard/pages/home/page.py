@@ -166,6 +166,16 @@ layout = dbc.Container(
                     },
                     style_cell={"textAlign": "left"},
                     sort_action="native",
+                    style_data_conditional=[
+                        {
+                            "if": {"row_index": "odd"},
+                            "backgroundColor": "#f8f9fa",  # light gray
+                        },
+                        {
+                            "if": {"row_index": "even"},
+                            "backgroundColor": "white",
+                        },
+                    ],
                 ),
                 # Graphique subtype pct
                 html.Div(
@@ -200,6 +210,16 @@ layout = dbc.Container(
                             },
                             style_cell={"textAlign": "left"},
                             sort_action="native",
+                            style_data_conditional=[
+                                {
+                                    "if": {"row_index": "odd"},
+                                    "backgroundColor": "#f8f9fa",  # light gray
+                                },
+                                {
+                                    "if": {"row_index": "even"},
+                                    "backgroundColor": "white",
+                                },
+                            ],
                         ),
                     ]
                 ),
@@ -235,6 +255,16 @@ layout = dbc.Container(
                             },
                             style_cell={"textAlign": "left"},
                             sort_action="native",
+                            style_data_conditional=[
+                                {
+                                    "if": {"row_index": "odd"},
+                                    "backgroundColor": "#f8f9fa",  # light gray
+                                },
+                                {
+                                    "if": {"row_index": "even"},
+                                    "backgroundColor": "white",
+                                },
+                            ],
                         ),
                     ],
                     style={"marginBottom": "40px"},
@@ -272,6 +302,16 @@ layout = dbc.Container(
                             },
                             style_cell={"textAlign": "left"},
                             sort_action="native",
+                            style_data_conditional=[
+                                {
+                                    "if": {"row_index": "odd"},
+                                    "backgroundColor": "#f8f9fa",  # light gray
+                                },
+                                {
+                                    "if": {"row_index": "even"},
+                                    "backgroundColor": "white",
+                                },
+                            ],
                         ),
                     ],
                     style={"marginBottom": "40px"},
@@ -433,5 +473,10 @@ for tbl, btn, name in [
     (ID_SUMMERY_TABLE, "result-export-btn", "vols_filtres"),
     (ID_TABLE_SUBTYPE_PR_DELAY_MEAN, "subtype-export-btn", "vols_subtype_filtres"),
     (ID_TABLE_FLIGHT_DELAY, "interval-export-btn", "vols_intervalles"),
+    (
+        ID_TABLE_CATEGORY_DELAY_GT_15MIN,
+        "category-export-btn",
+        "vols_lt_15min_vs_gt_15min_filtres",
+    ),
 ]:
     add_export_callbacks(id_table=tbl, id_button=btn, name=name)

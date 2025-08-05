@@ -113,7 +113,22 @@ layout = dbc.Container(
         ),
         dbc.Button("Export Excel", id="weekly-export-btn", className="my-2"),
         dbc.Card(
-            dbc.CardBody(dash_table.DataTable(id=ID_WEEKLY_TABLE)), className="mb-4"
+            dbc.CardBody(
+                dash_table.DataTable(
+                    id=ID_WEEKLY_TABLE,
+                    style_data_conditional=[
+                        {
+                            "if": {"row_index": "odd"},
+                            "backgroundColor": "#f8f9fa",  # light gray
+                        },
+                        {
+                            "if": {"row_index": "even"},
+                            "backgroundColor": "white",
+                        },
+                    ],
+                )
+            ),
+            className="mb-4",
         ),
         dbc.Row(
             dbc.Col(

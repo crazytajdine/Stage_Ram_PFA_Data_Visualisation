@@ -356,6 +356,16 @@ def create_layout(
             },
             style_cell={"textAlign": "left"},
             sort_by=[{"column_id": COL_NAME_WINDOW_TIME, "direction": "desc"}],
+            style_data_conditional=[
+                {
+                    "if": {"row_index": "odd"},
+                    "backgroundColor": "#f8f9fa",  # light gray
+                },
+                {
+                    "if": {"row_index": "even"},
+                    "backgroundColor": "white",
+                },
+            ],
         )
 
     return card1, card2, card3, fig1, fig2, fig3, table
