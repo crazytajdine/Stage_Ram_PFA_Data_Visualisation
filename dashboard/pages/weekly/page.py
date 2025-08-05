@@ -3,13 +3,12 @@ weekly_analysis_page.py – Weekly Analysis of Delay Codes
 """
 
 # ─────────────── Standard library ───────────────
-from datetime import datetime, date, timedelta
-import io
+from datetime import datetime
 
 # ─────────────── Third-party ───────────────
 import polars as pl
 import dash
-from dash import html, dcc, dash_table, Input, Output, State, no_update
+from dash import html, dash_table, Output
 import dash_bootstrap_components as dbc
 
 # ─────────────── Application modules ───────────────
@@ -24,7 +23,6 @@ from excel_manager import (
 )
 
 
-DAYS_FR = ("Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche")
 DAYS_EN = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
 DAY_NAME_MAP = {i: d for i, d in enumerate(DAYS_EN)}
