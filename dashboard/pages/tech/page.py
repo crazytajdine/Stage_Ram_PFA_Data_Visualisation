@@ -219,7 +219,7 @@ stats_block = html.Div(
 )
 
     # ----- CHART GRID ----------------------------------------------
-    charts_block = html.Div(
+charts_block = html.Div(
     id="charts-container",
     children=[],
     style={
