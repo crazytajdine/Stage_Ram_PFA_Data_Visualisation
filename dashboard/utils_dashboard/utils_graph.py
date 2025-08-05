@@ -11,6 +11,10 @@ from excel_manager import (
     COL_NAME_WINDOW_TIME,
 )
 
+import plotly.io as pio
+
+pio.templates.default = "plotly"
+
 
 def create_bar_figure(
     df: pl.DataFrame,
@@ -26,12 +30,23 @@ def create_bar_figure(
         return None
 
     # Create a new column for text display
-    df = df.with_columns((pl.col(y).round(2).cast(str) + unit).alias("text_label"))
+    df = df.with_columns(
+        pl.col(y)
+        .round(2)
+        .map_elements(lambda v: f"{v:.2f}{unit}", return_dtype=pl.Utf8)
+        .alias("text_label")
+    )
 
     len_date = df.select(pl.col(x).len()).item()
 
     fig = px.bar(
-        df, x=x, y=y, title=title, text="text_label", barmode=barmode, color=color
+        df,
+        x=x,
+        y=y,
+        title=title,
+        text="text_label",
+        barmode=barmode,
+        color=color,
     )
 
     threshold_sep_x = 12
@@ -49,10 +64,14 @@ def create_bar_figure(
         xaxis_title="",
     )
 
+    hover_template_base = (
+        "%{x}<br>Percentage : %{text}<br>Detailed : %{y}<extra></extra>"
+    )
+
     fig.update_traces(
-        textposition="auto" if len_date <= threshold_show_y else "none",
-        marker_color="rgb(0, 123, 255)",
-        hovertemplate="%{x}<br>Percentage : %{text}<br>Detailed : %{y} <extra></extra>",
+        textposition="outside" if len_date <= threshold_show_y else "none",
+        textangle=0,
+        hovertemplate=hover_template_base,
         textfont_size=16,
     )
 
@@ -109,8 +128,7 @@ def create_bar_horizontal_figure(
 
     fig.update_traces(
         textposition="auto" if len_date <= threshold_show_x else "none",
-        marker_color="rgb(0, 123, 255)",
-        hovertemplate="%{x}<br>Percentage : %{text}<br>Detailed : %{y} <extra></extra>",
+        hovertemplate="%{y}<br>Percentage : %{text}<br>Detailed : %{x} <extra></extra>",
         textfont_size=16,
     )
 

@@ -30,50 +30,45 @@ COL_NAME_CATEGORY_GT_15MIN_MEAN = "delay_cat_mean"
 
 ID_SUMMERY_TABLE = "summary-table"
 ID_FIGURE_CATEGORY_DELAY_GT_15MIN = "figure-category-delay-gt-15min"
+ID_TABLE_CATEGORY_DELAY_GT_15MIN = "table-category-delay-gt-15min"
 ID_TABLE_FLIGHT_DELAY = "table-flight-delay"
 ID_FIGURE_FLIGHT_DELAY = "figure-flight-delay"
 ID_FIGURE_SUBTYPE_PR_DELAY_MEAN = "figure-subtype-pr-delay-mean"
 ID_TABLE_SUBTYPE_PR_DELAY_MEAN = "table-subtype-pr-delay-mean"
 
+
+TABLE_NAMES_RENAME = {
+    "AC_SUBTYPE": "Aircraft Subtype",
+    "AC_REGISTRATION": "Registration",
+    "DEP_DAY_SCHED": "Scheduled Departure Day",
+    "DELAY_TIME": "Delay Time (min)",
+    "DELAY_CODE": "Delay Code",
+    "count": "Flight Count",
+    COL_NAME_WINDOW_TIME: "Interval Start",
+    COL_NAME_WINDOW_TIME_MAX: "Interval End",
+    COL_NAME_PERCENTAGE_DELAY: "Percentage of Delayed Flights",
+    COL_NAME_COUNT_FLIGHTS: "Count of Delayed Flights",
+    COL_NAME_CATEGORY_GT_15MIN: "Delay Category",
+    COL_NAME_CATEGORY_GT_15MIN_MEAN: "Category %",
+    COL_NAME_CATEGORY_GT_15MIN_COUNT: "Category Count",
+}
+
+
 app = get_app()
 
 
-# Utilitaire conversion minutes -> h:mm
-
-
-# --- DATA PROCESSING FOR SUBTYPE PCT ---
 def process_subtype_pct_data(df: pl.LazyFrame) -> pl.LazyFrame:
-    df_retard = df.filter(pl.col("DELAY_TIME") > 0)
+    counts = df.group_by("AC_SUBTYPE").agg(pl.count().alias(COL_NAME_COUNT_FLIGHTS))
 
-    counts = (
-        df_retard.group_by("AC_SUBTYPE")
-        .agg(pl.count().alias(COL_NAME_COUNT_FLIGHTS))
-        .sort(COL_NAME_COUNT_FLIGHTS, descending=True)
+    result = counts.with_columns(
+        [
+            (pl.col(COL_NAME_COUNT_FLIGHTS) * 100 / pl.sum(COL_NAME_COUNT_FLIGHTS))
+            .round(2)
+            .alias(COL_NAME_PERCENTAGE_DELAY)
+        ]
     )
 
-    def add_percentage(batch: pl.DataFrame) -> pl.DataFrame:
-        total = batch[COL_NAME_COUNT_FLIGHTS].sum()
-        if total == 0:
-            batch = batch.with_columns(pl.lit(0).alias(COL_NAME_PERCENTAGE_DELAY))
-        else:
-            batch = batch.with_columns(
-                (pl.col(COL_NAME_COUNT_FLIGHTS) * 100 / total).alias(
-                    COL_NAME_PERCENTAGE_DELAY
-                )
-            )
-        return batch
-
-    return counts.map_batches(
-        add_percentage,
-        schema={
-            "AC_SUBTYPE": pl.String,
-            COL_NAME_COUNT_FLIGHTS: pl.UInt32,
-            COL_NAME_PERCENTAGE_DELAY: pl.Float64,
-        },
-    )
-
-
-# ------ second
+    return result.sort(COL_NAME_PERCENTAGE_DELAY, descending=False)
 
 
 def calculate_period_distribution(df: pl.DataFrame) -> pl.DataFrame:
@@ -92,70 +87,39 @@ def calculate_period_distribution(df: pl.DataFrame) -> pl.DataFrame:
             }
         )
     return counts_df.with_columns(
-        (pl.col("count") * 100 / total).alias(COL_NAME_PERCENTAGE_DELAY)
+        (pl.col("count") * 100 / total).round(2).alias(COL_NAME_PERCENTAGE_DELAY)
     )
 
 
 def calculate_delay_pct(df: pl.LazyFrame) -> pl.LazyFrame:
-    # 1) bucket rows into two categories
-    res = df.with_columns(
+    # 1) Categorize delays
+    df = df.with_columns(
         pl.when(pl.col("DELAY_TIME") >= 15)
         .then(pl.lit("flights with delay ≥ 15 min"))
         .otherwise(pl.lit("flights with delay < 15 min"))
         .alias(COL_NAME_CATEGORY_GT_15MIN)
     )
-    # 2) count per category
 
-    res = res.group_by(COL_NAME_CATEGORY_GT_15MIN).agg(
-        pl.count().alias(COL_NAME_CATEGORY_GT_15MIN_COUNT)
-    )
+    # 2) Group by time window and delay category
+    res = df.group_by(
+        [COL_NAME_WINDOW_TIME_MAX, COL_NAME_WINDOW_TIME, COL_NAME_CATEGORY_GT_15MIN]
+    ).agg(pl.count().alias(COL_NAME_CATEGORY_GT_15MIN_COUNT))
 
+    # 3) Compute percentage per time window
     res = res.with_columns(
         (
             pl.col(COL_NAME_CATEGORY_GT_15MIN_COUNT)
-            / pl.col(COL_NAME_CATEGORY_GT_15MIN_COUNT).sum()
-        ).alias(COL_NAME_CATEGORY_GT_15MIN_MEAN)
+            * 100
+            / pl.col(COL_NAME_CATEGORY_GT_15MIN_COUNT)
+            .sum()
+            .over([COL_NAME_WINDOW_TIME_MAX, COL_NAME_WINDOW_TIME])
+        )
+        .round(2)
+        .alias(COL_NAME_CATEGORY_GT_15MIN_MEAN)
     )
 
-    # 3) compute total via a cross join, then pct
     return res
 
-
-def build_interval_table_data(df: pl.DataFrame) -> tuple[list[dict], list[dict]]:
-
-    counts_df = (
-        df.group_by([COL_NAME_WINDOW_TIME, COL_NAME_WINDOW_TIME_MAX])
-        .agg(pl.count().alias("nbr_de_vol"))
-        .sort(COL_NAME_WINDOW_TIME, descending=False)
-    )
-    total = counts_df["nbr_de_vol"].sum()
-    if total == 0:
-        return [], []
-    counts_df = counts_df.with_columns(
-        (pl.col("nbr_de_vol") * 100 / total).round(2).alias("pourcentage")
-    )
-    columns = [
-        {"name": "Min_Date", "id": COL_NAME_WINDOW_TIME, "type": "datetime"},
-        {"name": "Max_Date", "id": COL_NAME_WINDOW_TIME_MAX, "type": "datetime"},
-        {"name": "Nbr_de_vol", "id": "nbr_de_vol", "type": "numeric"},
-        {
-            "name": "Pourcentage",
-            "id": "pourcentage",
-            "type": "numeric",
-            "format": {"specifier": ".2f"},
-        },
-    ]
-    data = counts_df.to_dicts()
-    return columns, data
-
-
-# ------ third
-
-
-# ----------
-
-
-# --- LAYOUT COMPLET ---
 
 layout = dbc.Container(
     [
@@ -231,6 +195,29 @@ layout = dbc.Container(
                         "marginBottom": "40px",
                     },
                 ),
+                html.Div(
+                    [
+                        dbc.Button(
+                            "Exporter Excel",
+                            id="category-export-btn",
+                            className="mb-2",
+                        ),
+                        dash_table.DataTable(
+                            id=ID_TABLE_CATEGORY_DELAY_GT_15MIN,
+                            columns=[],
+                            data=[],
+                            page_size=10,
+                            style_table={
+                                "overflowX": "auto",
+                                "marginTop": "10px",
+                                "marginBottom": "40px",
+                            },
+                            style_cell={"textAlign": "left"},
+                            sort_action="native",
+                        ),
+                    ],
+                    style={"marginBottom": "40px"},
+                ),
                 # Graphique intervalles
                 html.Div(
                     dcc.Graph(
@@ -275,55 +262,26 @@ layout = dbc.Container(
     fluid=True,
 )
 
-# --- CALLBACKS ---
 
-
+# 1) Summary table callback
 @app.callback(
     Output("result-message", "children"),
     Output("result-message", "color"),
     Output("result-message", "is_open"),
     Output(ID_SUMMERY_TABLE, "columns"),
     Output(ID_SUMMERY_TABLE, "data"),
-    Output(ID_FIGURE_SUBTYPE_PR_DELAY_MEAN, "figure"),
-    Output(ID_TABLE_SUBTYPE_PR_DELAY_MEAN, "columns"),
-    Output(ID_TABLE_SUBTYPE_PR_DELAY_MEAN, "data"),
-    Output(ID_FIGURE_CATEGORY_DELAY_GT_15MIN, "figure"),
-    Output(ID_TABLE_FLIGHT_DELAY, "columns"),
-    Output(ID_TABLE_FLIGHT_DELAY, "data"),
-    Output(ID_FIGURE_FLIGHT_DELAY, "figure"),
     add_watcher_for_data(),
 )
-def update_all_outputs(_):
-    # Get lazy dataframe
+def update_summary(_):
     df_lazy = get_df()
-
-    # If no file loaded, return empty outputs with alert
     if df_lazy is None:
         alert = dbc.Alert(
-            "No Excel file loaded. Please upload an Excel file first.",
+            "No Excel file loaded. Please upload first.",
             color="danger",
             className="mt-3",
         )
-        empty_fig = go.Figure()
-        return (
-            alert,
-            "danger",
-            True,
-            [],  # summary table columns
-            [],  # summary table data
-            empty_fig,  # subtype delay mean figure
-            [],  # subtype delay mean columns
-            [],  # subtype delay mean data
-            empty_fig,  # category delay figure
-            [],  # flight delay table columns
-            [],  # flight delay table data
-            empty_fig,  # interval delay figure
-        )
-
-    # Collect eager dataframe for processing
+        return alert, "danger", True, [], []
     df = df_lazy.collect()
-
-    # If dataframe is empty, return warning alert and empty outputs
     if df.is_empty():
         return (
             dbc.Alert("No results found.", color="warning", className="mt-3"),
@@ -331,21 +289,8 @@ def update_all_outputs(_):
             True,
             [],
             [],
-            go.Figure(),
-            [],
-            [],
-            go.Figure(),
-            [],
-            [],
-            go.Figure(),
         )
-
-    # --- Info summary ---
-    result_msg = dbc.Alert(
-        f"{df.height} result(s) found.", color="success", className="mt-3"
-    )
-
-    # --- Summary table ---
+    # build summary table
     df_summary = df.select(
         [
             "AC_SUBTYPE",
@@ -355,55 +300,99 @@ def update_all_outputs(_):
             "DELAY_CODE",
         ]
     )
-    columns_summary = [{"name": col, "id": col} for col in df_summary.columns]
-    data_summary = df_summary.to_dicts()
+    cols = [{"name": TABLE_NAMES_RENAME.get(c, c), "id": c} for c in df_summary.columns]
+    data = df_summary.to_dicts()
+    alert = dbc.Alert(
+        f"{df.height} result(s) found.", color="success", className="mt-3"
+    )
+    return alert, "success", True, cols, data
 
-    # --- Subtype delay percentage graph and table ---
-    subtype_data = process_subtype_pct_data(df_lazy).collect()
-    chart_subtype = create_bar_horizontal_figure(
-        subtype_data,
+
+# 2) Subtype-delay % chart + table callback
+@app.callback(
+    Output(ID_FIGURE_SUBTYPE_PR_DELAY_MEAN, "figure"),
+    Output(ID_TABLE_SUBTYPE_PR_DELAY_MEAN, "columns"),
+    Output(ID_TABLE_SUBTYPE_PR_DELAY_MEAN, "data"),
+    add_watcher_for_data(),
+)
+def update_subtype(_):
+    df_lazy = get_df()
+    if df_lazy is None:
+        return go.Figure(), [], []
+    df_sub = process_subtype_pct_data(df_lazy).collect()
+    # figure
+    fig = create_bar_horizontal_figure(
+        df_sub,
         x=COL_NAME_PERCENTAGE_DELAY,
         y=COL_NAME_SUBTYPE,
         title="Delayed flights by SUBTYPE (%)",
     )
+    # table
+    cols = [{"name": TABLE_NAMES_RENAME.get(c, c), "id": c} for c in df_sub.columns]
+    data = df_sub.to_dicts()
+    return fig, cols, data
 
-    subtype_columns = [{"name": name, "id": name} for name in subtype_data.columns]
-    subtype_rows = subtype_data.to_dicts()
 
-    # --- Delay per category bar chart ---
-    df_pct = calculate_delay_pct(df_lazy).collect()
-    chart_pct = create_bar_figure(
-        df_pct,
-        x=COL_NAME_CATEGORY_GT_15MIN,
+# 3) Delay-category chart + table callback
+@app.callback(
+    Output(ID_FIGURE_CATEGORY_DELAY_GT_15MIN, "figure"),
+    Output(ID_TABLE_CATEGORY_DELAY_GT_15MIN, "columns"),
+    Output(ID_TABLE_CATEGORY_DELAY_GT_15MIN, "data"),
+    add_watcher_for_data(),
+)
+def update_category(_):
+    df_lazy = get_df()
+    if df_lazy is None:
+        return go.Figure(), [], []
+    df_cat = calculate_delay_pct(df_lazy).collect()
+    # figure
+    fig = create_bar_figure(
+        df_cat,
+        x=COL_NAME_WINDOW_TIME,
         y=COL_NAME_CATEGORY_GT_15MIN_MEAN,
+        color=COL_NAME_CATEGORY_GT_15MIN,
         title="Delay per category",
     )
-    # --- Interval delay distribution table and chart ---
+    # table
+    display_cols = [
+        COL_NAME_WINDOW_TIME,
+        COL_NAME_WINDOW_TIME_MAX,
+        COL_NAME_CATEGORY_GT_15MIN,
+        COL_NAME_CATEGORY_GT_15MIN_MEAN,
+    ]
+
+    df_disp = df_cat.select(display_cols)
+    cols = [{"name": TABLE_NAMES_RENAME.get(c, c), "id": c} for c in display_cols]
+    data = df_disp.to_dicts()
+    return fig, cols, data
+
+
+# 4) Interval-distribution chart + table callback
+@app.callback(
+    Output(ID_FIGURE_FLIGHT_DELAY, "figure"),
+    Output(ID_TABLE_FLIGHT_DELAY, "columns"),
+    Output(ID_TABLE_FLIGHT_DELAY, "data"),
+    add_watcher_for_data(),
+)
+def update_interval(_):
+    df_lazy = get_df()
+    if df_lazy is None:
+        return go.Figure(), [], []
+    df = df_lazy.collect()
+    if df.is_empty():
+        return go.Figure(), [], []
     df_period = calculate_period_distribution(df)
-    period_columns = [{"name": c, "id": c} for c in df_period.columns]
-    period_data = df_period.to_dicts()
-    chart_interval = create_bar_horizontal_figure(
+    # figure
+    fig = create_bar_horizontal_figure(
         df_period,
-        x="count",
+        x=COL_NAME_PERCENTAGE_DELAY,
         y=COL_NAME_WINDOW_TIME,
         title="Distribution of flights by intervals",
     )
-
-    # Return all outputs in order requested
-    return (
-        result_msg,
-        "success",
-        True,
-        columns_summary,
-        data_summary,
-        chart_subtype,
-        subtype_columns,
-        subtype_rows,
-        chart_pct,
-        period_columns,
-        period_data,
-        chart_interval,
-    )
+    # table
+    cols = [{"name": TABLE_NAMES_RENAME.get(c, c), "id": c} for c in df_period.columns]
+    data = df_period.to_dicts()
+    return fig, cols, data
 
 
 # --- CALLBACKS POUR TELECHARGEMENT EXCEL ---
