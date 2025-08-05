@@ -233,7 +233,6 @@ charts_block = html.Div(
 table_block = html.Div(
     [
         html.H3("Delay Code Details", className="h4 mt-4"),
-        dcc.Download(id="download-table"),
         dbc.Button("Export Excel", id="export-btn", className="mt-2"),
         html.Div(id="table-container"),
     ]
@@ -246,16 +245,7 @@ table_block = html.Div(
 layout = dbc.Container(
     fluid=True,
     className="px-4",
-    children=[
-        stats_block,
-        charts_block,
-        table_block,
-        html.Hr(style={"height": 1, "background": "#202736", "border": 0}),
-        html.P(
-            f"Last updated: {datetime.now():%d/%m/%Y %H:%M}",
-            className="text-center text-muted small",
-        ),
-    ],
+    children=[stats_block, charts_block, table_block],
 )
 
 
