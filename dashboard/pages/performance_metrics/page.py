@@ -310,21 +310,18 @@ def create_layout(
         COL_NAME_WINDOW_TIME,
         COL_NAME_PER_FLIGHTS_NOT_DELAYED,
         "Percentage of On-Time Flights",
-        COL_NAME_PER_FLIGHTS_NOT_DELAYED_SHOW,
     )
     fig2 = create_graph_bar_card(
         result,
         COL_NAME_WINDOW_TIME,
         COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN,
         "Percentage of On-Time or Delays Less Than 15 Minutes",
-        COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN_SHOW,
     )
     fig3 = create_graph_bar_card(
         result,
         COL_NAME_WINDOW_TIME,
         COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46,
         "Percentage of On-Time or less than 15 Minutes, or Delays Not Due to Reasons 41/46",
-        COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46_SHOW,
     )
 
     table_col_names = [

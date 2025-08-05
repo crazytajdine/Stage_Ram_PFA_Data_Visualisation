@@ -17,17 +17,22 @@ def create_bar_figure(
     x: str,
     y: str,
     title: str,
-    text=None,
+    unit: str = "%",
     color: str | None = None,
     barmode: Literal["group", "stacked"] = "group",
 ) -> go.Figure | None:
 
-    if x not in df.columns:
+    if x not in df.columns or y not in df.columns:
         return None
+
+    # Create a new column for text display
+    df = df.with_columns((pl.col(y).round(2).cast(str) + unit).alias("text_label"))
 
     len_date = df.select(pl.col(x).len()).item()
 
-    fig = px.bar(df, x=x, y=y, title=title, text=text, barmode=barmode, color=color)
+    fig = px.bar(
+        df, x=x, y=y, title=title, text="text_label", barmode=barmode, color=color
+    )
 
     threshold_sep_x = 12
     threshold_show_y = 20
@@ -63,13 +68,16 @@ def create_bar_horizontal_figure(
     x: str,
     y: str,
     title: str,
-    text=None,
+    unit: str = "%",
     color: str | None = None,
     barmode: str = "group",
 ) -> go.Figure | None:
 
-    if x not in df.columns:
+    if x not in df.columns or y not in df.columns:
         return None
+
+    # Create text label column
+    df = df.with_columns((pl.col(x).round(2).cast(str) + unit).alias("text_label"))
 
     len_date = df.select(pl.col(x).len()).item()
 
@@ -81,7 +89,7 @@ def create_bar_horizontal_figure(
         x=x,
         y=y,
         title=title,
-        text=text,
+        text="text_label",
         orientation="h",
         barmode=barmode,
         color=color,
@@ -118,12 +126,12 @@ def create_graph_bar_card(
     x: str,
     y: str,
     title: str,
-    text=None,
+    unit: str = "%",
     color: str | None = None,
     barmode: Literal["group", "stacked"] = "group",
 ) -> dbc.Card | None:
 
-    fig = create_bar_figure(df, x, y, title, text, color, barmode)
+    fig = create_bar_figure(df, x, y, title, unit, color, barmode)
     if fig is None:
         return None
 
@@ -138,12 +146,12 @@ def create_graph_bar_horizontal_card(
     x: str,
     y: str,
     title: str,
-    text=None,
+    unit: str = "%",
     color: str | None = None,
     barmode: str = "group",
 ) -> dbc.Card | None:
 
-    fig = create_bar_horizontal_figure(df, x, y, title, text, color, barmode)
+    fig = create_bar_horizontal_figure(df, x, y, title, unit, color, barmode)
     if fig is None:
         return None
 
