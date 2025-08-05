@@ -36,7 +36,7 @@ def analyze_delay_codes_polars(frame: pl.DataFrame) -> pl.DataFrame:
     if frame.is_empty():
         return pl.DataFrame(
             {
-                "CODE_DR": [],
+                "DELAY_CODE": [],
                 "Occurrences": [],
                 "Description": [],
                 "Aéroports": [],
@@ -45,12 +45,12 @@ def analyze_delay_codes_polars(frame: pl.DataFrame) -> pl.DataFrame:
         )
 
     # First get airport counts per code
-    airport_counts = frame.group_by(["CODE_DR", "DEP_AP_SCHED"]).agg(
+    airport_counts = frame.group_by(["DELAY_CODE", "DEP_AP_SCHED"]).agg(
         pl.len().alias("ap_count")
     )
 
     agg = (
-        frame.group_by("CODE_DR")
+        frame.group_by("DELAY_CODE")
         .agg(
             [
                 pl.len().alias("Occurrences"),
@@ -59,13 +59,13 @@ def analyze_delay_codes_polars(frame: pl.DataFrame) -> pl.DataFrame:
             ]
         )
         .join(
-            airport_counts.group_by("CODE_DR").agg(
+            airport_counts.group_by("DELAY_CODE").agg(
                 [
                     pl.col("DEP_AP_SCHED").alias("airports"),
                     pl.col("ap_count").alias("counts"),
                 ]
             ),
-            on="CODE_DR",
+            on="DELAY_CODE",
             how="left",
         )
         .with_columns(
@@ -88,7 +88,7 @@ def analyze_delay_codes_polars(frame: pl.DataFrame) -> pl.DataFrame:
                 pl.col("AP_list").list.n_unique().alias("Nb_AP"),
             ]
         )
-        .select(["CODE_DR", "Occurrences", "Description", "Aéroports", "Nb_AP"])
+        .select(["DELAY_CODE", "Occurrences", "Description", "Aéroports", "Nb_AP"])
         .sort("Occurrences", descending=True)
     )
     return agg
@@ -102,7 +102,7 @@ def analyze_delay_codes_for_table(frame: pl.DataFrame) -> pl.DataFrame:
     if frame.is_empty():
         return pl.DataFrame(
             {
-                "CODE_DR": [],
+                "DELAY_CODE": [],
                 "Occurrences": [],
                 "Aéroports": [],
                 "Nb_AP": [],
@@ -110,12 +110,12 @@ def analyze_delay_codes_for_table(frame: pl.DataFrame) -> pl.DataFrame:
         )
 
     # First get airport counts per code
-    airport_counts = frame.group_by(["CODE_DR", "DEP_AP_SCHED"]).agg(
+    airport_counts = frame.group_by(["DELAY_CODE", "DEP_AP_SCHED"]).agg(
         pl.len().alias("ap_count")
     )
 
     agg = (
-        frame.group_by("CODE_DR")
+        frame.group_by("DELAY_CODE")
         .agg(
             [
                 pl.len().alias("Occurrences"),
@@ -124,13 +124,13 @@ def analyze_delay_codes_for_table(frame: pl.DataFrame) -> pl.DataFrame:
             ]
         )
         .join(
-            airport_counts.group_by("CODE_DR").agg(
+            airport_counts.group_by("DELAY_CODE").agg(
                 [
                     pl.col("DEP_AP_SCHED").alias("airports"),
                     pl.col("ap_count").alias("counts"),
                 ]
             ),
-            on="CODE_DR",
+            on="DELAY_CODE",
             how="left",
         )
         .with_columns(
@@ -153,7 +153,7 @@ def analyze_delay_codes_for_table(frame: pl.DataFrame) -> pl.DataFrame:
                 pl.col("AP_list").list.n_unique().alias("Nb_AP"),
             ]
         )
-        .select(["CODE_DR", "Description", "Occurrences", "Aéroports", "Nb_AP"])
+        .select(["DELAY_CODE", "Description", "Occurrences", "Aéroports", "Nb_AP"])
         .sort("Occurrences", descending=True)
     )
     return agg
@@ -262,11 +262,11 @@ def build_structured_table(df: pl.DataFrame) -> pl.DataFrame:
         )
 
     airport_counts = df.group_by(
-        [time_period, "FAMILLE_DR", "CODE_DR", "DEP_AP_SCHED"]
+        [time_period, "FAMILLE_DR", "DELAY_CODE", "DEP_AP_SCHED"]
     ).agg(pl.len().alias("ap_count"))
 
     grouped = (
-        df.group_by([time_period, "FAMILLE_DR", "CODE_DR"])
+        df.group_by([time_period, "FAMILLE_DR", "DELAY_CODE"])
         .agg(
             [
                 pl.len().alias("Occurrences"),
@@ -274,13 +274,13 @@ def build_structured_table(df: pl.DataFrame) -> pl.DataFrame:
             ]
         )
         .join(
-            airport_counts.group_by([time_period, "FAMILLE_DR", "CODE_DR"]).agg(
+            airport_counts.group_by([time_period, "FAMILLE_DR", "DELAY_CODE"]).agg(
                 [
                     pl.col("DEP_AP_SCHED").alias("airports"),
                     pl.col("ap_count").alias("counts"),
                 ]
             ),
-            on=[time_period, "FAMILLE_DR", "CODE_DR"],
+            on=[time_period, "FAMILLE_DR", "DELAY_CODE"],
             how="left",
         )
         .with_columns(
@@ -305,13 +305,13 @@ def build_structured_table(df: pl.DataFrame) -> pl.DataFrame:
             [
                 time_period,
                 "FAMILLE_DR",
-                "CODE_DR",
+                "DELAY_CODE",
                 "Occurrences",
                 "Aéroports",
                 "Nb Aéroports",
             ]
         )
-        .rename({"CODE_DR": "Code", "FAMILLE_DR": "Famille"})  # ✅ ICI
+        .rename({"DELAY_CODE": "Code", "FAMILLE_DR": "Famille"})  # ✅ ICI
         .sort([time_period, "Famille", "Occurrences"], descending=[False, False, True])
     )
     return grouped
@@ -373,7 +373,7 @@ def build_outputs(n_clicks):
 
     # ---------- COMMON PERIOD TOTALS (used by every family chart) -------
     # 2️⃣ exact counts per (period, family, code)
-    temporal_all = df.group_by([time_period, "FAMILLE_DR", "CODE_DR"]).agg(
+    temporal_all = df.group_by([time_period, "FAMILLE_DR", "DELAY_CODE"]).agg(
         pl.len().alias("count")
     )
 
@@ -397,7 +397,7 @@ def build_outputs(n_clicks):
     )
 
     selected_codes = (
-        df["CODE_DR"].unique().sort().to_list() if not df.is_empty() else []
+        df["DELAY_CODE"].unique().sort().to_list() if not df.is_empty() else []
     )
     all_periods = df.get_column(time_period).unique().sort().to_list()
     if not selected_codes:
@@ -417,7 +417,7 @@ def build_outputs(n_clicks):
         family_figs = []  # list of Graph components to return
 
         # consistent colour map across all charts
-        all_unique_codes = df["CODE_DR"].unique().sort().to_list()
+        all_unique_codes = df["DELAY_CODE"].unique().sort().to_list()
         palette = px.colors.qualitative.Set3
         color_map = {
             c: palette[i % len(palette)] for i, c in enumerate(all_unique_codes)
@@ -431,8 +431,8 @@ def build_outputs(n_clicks):
 
             fig = go.Figure()
 
-            for code in fam_data["CODE_DR"].unique().sort():
-                rows = fam_data.filter(pl.col("CODE_DR") == code)
+            for code in fam_data["DELAY_CODE"].unique().sort():
+                rows = fam_data.filter(pl.col("DELAY_CODE") == code)
 
                 # maps in the exact grid order
                 perc_map = {r[time_period]: r["perc"] for r in rows.to_dicts()}

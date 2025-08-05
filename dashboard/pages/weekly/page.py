@@ -49,7 +49,7 @@ HEADER_STYLE = CELL_STYLE | {
 
 def _blank_weekly_table() -> pl.DataFrame:
     return pl.DataFrame(
-        {"CODE_DR": ["-"], **{day: [0] for day in DAYS_FR}, "Total": [0]}
+        {"DELAY_CODE": ["-"], **{day: [0] for day in DAYS_FR}, "Total": [0]}
     )
 
 
@@ -67,9 +67,9 @@ def analyze_weekly_codes() -> tuple[pl.DataFrame, list[str]]:
     # ② build the aggregation ------------------------------------------------------
     # this already SUMS all flights that share the same French day name
     pivot = (
-        df.group_by(["CODE_DR", "DAY_OF_WEEK_DEP"])
+        df.group_by(["DELAY_CODE", "DAY_OF_WEEK_DEP"])
         .agg(pl.len().alias("n"))
-        .pivot(values="n", index="CODE_DR", columns="DAY_OF_WEEK_DEP")
+        .pivot(values="n", index="DELAY_CODE", columns="DAY_OF_WEEK_DEP")
         .fill_null(0)
     )
 
@@ -93,7 +93,7 @@ def analyze_weekly_codes() -> tuple[pl.DataFrame, list[str]]:
 
     # ④ re‑order columns + add Total ----------------------------------------------
     pivot = (
-        pivot.select("CODE_DR", *days_ordered)  # no duplicates now
+        pivot.select("DELAY_CODE", *days_ordered)  # no duplicates now
         .with_columns(pl.sum_horizontal(days_ordered).alias("Total"))
         .sort("Total", descending=True)
     )
@@ -152,7 +152,7 @@ def refresh_weekly_table(_):
         return [], [], "Aucune donnée"
 
     columns = (
-        [{"id": "CODE_DR", "name": "Code"}]
+        [{"id": "DELAY_CODE", "name": "Code"}]
         + [{"id": d, "name": d} for d in days_ordered]
         + [{"id": "Total", "name": "Total"}]
     )

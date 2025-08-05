@@ -101,7 +101,7 @@ def calculate_graph_info_with_period(df: pl.LazyFrame) -> pl.LazyFrame:
         pl.len().alias(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY)
     )
 
-    delayed_15min_df = df.filter((pl.col("Retard en min") >= 15))
+    delayed_15min_df = df.filter((pl.col("DELAY_TIME") >= 15))
 
     ##
     delayed_15min_count_df = delayed_15min_df.group_by(COL_NAME_WINDOW_TIME).agg(
@@ -110,7 +110,7 @@ def calculate_graph_info_with_period(df: pl.LazyFrame) -> pl.LazyFrame:
 
     ##
     delayed_flights_41_46_gte_15min_count_df = (
-        delayed_15min_df.filter(pl.col("CODE_DR").is_in({41, 46}))
+        delayed_15min_df.filter(pl.col("DELAY_CODE").is_in({41, 46}))
         .group_by(COL_NAME_WINDOW_TIME)
         .agg(pl.len().alias(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_46_GTE_15MIN))
     )

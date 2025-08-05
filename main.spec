@@ -4,7 +4,10 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 from PyInstaller.building.build_main import Analysis, PYZ, EXE
 
 
-from config import config, config_path
+from dashboard.configurations.config import get_base_config, config_path
+
+
+config = get_base_config()
 
 # ---------------------------------------------------------------------------
 # Generic settings
@@ -15,17 +18,11 @@ FASTEXCEL_DATAS = collect_data_files("fastexcel", include_py_files=False)
 hiddenimports = [*collect_submodules("fastexcel")]
 
 
-SYSTEM = platform.system().lower()  # 'windows', 'darwin', 'linux', etc.
 
-DEFAULT_EXE_NAMES = {
-    "windows": "-x86_64-pc-windows-msvc",
-    "darwin": "-aarch64-apple-darwin",
-    "linux": "-x86_64-linux",
-}
 
 NAME_OF_EXE = config.get("exe", {}).get(
     "name_of_python_exe", "server_dashboard"
-) + DEFAULT_EXE_NAMES.get(SYSTEM, "")
+) 
 
 
 datas = PLOTLY_DATAS + FASTEXCEL_DATAS + [(config_path, ".")]

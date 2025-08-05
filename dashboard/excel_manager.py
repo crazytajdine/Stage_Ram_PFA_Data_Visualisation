@@ -71,12 +71,12 @@ def path_exits():
 def filter_tec(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
 
     return df_lazy.filter(
-        pl.col("CODE_DR").is_in([41, 42, 43, 44, 45, 46, 47, 51, 52, 55, 56, 57])
+        pl.col("DELAY_CODE").is_in([41, 42, 43, 44, 45, 46, 47, 51, 52, 55, 56, 57])
     )
 
 
 def filter_retard(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
-    return df_lazy.filter(pl.col("Retard en min") != 0)
+    return df_lazy.filter(pl.col("DELAY_TIME") != 0)
 
 
 def create_dep_datetime(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
@@ -154,9 +154,9 @@ def load_excel_lazy(path):
     if not is_exist:
         raise ValueError("The path does not exist.")
 
-    df_unfiltered = pl.read_excel(path, sheet_name="Sheet1").lazy()
+    df_read = pl.read_excel(path).lazy()
 
-    df_raw = preprocess_df(df_unfiltered)
+    df_raw = preprocess_df(df_read)
 
     df_unfiltered = df_raw.pipe(filter_retard).pipe(filter_tec)
 
@@ -165,8 +165,8 @@ def load_excel_lazy(path):
 
 def preprocess_df(raw_df: pl.LazyFrame) -> pl.LazyFrame:
     return raw_df.with_columns(
-        pl.col("CODE_DR").cast(pl.Int32).alias("CODE_DR")
-    ).filter(pl.col("AT_RXP_AFFRT") != "AFFRT")
+        pl.col("DELAY_CODE").cast(pl.Int32).alias("DELAY_CODE")
+    ).filter(pl.col("AC_REGISTRATION").str.starts_with("CN"))
 
 
 def get_df_unfiltered() -> Optional[pl.LazyFrame]:

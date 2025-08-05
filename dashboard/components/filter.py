@@ -212,7 +212,7 @@ def apply_filters(
             stmt_end = pl.lit(max_total_dt)
 
     if code_delays:
-        df = df.filter(pl.col("CODE_DR").is_in(code_delays))
+        df = df.filter(pl.col("DELAY_CODE").is_in(code_delays))
 
     if not is_suggestions:
         total_df = get_count_df(segmentation, unit_segmentation, start, end)
@@ -349,7 +349,7 @@ def add_callbacks():
 
         df_delay = v_delay.collect()
         delay_codes = sorted(
-            df_delay.get_column("CODE_DR").drop_nulls().unique().to_list()
+            df_delay.get_column("DELAY_CODE").drop_nulls().unique().to_list()
         )
 
         # subtype dropdown

@@ -3,7 +3,7 @@
 from typing import Literal
 import dash_bootstrap_components as dbc
 from dash import html, dcc
-import plotly.express as px
+import plotly.express as px, plotly.graph_objs as go
 
 import polars as pl
 
@@ -12,7 +12,7 @@ from excel_manager import (
 )
 
 
-def create_graph_bar_card(
+def create_bar_figure(
     df: pl.DataFrame,
     x: str,
     y: str,
@@ -20,14 +20,13 @@ def create_graph_bar_card(
     text=None,
     color: str | None = None,
     barmode: Literal["group", "stacked"] = "group",
-) -> dbc.Card | None:
+) -> go.Figure | None:
 
     if x not in df.columns:
         return None
 
     len_date = df.select(pl.col(x).len()).item()
 
-    # Create figure
     fig = px.bar(df, x=x, y=y, title=title, text=text, barmode=barmode, color=color)
 
     threshold_sep_x = 12
@@ -35,7 +34,6 @@ def create_graph_bar_card(
 
     fig.update_xaxes(tickformat="%y-%m-%d")
 
-    # Update layout
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
@@ -46,7 +44,6 @@ def create_graph_bar_card(
         xaxis_title="",
     )
 
-    # Style bars
     fig.update_traces(
         textposition="auto" if len_date <= threshold_show_y else "none",
         marker_color="rgb(0, 123, 255)",
@@ -54,19 +51,14 @@ def create_graph_bar_card(
         textfont_size=16,
     )
 
-    # Handle short x-axis
     unique_x = df[x].unique()
     if len(unique_x) <= threshold_sep_x:
         fig.update_xaxes(tickmode="array", tickvals=unique_x)
 
-    # Return the full card component
-    return dbc.Card(
-        dbc.CardBody([dcc.Graph(figure=fig)]),
-        className=f"mb-4",
-    )
+    return fig
 
 
-def create_graph_bar_horizontal_card(
+def create_bar_horizontal_figure(
     df: pl.DataFrame,
     x: str,
     y: str,
@@ -74,7 +66,7 @@ def create_graph_bar_horizontal_card(
     text=None,
     color: str | None = None,
     barmode: str = "group",
-) -> dbc.Card | None:
+) -> go.Figure | None:
 
     if x not in df.columns:
         return None
@@ -84,7 +76,6 @@ def create_graph_bar_horizontal_card(
     threshold_sep_y = 20
     threshold_show_x = 20
 
-    # Create figure
     fig = px.bar(
         df,
         x=x,
@@ -98,7 +89,6 @@ def create_graph_bar_horizontal_card(
 
     fig.update_yaxes(tickformat="%y-%m-%d")
 
-    # Update layout
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
@@ -109,7 +99,6 @@ def create_graph_bar_horizontal_card(
         xaxis_title="",
     )
 
-    # Style bars
     fig.update_traces(
         textposition="auto" if len_date <= threshold_show_x else "none",
         marker_color="rgb(0, 123, 255)",
@@ -121,10 +110,46 @@ def create_graph_bar_horizontal_card(
     if len(unique_y) <= threshold_sep_y:
         fig.update_yaxes(tickmode="array", tickvals=unique_y)
 
-    # Return the full card component
+    return fig
+
+
+def create_graph_bar_card(
+    df: pl.DataFrame,
+    x: str,
+    y: str,
+    title: str,
+    text=None,
+    color: str | None = None,
+    barmode: Literal["group", "stacked"] = "group",
+) -> dbc.Card | None:
+
+    fig = create_bar_figure(df, x, y, title, text, color, barmode)
+    if fig is None:
+        return None
+
     return dbc.Card(
         dbc.CardBody([dcc.Graph(figure=fig)]),
-        className=f"mb-4",
+        className="mb-4",
+    )
+
+
+def create_graph_bar_horizontal_card(
+    df: pl.DataFrame,
+    x: str,
+    y: str,
+    title: str,
+    text=None,
+    color: str | None = None,
+    barmode: str = "group",
+) -> dbc.Card | None:
+
+    fig = create_bar_horizontal_figure(df, x, y, title, text, color, barmode)
+    if fig is None:
+        return None
+
+    return dbc.Card(
+        dbc.CardBody([dcc.Graph(figure=fig)]),
+        className="mb-4",
     )
 
 
