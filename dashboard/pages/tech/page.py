@@ -529,6 +529,7 @@ def build_outputs(n_clicks):
             unit="%",
             color="FAMILLE_DR",
             barmode="stack",
+            legend_title="Family",
         )
     # --- juste après avoir construit fig_familles ---------------------
     # ▸ juste après avoir créé fig_familles  ⬇️
