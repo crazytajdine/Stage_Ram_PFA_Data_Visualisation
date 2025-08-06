@@ -16,6 +16,11 @@ import math
 from dash import ctx, no_update
 import io
 from components.filter import FILTER_STORE_ACTUAL
+from dashboard.utils_dashboard.utils_graph import (
+    create_bar_figure,
+    create_bar_horizontal_figure,
+    create_graph_bar_card,
+)
 
 app = get_app()
 # ------------------------------------------------------------------ #
@@ -25,32 +30,47 @@ time_period = excel_manager.COL_NAME_WINDOW_TIME
 time_period_max = excel_manager.COL_NAME_WINDOW_TIME_MAX
 
 
+COL_NAME_COUNT_DELAY_FAMILY = "count_delay_family"
+COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY = "count_delay_per_code_delay_per_family"
+COL_NAME_PERCENTAGE_PER_CODE_DELAY_PER_FAMILY = "percentage_per_code_delay_per_family"
+
+TABLE_NAMES_RENAME = {
+    time_period: "Time Window",
+    time_period_max: "Max Time Window",
+    COL_NAME_COUNT_DELAY_FAMILY: "Number of Occurrences",
+    COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY: "Number of Occurrences of Delay Code",
+    COL_NAME_PERCENTAGE_PER_CODE_DELAY_PER_FAMILY: "Percentage of Occurrences",
+    "FAMILLE_DR": "Family",
+    "DELAY_CODE": "Delay Code",
+}
+
+
 # ------------------------------------------------------------------ #
 # 2 ▸  Helper – aggregate per code                                   #
 # ------------------------------------------------------------------ #
 def analyze_delay_codes_polars(frame: pl.DataFrame) -> pl.DataFrame:
     """
     Return a Polars frame with:
-        CODE_DR | Occurrences | Description | Aéroports | Nb_AP
+        CODE_DR | Occurrences | Description | Aeroports | Nb_AP
     """
     if frame.is_empty():
         return pl.DataFrame(
             {
-                "CODE_DR": [],
+                "DELAY_CODE": [],
                 "Occurrences": [],
                 "Description": [],
-                "Aéroports": [],
+                "Aeroports": [],
                 "Nb_AP": [],
             }
         )
 
     # First get airport counts per code
-    airport_counts = frame.group_by(["CODE_DR", "DEP_AP_SCHED"]).agg(
+    airport_counts = frame.group_by(["DELAY_CODE", "DEP_AP_SCHED"]).agg(
         pl.len().alias("ap_count")
     )
 
     agg = (
-        frame.group_by("CODE_DR")
+        frame.group_by("DELAY_CODE")
         .agg(
             [
                 pl.len().alias("Occurrences"),
@@ -59,13 +79,13 @@ def analyze_delay_codes_polars(frame: pl.DataFrame) -> pl.DataFrame:
             ]
         )
         .join(
-            airport_counts.group_by("CODE_DR").agg(
+            airport_counts.group_by("DELAY_CODE").agg(
                 [
                     pl.col("DEP_AP_SCHED").alias("airports"),
                     pl.col("ap_count").alias("counts"),
                 ]
             ),
-            on="CODE_DR",
+            on="DELAY_CODE",
             how="left",
         )
         .with_columns(
@@ -84,11 +104,11 @@ def analyze_delay_codes_polars(frame: pl.DataFrame) -> pl.DataFrame:
                     ),
                     return_dtype=pl.Utf8,
                 )
-                .alias("Aéroports"),
+                .alias("Aeroports"),
                 pl.col("AP_list").list.n_unique().alias("Nb_AP"),
             ]
         )
-        .select(["CODE_DR", "Occurrences", "Description", "Aéroports", "Nb_AP"])
+        .select(["DELAY_CODE", "Occurrences", "Description", "Aeroports", "Nb_AP"])
         .sort("Occurrences", descending=True)
     )
     return agg
@@ -102,20 +122,20 @@ def analyze_delay_codes_for_table(frame: pl.DataFrame) -> pl.DataFrame:
     if frame.is_empty():
         return pl.DataFrame(
             {
-                "CODE_DR": [],
+                "DELAY_CODE": [],
                 "Occurrences": [],
-                "Aéroports": [],
+                "Aeroports": [],
                 "Nb_AP": [],
             }
         )
 
     # First get airport counts per code
-    airport_counts = frame.group_by(["CODE_DR", "DEP_AP_SCHED"]).agg(
+    airport_counts = frame.group_by(["DELAY_CODE", "DEP_AP_SCHED"]).agg(
         pl.len().alias("ap_count")
     )
 
     agg = (
-        frame.group_by("CODE_DR")
+        frame.group_by("DELAY_CODE")
         .agg(
             [
                 pl.len().alias("Occurrences"),
@@ -124,13 +144,13 @@ def analyze_delay_codes_for_table(frame: pl.DataFrame) -> pl.DataFrame:
             ]
         )
         .join(
-            airport_counts.group_by("CODE_DR").agg(
+            airport_counts.group_by("DELAY_CODE").agg(
                 [
                     pl.col("DEP_AP_SCHED").alias("airports"),
                     pl.col("ap_count").alias("counts"),
                 ]
             ),
-            on="CODE_DR",
+            on="DELAY_CODE",
             how="left",
         )
         .with_columns(
@@ -149,11 +169,11 @@ def analyze_delay_codes_for_table(frame: pl.DataFrame) -> pl.DataFrame:
                     ),
                     return_dtype=pl.Utf8,
                 )
-                .alias("Aéroports"),
+                .alias("Aeroports"),
                 pl.col("AP_list").list.n_unique().alias("Nb_AP"),
             ]
         )
-        .select(["CODE_DR", "Description", "Occurrences", "Aéroports", "Nb_AP"])
+        .select(["DELAY_CODE", "Description", "Occurrences", "Aeroports", "Nb_AP"])
         .sort("Occurrences", descending=True)
     )
     return agg
@@ -193,59 +213,52 @@ It adds a new column to your table that tells you which time period each row bel
 # ------------------------------------------------------------------ #
 # 3 ▸  Layout factory                                                #
 # ------------------------------------------------------------------ #
-def make_layout() -> html.Div:
-    # ----- FILTERS + STATS -----------------------------------------
-    stats_block = html.Div(
-        [
-            # ── stats ───────────────────────────────────────────────
-            html.H3("Statistiques", className="h4"),
-            dbc.Card(html.Div(id="stats-div", className="p-3"), className="mb-4"),
-        ]
-    )
 
-    # ----- CHART GRID ----------------------------------------------
-    charts_block = html.Div(
-        id="charts-container",
-        children=[],
-        style={
-            "display": "grid",
-            "gridTemplateColumns": "repeat(2, 1fr)",
-            "gap": "16px",
-            "alignItems": "start",
-        },
-    )
+# ----- FILTERS + STATS -----------------------------------------
+stats_block = html.Div(
+    [
+        # ── Stats ───────────────────────────────────────────────
+        html.H3("Statistics", className="h4"),
+        dbc.Card(html.Div(id="stats-div", className="p-3"), className="mb-4"),
+    ]
+)
 
-    # ----- TABLE (placed last) -------------------------------------
-    table_block = html.Div(
-        [
-            html.H3("Détail des codes de retard", className="h4 mt-4"),
-            dcc.Download(id="download-table"),
-            dbc.Button("Exporter Excel", id="export-btn", className="mt-2"),
-            html.Div(id="table-container"),
-        ]
-    )
+# ----- CHART GRID ----------------------------------------------
+charts_block = html.Div(
+    id="charts-container",
+    children=[],
+    style={
+        "display": "grid",
+        "gridTemplateColumns": "1fr",  # ← au lieu de repeat(2, 1fr)
+        "gap": "16px",
+        "alignItems": "start",
+    },
+)
 
-    # ----- PAGE ----------------------------------------------------
-    return dbc.Container(
-        fluid=True,
-        className="px-4",
-        children=[
-            stats_block,
-            charts_block,
-            table_block,
-            html.Hr(style={"height": 1, "background": "#202736", "border": 0}),
-            html.P(
-                f"Dernière mise à jour : {datetime.now():%d/%m/%Y %H:%M}",
-                className="text-center text-muted small",
-            ),
-        ],
-    )
+# ----- TABLE (placed last) -------------------------------------
+table_block = html.Div(
+    [
+        html.H3("Delay Code Details", className="h4 mt-4"),
+        dbc.Button("Export Excel", id="export-btn", className="mt-2"),
+        html.Div(id="table-container"),
+    ]
+)
 
 
 # ------------------------------------------------------------------ #
 # 4 ▸  Dash app & callbacks                                          #
 # ------------------------------------------------------------------ #
-layout = make_layout()
+layout = dbc.Container(
+    fluid=True,
+    className="px-4",
+    children=[
+        stats_block,
+        charts_block,
+        table_block,
+        # ← insert this:
+        html.Div(id="about-container")
+    ],
+)
 
 
 def build_structured_table(df: pl.DataFrame) -> pl.DataFrame:
@@ -253,20 +266,21 @@ def build_structured_table(df: pl.DataFrame) -> pl.DataFrame:
         return pl.DataFrame(
             {
                 time_period: [],
+                time_period_max: [],
                 "Famille": [],
-                "Code": [],
+                "DELAY_CODE": [],
                 "Occurrences": [],
-                "Aéroports": [],
-                "Nb Aéroports": [],
+                "Aeroports": [],
+                "count_aeroports": [],
             }
         )
 
     airport_counts = df.group_by(
-        [time_period, "FAMILLE_DR", "CODE_DR", "DEP_AP_SCHED"]
+        [time_period, "FAMILLE_DR", "DELAY_CODE", "DEP_AP_SCHED"]
     ).agg(pl.len().alias("ap_count"))
 
     grouped = (
-        df.group_by([time_period, "FAMILLE_DR", "CODE_DR"])
+        df.group_by([time_period, "FAMILLE_DR", "DELAY_CODE"])
         .agg(
             [
                 pl.len().alias("Occurrences"),
@@ -274,13 +288,13 @@ def build_structured_table(df: pl.DataFrame) -> pl.DataFrame:
             ]
         )
         .join(
-            airport_counts.group_by([time_period, "FAMILLE_DR", "CODE_DR"]).agg(
+            airport_counts.group_by([time_period, "FAMILLE_DR", "DELAY_CODE"]).agg(
                 [
                     pl.col("DEP_AP_SCHED").alias("airports"),
                     pl.col("ap_count").alias("counts"),
                 ]
             ),
-            on=[time_period, "FAMILLE_DR", "CODE_DR"],
+            on=[time_period, "FAMILLE_DR", "DELAY_CODE"],
             how="left",
         )
         .with_columns(
@@ -297,21 +311,20 @@ def build_structured_table(df: pl.DataFrame) -> pl.DataFrame:
                     ),
                     return_dtype=pl.Utf8,
                 )
-                .alias("Aéroports"),
-                pl.col("AP_list").list.n_unique().alias("Nb Aéroports"),
+                .alias("Aeroports"),
+                pl.col("AP_list").list.n_unique().alias("count_aeroports"),
             ]
         )
         .select(
             [
                 time_period,
                 "FAMILLE_DR",
-                "CODE_DR",
+                "DELAY_CODE",
                 "Occurrences",
-                "Aéroports",
-                "Nb Aéroports",
+                "Aeroports",
+                "count_aeroports",
             ]
         )
-        .rename({"CODE_DR": "Code", "FAMILLE_DR": "Famille"})  # ✅ ICI
         .sort([time_period, "Famille", "Occurrences"], descending=[False, False, True])
     )
     return grouped
@@ -323,7 +336,7 @@ plot_config = {
         "format": "png",  # or "svg" / "pdf" for vector
         "filename": "codes-chart",
         "width": 1600,  # px  (≈ A4 landscape)
-        "height": 900,  # px
+        "height": 600,  # px
         "scale": 3,  # 3× pixel-density → crisp on Retina
     }
 }
@@ -335,6 +348,7 @@ plot_config = {
         Output("stats-div", "children"),
         Output("charts-container", "children"),
         Output("table-container", "children"),
+        Output("about-container",   "children"),
     ],
     excel_manager.add_watcher_for_data(),  # watch for data changes
     prevent_initial_call=False,
@@ -355,14 +369,14 @@ def build_outputs(n_clicks):
         [
             dbc.Col(
                 [
-                    html.H5("Codes uniques", className="text-muted"),
+                    html.H5("Unique codes", className="text-muted"),
                     html.H3(f"{unique_codes}", className="text-success mb-0"),
                 ],
                 md=6,
             ),
             dbc.Col(
                 [
-                    html.H5("Total retards", className="text-muted"),
+                    html.H5("Total delays", className="text-muted"),
                     html.H3(f"{total_delays}", className="text-warning mb-0"),
                 ],
                 md=6,
@@ -373,145 +387,167 @@ def build_outputs(n_clicks):
 
     # ---------- COMMON PERIOD TOTALS (used by every family chart) -------
     # 2️⃣ exact counts per (period, family, code)
-    temporal_all = df.group_by([time_period, "FAMILLE_DR", "CODE_DR"]).agg(
-        pl.len().alias("count")
+    temporal_all = df.group_by([time_period, "FAMILLE_DR", "DELAY_CODE"]).agg(
+        pl.len().alias(COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY),
+        pl.col(time_period_max).first().alias(time_period_max),
     )
+        # 1️⃣  Table de correspondance « famille → liste de codes »
+    STATIC_FAM_CODES = {
+        "Technique": list(range(41, 48)),  # 41-47 inclus
+        "Argo":      [56],
+        "Avarie":    [51, 52],
+        "Tiers2":    [55],
+    }
+
+    # 2️⃣  Courtes descriptions pour chaque code (complète / adapte si besoin)
+    CODE_DESCRIPTIONS = {
+        41: "TECHNICAL DEFECTS",
+        42: "SCHEDULED MAINTENANCE",
+        43: "NON-SCHEDULED MAINTENANCE",
+        44: "SPARES AND MAINTENANCE",
+        45: "AOG SPARES",
+        46: "AIRCRAFT CHANGE",
+        47: "STANDBY AIRCRAFT",
+        51: "DAMAGE DURING FLIGHT OPERATIONS",
+        52: "DAMAGE DURING GROUND OPERATIONS",
+        55: "DEPARTURE CONTROL",
+        56: "CARGO PREPARATION DOCUMENTATION",
+        # 57: "FLIGHT PLANS",              # ajoute-le si tu l’utilises
+    }
+
+    # 3️⃣  Construction des cartes
+    family_code_cards = []
+    for fam, codes in STATIC_FAM_CODES.items():
+        code_items = [
+            html.Li(f"{code} – {CODE_DESCRIPTIONS.get(code, ' ')}")
+            for code in codes
+        ]
+        code_list = html.Ul(code_items, className="mb-0 ps-3")
+
+        family_code_cards.append(
+            dbc.Card(
+                [
+                    dbc.CardHeader(f"Family: {fam}", className="bg-secondary text-white"),
+                    dbc.CardBody(code_list),
+                ],
+                className="mb-3",
+            )
+        )
+
+    # 4️⃣  Section « About » inchangée
+    about_section = html.Div(
+        [
+            html.H3("About", className="h4 mt-4"),
+            html.Div(
+                family_code_cards,
+                style={
+                    "display": "grid",
+                    "gridTemplateColumns": "repeat(auto-fit, minmax(200px, 1fr))",
+                    "gap": "16px",
+                },
+            ),
+        ],
+        style={"gridColumn": "1 / -1"},
+    )
+
 
     # 3️⃣ grand-total per period (all families, all codes)
     period_totals = temporal_all.group_by(time_period).agg(
-        pl.col("count").sum().alias("period_total")
+        pl.col(COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY)
+        .sum()
+        .alias("period_total")
     )
 
     # 4️⃣ join + exact share
     temporal_all = temporal_all.join(period_totals, on=time_period).with_columns(
-        (pl.col("count") / pl.col("period_total") * 100).alias("perc")
+        (
+            pl.col(COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY)
+            / pl.col("period_total")
+            * 100
+        ).alias("perc")
     )
     # (Re-)use temporal_all
     famille_share_df = (
         temporal_all.group_by([time_period, "FAMILLE_DR"])
-        .agg(pl.col("count").sum().alias("famille_count"))
+        .agg(
+            pl.col(COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY)
+            .sum()
+            .alias("famille_count")
+        )
         .join(period_totals, on=time_period)
         .with_columns(
-            (pl.col("famille_count") / pl.col("period_total") * 100).alias("percentage")
+            (pl.col("famille_count") / pl.col("period_total") * 100).alias(
+                COL_NAME_PERCENTAGE_PER_CODE_DELAY_PER_FAMILY
+            )
         )
     )
 
-    selected_codes = (
-        df["CODE_DR"].unique().sort().to_list() if not df.is_empty() else []
-    )
-    all_periods = df.get_column(time_period).unique().sort().to_list()
-    if not selected_codes:
-        fig = go.Figure()
-        fig.add_annotation(
-            text="Aucune donnée pour les codes sélectionnés",
-            xref="paper",
-            yref="paper",
-            x=0.5,
-            y=0.5,
-            showarrow=False,
-            font=dict(size=16, color="#a0a7b9"),
+    # Group by time period and code
+    # ---------- FAMILY-LEVEL CHARTS ------------------------------------
+    family_figs = []  # list of Graph components to return
+
+    # consistent colour map across all charts
+    all_unique_codes = df["DELAY_CODE"].unique().sort().to_list()
+    palette = px.colors.qualitative.Set3
+    color_map = {c: palette[i % len(palette)] for i, c in enumerate(all_unique_codes)}
+
+    # ------------------------------------------------------------------
+    # Construire les onglets (une Tab par famille)
+    tab_children = []
+
+    for fam in temporal_all["FAMILLE_DR"].unique().sort():
+        fam_data = temporal_all.filter(pl.col("FAMILLE_DR") == fam)
+
+        dts = (
+            fam_data.group_by(time_period, "DELAY_CODE")
+            .agg(
+                pl.col(COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY)
+                .sum()
+                .alias("all_counts"),
+                pl.col("perc").sum().alias("y_vals"),
+            )
+            .with_columns(pl.col("DELAY_CODE").cast(pl.Utf8))
         )
-    else:
-        # Group by time period and code
-        # ---------- FAMILY-LEVEL CHARTS ------------------------------------
-        family_figs = []  # list of Graph components to return
 
-        # consistent colour map across all charts
-        all_unique_codes = df["CODE_DR"].unique().sort().to_list()
-        palette = px.colors.qualitative.Set3
-        color_map = {
-            c: palette[i % len(palette)] for i, c in enumerate(all_unique_codes)
-        }
+        fig = create_bar_figure(
+            df=dts,
+            x=time_period,
+            y="y_vals",
+            title=f"",
+            unit="%",
+            color="DELAY_CODE",
+            barmode="group",
+            legend_title=fam,
+        )
 
-        for fam in temporal_all["FAMILLE_DR"].unique().sort():
-            fam_data = temporal_all.filter(pl.col("FAMILLE_DR") == fam)
-
-            if fam_data.is_empty():
-                continue
-
-            fig = go.Figure()
-
-            for code in fam_data["CODE_DR"].unique().sort():
-                rows = fam_data.filter(pl.col("CODE_DR") == code)
-
-                # maps in the exact grid order
-                perc_map = {r[time_period]: r["perc"] for r in rows.to_dicts()}
-                count_map = {r[time_period]: r["count"] for r in rows.to_dicts()}
-
-                y_vals = [perc_map.get(p, 0) for p in all_periods]
-                raw_counts = [count_map.get(p, 0) for p in all_periods]
-
-                fig.add_trace(
-                    go.Bar(
-                        x=all_periods,
-                        y=y_vals,
-                        name=code,
-                        marker_color=color_map.get(code, "#cccccc"),
-                        customdata=list(zip(raw_counts, y_vals)),
-                        hovertemplate=(
-                            "<b>%{meta}</b><br>"
-                            "Période : %{x}<br>"
-                            "Occur. : %{customdata[0]}<br>"
-                            "Pourc. : %{customdata[1]:.2f}%<extra></extra>"
-                        ),
-                        meta=code,
-                        text=[
-                            f"{v:.2f} %" if v else "" for v in y_vals
-                        ],  # optional labels
-                        textposition="outside",
-                        cliponaxis=False,
-                    )
-                )
-
-            HEADER_H = 36  # grey bar height (px) – keep padding inside this
-            FIG_H = 420  # visible Plotly canvas height
-            WRAP_H = HEADER_H + FIG_H
-            # build the bar­chart …
-            fig.update_layout(
-                yaxis=dict(
-                    range=[0, 100],
-                    tickformat=".0f",
-                    dtick=10,
-                    title="Pourcentage (%)",
-                ),
-                bargap=0.2,
-                height=FIG_H,
-                margin=dict(
-                    l=40, r=10, t=20, b=70
-                ),  # b = 70 leaves room for “outside” labels
+        # ➜ un onglet ; inutile de mettre un id sur le Graph
+        tab_children.append(
+            dcc.Tab(
+                label=fam,  # texte de l’onglet
+                value=fam,  # valeur (pour l’état actif)
+                children=[
+                    dcc.Graph(figure=fig, config=plot_config, style={"height": 450})
+                ],
             )
+        )
 
-            # ---- grey-header “card” ------------------------------------------
-            family_figs.append(
-                html.Div(
-                    [
-                        # header bar
-                        html.Div(
-                            f"Famille : {fam}",
-                            style={
-                                "background": "#6c757d",
-                                "color": "#fff",
-                                "height": f"{HEADER_H}px",
-                                "display": "flex",
-                                "alignItems": "center",
-                                "paddingLeft": "12px",
-                                "fontWeight": 600,
-                                "borderTopLeftRadius": "6px",
-                                "borderTopRightRadius": "6px",
-                            },
-                        ),
-                        # graph
-                        dcc.Graph(id="codes-chart", figure=fig, config=plot_config),
-                    ],
-                    style={
-                        "border": "1px solid #dee2e6",
-                        "borderRadius": "6px",
-                        "overflow": "hidden",
-                        "overflow": "visible",
-                        "background": "#ffffff",
-                    },
-                )
-            )
+    # composant Tabs complet
+    family_tabs = dcc.Tabs(
+        id="family-tabs",
+        value=tab_children[0].value if tab_children else None,  # premier actif
+        children=tab_children,
+        persistence=True,
+        colors={
+            "background": "#ffffff",
+            "primary": "#0d6efd",
+            "border": "#dee2e6",
+        },
+        style={  # ← ajoutez ceci
+            "width": "100%",  # occupe toute la colonne
+            "display": "flex",  # les onglets se comportent comme flex-items
+            "justifyContent": "center",  # centrés horizontalement
+        },
+    )
 
     # 3. Build table (independent of code and segmentation selection)
     # --- Table structurée ---
@@ -525,21 +561,17 @@ def build_outputs(n_clicks):
                 )
             )
 
-    summary_table = build_structured_table(df)
+    summary_table = temporal_all.select(
+        [
+            time_period,
+            time_period_max,
+            "FAMILLE_DR",
+            "DELAY_CODE",
+            COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY,
+        ]
+    )
 
     data = summary_table.to_dicts()
-    last_date = None
-    last_family = None
-    for row in data:
-        if row[time_period] == last_date:
-            row[time_period] = ""
-        else:
-            last_date = row[time_period]
-
-        if row["Famille"] == last_family and not row[time_period]:
-            row["Famille"] = ""
-        else:
-            last_family = row["Famille"]
 
     if summary_table.is_empty():
         table = dbc.Alert(
@@ -552,85 +584,148 @@ def build_outputs(n_clicks):
         table = dash_table.DataTable(
             id="codes-table",
             data=data,
-            columns=[{"name": c, "id": c} for c in summary_table.columns],
-            style_header={
-                "backgroundColor": "#f8f9fa",
-                "color": "#495057",
-                "fontWeight": "bold",
-                "border": "1px solid #dee2e6",
-                "fontSize": "12px",
+            columns=[
+                {"name": TABLE_NAMES_RENAME.get(c, c), "id": c}
+                for c in summary_table.columns
+            ],
+            style_table={
+                "overflowX": "auto",
+                "marginTop": "10px",
+                "marginBottom": "40px",
             },
-            style_cell={
-                "backgroundColor": "white",
-                "color": "#495057",
-                "border": "1px solid #dee2e6",
-                "textAlign": "left",
-                "padding": "8px",
-                "fontSize": "11px",
-                "whiteSpace": "normal",
-                "height": "auto",
-            },
+            style_cell={"textAlign": "left"},
+            sort_action="native",
+            page_size=15,
             style_data_conditional=[
-                {"if": {"row_index": "odd"}, "backgroundColor": "#f8f9fa"},
                 {
-                    "if": {"column_id": "Aéroports"},
-                    "textAlign": "left",
-                    "whiteSpace": "normal",
-                    "height": "auto",
-                    "minWidth": "200px",
+                    "if": {"row_index": "odd"},
+                    "backgroundColor": "#f8f9fa",  # light gray
+                },
+                {
+                    "if": {"row_index": "even"},
+                    "backgroundColor": "white",
                 },
             ],
-            sort_action="native",
-            filter_action="native",
-            page_size=8,  # include hidden cols if you like
-            style_table={"height": "500px", "overflowY": "auto"},
         )
-    fig_familles = go.Figure()
 
     for famille in famille_share_df["FAMILLE_DR"].unique().sort():
-        rows = famille_share_df.filter(pl.col("FAMILLE_DR") == famille)
-        pct_map = {r[time_period]: r["percentage"] for r in rows.to_dicts()}
-        x_vals = [pct_map.get(p, 0) for p in all_periods]
-
-        fig_familles.add_trace(
-            go.Bar(
-                y=all_periods,
-                x=x_vals,
-                orientation="h",
-                name=famille,
-                text=[f"{x:.1f}%" if x else "" for x in x_vals],
-                textposition="inside",
-            )
+        fig_familles = create_bar_horizontal_figure(
+            df=famille_share_df,
+            x=COL_NAME_PERCENTAGE_PER_CODE_DELAY_PER_FAMILY,
+            y=time_period,
+            title=f"Percentage of delays by family – by segmentation",
+            unit="%",
+            color="FAMILLE_DR",
+            barmode="stack",
+            legend_title="Family",
         )
-
-    fig_familles.update_layout(
-        barmode="stack",
-        title="Part de chaque famille dans les retards (par période)",
-        xaxis_title="Pourcentage (%)",
-        yaxis_title="Fenêtre temporelle",
-        height=600,
-        margin=dict(l=140, r=40, t=60, b=60),
-        plot_bgcolor="#fff",
-    )
     # --- juste après avoir construit fig_familles ---------------------
     # ▸ juste après avoir créé fig_familles  ⬇️
     big_chart = html.Div(
         dcc.Graph(
             figure=fig_familles,
             config=plot_config,
-            style={"width": "100%"},  # occupe 100 % de la div
+            style={"width": "100%", "height": "600px"},  # occupe 100 % de la div
         ),
         # ↓ la clé : span de la colonne 1 jusqu’à la dernière (‑1)
         style={"gridColumn": "1 / -1"},  # ou "1 / span 2" si tu préfères
     )
+    # ────────────────────────────────────────────────────────────────────
+    # 5 ▸ summary table – one line per family
+    #     Time Window  |  Max Time Window  |  Family  |  Sum of Occurrences
+    # ────────────────────────────────────────────────────────────────────
+    # period_totals has:  time_period | period_total
+    # temporal_all has:   time_period | FAMILLE_DR | count …
 
-    charts_out = [big_chart] + family_figs  # ensuite tes autres graphiques
+    family_summary = (
+        temporal_all.group_by([time_period, time_period_max, "FAMILLE_DR"])
+        .agg(
+            pl.col(COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY)
+            .sum()
+            .alias(COL_NAME_COUNT_DELAY_FAMILY)  # total delays per family
+        )
+        # bring in the period total so we can compute a share
+        .join(period_totals, on=time_period)
+        .with_columns(
+            (pl.col(COL_NAME_COUNT_DELAY_FAMILY) / pl.col("period_total") * 100)
+            .round(2)
+            .alias(COL_NAME_PERCENTAGE_PER_CODE_DELAY_PER_FAMILY)  # new column 0-100 %
+        )
+        # make the column names human-readable
+        # keep only the columns you want, in order
+        .select(
+            [
+                time_period,
+                time_period_max,
+                "FAMILLE_DR",
+                COL_NAME_COUNT_DELAY_FAMILY,
+                COL_NAME_PERCENTAGE_PER_CODE_DELAY_PER_FAMILY,
+            ]
+        )
+        .sort([time_period, "FAMILLE_DR"])
+    )
 
-    return stats, charts_out, table
+    family_summary_table = dash_table.DataTable(
+        id="family-summary-table",
+        data=family_summary.to_dicts(),
+        columns=[
+            {"name": TABLE_NAMES_RENAME.get(c, c), "id": c}
+            for c in family_summary.columns
+        ],
+        style_table={
+            "overflowX": "auto",
+            "marginTop": "10px",
+            "marginBottom": "40px",
+        },
+        style_cell={"textAlign": "left"},
+        page_action="native",  # enable paging (default)
+        page_size=10,
+        style_data_conditional=[
+            {
+                "if": {"row_index": "odd"},
+                "backgroundColor": "#f8f9fa",  # light gray
+            },
+            {
+                "if": {"row_index": "even"},
+                "backgroundColor": "white",
+            },
+        ],
+    )
+
+    # ──────────────────────────────────────────────────────────────
+    # Family-level summary (already built in family_summary_table)
+    # ──────────────────────────────────────────────────────────────
+    family_summary_block = html.Div(
+        [
+            html.H3("Family summary per segmentation", className="h4 mt-4"),
+            dcc.Download(id="download-family-summary"),  # invisible
+            dbc.Button(
+                "Export Excel",
+                id="export-family-btn",
+                color="primary",
+                className="mt-2",
+            ),
+            family_summary_table,  # the DataTable
+        ],
+        style={"gridColumn": "1 / -1"},  # occupy full width like big_chart
+    )
+
+    charts_out = [
+        big_chart,
+        family_summary_block,
+        family_tabs,           # ← our new ABOUT block
+    ]
+
+    return stats, charts_out, table, about_section
 
 
 add_export_callbacks(
     id_table="codes-table",
     id_button="export-btn",
     name="codes-retard",
+)
+add_export_callbacks(
+    id_table="family-summary-table",
+    id_button="export-family-btn",
+    name="family-summary",
 )

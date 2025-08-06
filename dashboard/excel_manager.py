@@ -77,7 +77,7 @@ def filter_tec(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
     logging.info("Filtering technical delay codes from dataframe")
     try:
         filtered_df = df_lazy.filter(
-            pl.col("CODE_DR").is_in([41, 42, 43, 44, 45, 46, 47, 51, 52, 55, 56, 57])
+            pl.col("DELAY_CODE").is_in([41, 42, 43, 44, 45, 46, 47, 51, 52, 55, 56, 57])
         )
         logging.debug("Filter applied on CODE_DR for technical delays")
         return filtered_df
@@ -89,7 +89,7 @@ def filter_tec(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
 def filter_retard(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
     logging.info("Filtering rows where 'Retard en min' is not zero")
     try:
-        filtered_df = df_lazy.filter(pl.col("Retard en min") != 0)
+        filtered_df = df_lazy.filter(pl.col("DELAY_TIME") != 0)
         logging.debug("Filter applied on 'Retard en min' != 0")
         return filtered_df
     except Exception as e:
@@ -186,9 +186,9 @@ def load_excel_lazy(path):
     if not is_exist:
         raise ValueError("The path does not exist.")
 
-    df_unfiltered = pl.read_excel(path, sheet_name="Sheet1").lazy()
+    df_read = pl.read_excel(path).lazy()
 
-    df_raw = preprocess_df(df_unfiltered)
+    df_raw = preprocess_df(df_read)
 
     df_unfiltered = df_raw.pipe(filter_retard).pipe(filter_tec)
 
@@ -199,8 +199,8 @@ def load_excel_lazy(path):
 
 def preprocess_df(raw_df: pl.LazyFrame) -> pl.LazyFrame:
     return raw_df.with_columns(
-        pl.col("CODE_DR").cast(pl.Int32).alias("CODE_DR")
-    ).filter(pl.col("AT_RXP_AFFRT") != "AFFRT")
+        pl.col("DELAY_CODE").cast(pl.Int32).alias("DELAY_CODE")
+    ).filter(pl.col("AC_REGISTRATION").str.starts_with("CN"))
 
 
 def get_df_unfiltered() -> Optional[pl.LazyFrame]:
@@ -419,6 +419,14 @@ def add_callbacks():
         return not is_path_correct
 
     @app.callback(
+        Output(ID_STORE_DATE_WATCHER, "data", allow_duplicate=True),
+        Input(ID_PATH_STORE, "data"),
+        prevent_initial_call=True,
+    )
+    def trigger_data_path_change(_):
+        return None
+
+    @app.callback(
         # output
         Output(ID_STORE_DATE_WATCHER, "data"),
         # input
@@ -433,6 +441,7 @@ def add_callbacks():
             return dash.no_update
         try:
             latest_modification_time = get_latest_modification_time()
+            print("watching file:", latest_modification_time, "new:", date_latest_fetch)
 
             if latest_modification_time != date_latest_fetch:
                 logging.info("File changed, updating DataFrame...")

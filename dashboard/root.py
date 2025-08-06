@@ -6,7 +6,7 @@ import dash
 from configurations.config import get_base_config
 from configurations.log_config import init_log
 from utils_dashboard.utils_navs import build_nav_items
-from server_instance import get_app
+from server_instance import get_app, get_server
 
 from utils_dashboard.utils_download import download_dash
 
@@ -25,7 +25,10 @@ from components.navbar import (
     add_callback as add_navbar_callback,
 )
 
+from components.title import layout as tittle_layout
+
 app = get_app()
+server = get_server()
 
 app.layout = html.Div(
     [
@@ -34,6 +37,8 @@ app.layout = html.Div(
         *excel_hookers,
         # Barre de navigation
         navbar_layout,
+        # Title
+        tittle_layout,
         # Filters
         filter_layout,
         # Contenu principal

@@ -1,3 +1,4 @@
+from typing import Literal
 from dash import (
     html,
     dcc,
@@ -17,317 +18,144 @@ from excel_manager import (
     COL_NAME_WINDOW_TIME,
 )
 
+from utils_dashboard.utils_graph import create_bar_figure, create_bar_horizontal_figure
+
+COL_NAME_COUNT_FLIGHTS = "count of flights"
+COL_NAME_SUBTYPE = "AC_SUBTYPE"
+COL_NAME_PERCENTAGE_DELAY = "pct"
+COL_NAME_CATEGORY_GT_15MIN = "delay_category_gt_15min"
+COL_NAME_CATEGORY_GT_15MIN_COUNT = "delay_cat_count"
+COL_NAME_CATEGORY_GT_15MIN_MEAN = "delay_cat_mean"
+
+
+ID_SUMMERY_TABLE = "summary-table"
+ID_FIGURE_CATEGORY_DELAY_GT_15MIN = "figure-category-delay-gt-15min"
+ID_TABLE_CATEGORY_DELAY_GT_15MIN = "table-category-delay-gt-15min"
+ID_TABLE_FLIGHT_DELAY = "table-flight-delay"
+ID_FIGURE_FLIGHT_DELAY = "figure-flight-delay"
+ID_FIGURE_SUBTYPE_PR_DELAY_MEAN = "figure-subtype-pr-delay-mean"
+ID_TABLE_SUBTYPE_PR_DELAY_MEAN = "table-subtype-pr-delay-mean"
+
+
+TABLE_NAMES_RENAME = {
+    "AC_SUBTYPE": "Aircraft Subtype",
+    "AC_REGISTRATION": "Registration",
+    "DEP_DAY_SCHED": "Scheduled Departure Day",
+    "DELAY_TIME": "Delay Time (min)",
+    "DELAY_CODE": "Delay Code",
+    "count": "Flight Count",
+    COL_NAME_WINDOW_TIME: "Interval Start",
+    COL_NAME_WINDOW_TIME_MAX: "Interval End",
+    COL_NAME_PERCENTAGE_DELAY: "Percentage of Delayed Flights",
+    COL_NAME_COUNT_FLIGHTS: "Count of Delayed Flights",
+    COL_NAME_CATEGORY_GT_15MIN: "Delay Category",
+    COL_NAME_CATEGORY_GT_15MIN_MEAN: "Perentage of Delayed Flights",
+    COL_NAME_CATEGORY_GT_15MIN_COUNT: "Category Count",
+}
+
+
 app = get_app()
 
 
-# Utilitaire conversion minutes -> h:mm
-def convert_minutes_to_hours_minutes(minutes: int | float) -> str:
-    m = int(minutes or 0)
-    h, r = divmod(m, 60)
-    return f"{h}h{r:02d}"
+# def process_subtype_pct_data(df: pl.LazyFrame) -> pl.LazyFrame:
+#     # Step 1: group by window and subtype
+#     grouped = df.group_by(
+#         [COL_NAME_WINDOW_TIME_MAX, COL_NAME_WINDOW_TIME, "AC_SUBTYPE"]
+#     ).agg(pl.count().alias(COL_NAME_COUNT_FLIGHTS))
+
+#     # Step 2: calculate the percentage by window
+#     result = grouped.with_columns(
+#         (
+#             pl.col(COL_NAME_COUNT_FLIGHTS)
+#             * 100
+#             / pl.col(COL_NAME_COUNT_FLIGHTS)
+#             .sum()
+#             .over([COL_NAME_WINDOW_TIME_MAX, COL_NAME_WINDOW_TIME])
+#         )
+#         .round(2)
+#         .alias(COL_NAME_PERCENTAGE_DELAY)
+#     )
+
+#     return result.sort(COL_NAME_WINDOW_TIME)
 
 
-# --- FONCTIONS DE TRAITEMENT DES DONNEES ---
+def process_subtype_pct_data(df: pl.LazyFrame) -> pl.LazyFrame:
+    counts = df.group_by("AC_SUBTYPE").agg(pl.count().alias(COL_NAME_COUNT_FLIGHTS))
 
-
-def _filter_and_prepare(df: pl.DataFrame) -> tuple[pl.DataFrame, str]:
-    if df.is_empty():
-        return df, "Aucun résultat."
-    df = df.sort("Retard en min", descending=True)
-    nb_retard_15 = df.filter(pl.col("Retard en min") >= 15).height
-    df_max = df.filter(pl.col("Retard en min") > 0).limit(1)
-    if df_max.height > 0:
-        row = df_max[0]
-        subtype = row["AC_SUBTYPE"]
-        subtype = subtype.item() if hasattr(subtype, "item") else subtype
-        registration = row["AC_REGISTRATION"]
-        registration = (
-            registration.item() if hasattr(registration, "item") else registration
-        )
-        retard_min = row["Retard en min"]
-        retard_min = retard_min.item() if hasattr(retard_min, "item") else retard_min
-        retard_hm = convert_minutes_to_hours_minutes(retard_min)
-        vol_info = (
-            f"\nVol avec le plus grand retard : {subtype} {registration}, "
-            f"durée du retard : {retard_hm} ({retard_min} min)\n"
-        )
-    else:
-        vol_info = "\nAucun vol avec retard supérieur à 0 min."
-    summary_text = f"Nombre de vols avec retard ≥ 15 min : {nb_retard_15}{vol_info}"
-    return df, summary_text
-
-
-def _build_table(df: pl.DataFrame) -> tuple[list[dict], list[dict]]:
-    if df.is_empty():
-        return [], []
-    df_display = df.select(
-        ["AC_SUBTYPE", "AC_REGISTRATION", "DEP_DAY_SCHED", "Retard en min", "CODE_DR"]
-    ).rename(
-        {
-            "AC_SUBTYPE": "SUBTYPE",
-            "AC_REGISTRATION": "REGISTRATION",
-            "DEP_DAY_SCHED": "DATETIME",
-            "CODE_DR": "CODE RETARD",
-            "Retard en min": "RETARD (min)",
-        }
-    )
-    columns = [{"name": c, "id": c} for c in df_display.columns]
-    data = df_display.to_dicts()
-    return columns, data
-
-
-def _build_pct_figure(df: pl.DataFrame) -> go.Figure:
-    if df.is_empty():
-        return go.Figure()
-    total = df.height
-
-    if total == 0:
-        return go.Figure()
-    count_15_plus = df.filter(pl.col("Retard en min") >= 15).height
-    count_15_moins = total - count_15_plus
-    pct_15_plus = (count_15_plus / total) * 100
-    pct_15_moins = 100 - pct_15_plus
-    fig = go.Figure(
-        data=[
-            go.Bar(
-                x=["Retard < 15 min", "Retard ≥ 15 min"],
-                y=[pct_15_moins, pct_15_plus],
-            )
+    result = counts.with_columns(
+        [
+            (pl.col(COL_NAME_COUNT_FLIGHTS) * 100 / pl.sum(COL_NAME_COUNT_FLIGHTS))
+            .round(2)
+            .alias(COL_NAME_PERCENTAGE_DELAY)
         ]
     )
-    fig.update_layout(
-        title="Pourcentage des vols par catégorie de retard",
-        yaxis_title="Pourcentage (%)",
-        xaxis_title="Catégorie",
-        yaxis=dict(range=[0, 100]),
-    )
-    return fig
+
+    return result.sort(COL_NAME_PERCENTAGE_DELAY, descending=False)
 
 
-def _build_subtype_pct_figure(df: pl.DataFrame) -> go.Figure:
-    if df.is_empty():
-        return go.Figure()
-    df_retard = df.filter(pl.col("Retard en min") > 0)
-    if df_retard.is_empty():
-        return go.Figure()
-    total = df_retard.height
-    counts = (
-        df_retard.group_by("AC_SUBTYPE")
-        .agg(pl.count().alias("count"))
-        .sort("count", descending=True)
-    )
-    counts = counts.with_columns((pl.col("count") * 100 / total).alias("pct"))
-    subtypes = counts["AC_SUBTYPE"].to_list()
-    pcts = counts["pct"].to_list()
-    counts_vals = counts["count"].to_list()
-    text_labels = [f"{cnt} vols - {pct:.1f}%" for cnt, pct in zip(counts_vals, pcts)]
-    fig = go.Figure(
-        data=[
-            go.Bar(
-                x=pcts,
-                y=subtypes,
-                orientation="h",
-                text=text_labels,
-                textposition="outside",
-                hovertemplate="%{y}<br>%{text}<extra></extra>",
-            )
-        ]
-    )
-    height = min(max(400, 30 * len(subtypes) + 100), 1200)
-    fig.update_layout(
-        title="Répartition des vols en retard par SUBTYPE (%)",
-        xaxis_title="Pourcentage (%)",
-        yaxis_title="SUBTYPE",
-        yaxis=dict(autorange="reversed"),
-        height=height,
-        margin=dict(l=180, r=60, t=60, b=60),
-        xaxis=dict(range=[0, 105]),
-        plot_bgcolor="#fff",
-        bargap=0.25,
-    )
-    return fig
-
-
-def build_subtype_table_data(df: pl.DataFrame) -> tuple[list[dict], list[dict]]:
-    if df.is_empty():
-        return [], []
-    df_retard = df.filter(pl.col("Retard en min") > 0)
-    if df_retard.is_empty():
-        return [], []
-    total = df_retard.height
-    counts = (
-        df_retard.group_by("AC_SUBTYPE")
-        .agg(pl.count().alias("count"))
-        .sort("count", descending=True)
-    )
-    counts = counts.with_columns((pl.col("count") * 100 / total).alias("pct"))
-    counts_display = counts.rename(
-        {"AC_SUBTYPE": "SUBTYPE", "count": "NOMBRE", "pct": "POURCENTAGE (%)"}
-    )
-    columns = [{"name": c, "id": c} for c in counts_display.columns]
-    data = counts_display.to_dicts()
-    return columns, data
-
-
-PERIOD_START = COL_NAME_WINDOW_TIME_MAX  # start of window
-PERIOD_END = COL_NAME_WINDOW_TIME  # end of window
-
-
-def build_period_chart(df: pl.DataFrame) -> go.Figure:
-    if df.is_empty() or PERIOD_START not in df.columns:
-        return go.Figure()
-    has_end = PERIOD_END in df.columns and PERIOD_END != PERIOD_START
-    if has_end:
-        df_lab = df.with_columns(
-            [
-                pl.col(PERIOD_START)
-                .cast(pl.Date)
-                .dt.strftime("%Y-%m-%d")
-                .alias("_start_s"),
-                pl.col(PERIOD_END)
-                .cast(pl.Date)
-                .dt.strftime("%Y-%m-%d")
-                .alias("_end_s"),
-            ]
-        ).with_columns(
-            (pl.col("_start_s") + pl.lit(" → ") + pl.col("_end_s")).alias("label"),
-        )
-        sort_expr = pl.col(PERIOD_START).cast(pl.Date).alias("_sort")
-        label_col = "label"
-    else:
-        if df.schema[PERIOD_START] == pl.Utf8:
-            df_lab = df.rename({PERIOD_START: "label"})
-            df_lab = df_lab.with_columns(
-                pl.col("label")
-                .str.slice(0, 10)
-                .str.strptime(pl.Date, "%Y-%m-%d", strict=False)
-                .alias("_sort")
-            )
-            label_col = "label"
-            sort_expr = pl.col("_sort")
-        else:
-            df_lab = df.with_columns(
-                pl.col(PERIOD_START)
-                .cast(pl.Date)
-                .dt.strftime("%Y-%m-%d")
-                .alias("label"),
-                pl.col(PERIOD_START).cast(pl.Date).alias("_sort"),
-            )
-            label_col = "label"
-            sort_expr = pl.col("_sort")
+def calculate_period_distribution(df: pl.DataFrame) -> pl.DataFrame:
     counts_df = (
-        df_lab.group_by([label_col, sort_expr])
+        df.group_by([COL_NAME_WINDOW_TIME, COL_NAME_WINDOW_TIME_MAX])
         .agg(pl.len().alias("count"))
-        .sort("_sort", descending=False)
+        .sort(COL_NAME_WINDOW_TIME)
     )
     total = counts_df["count"].sum()
     if total == 0:
-        return go.Figure()
-    counts_df = counts_df.with_columns((pl.col("count") * 100 / total).alias("pct"))
-    labels = counts_df[label_col].to_list()
-    counts = counts_df["count"].to_list()
-    pcts = counts_df["pct"].to_list()
-    fig = go.Figure(
-        data=[
-            go.Bar(
-                y=labels,
-                x=pcts,
-                orientation="h",
-                text=[f"{c} vols" for c in counts],
-                textposition="outside",
-                hovertemplate="%{y}<br>%{x:.2f}%<br>%{text}<extra></extra>",
-            )
-        ]
-    )
-    n = len(labels)
-    height = min(max(400, 30 * n + 100), 1200)
-    fig.update_layout(
-        title="Répartition des vols par intervalles (en %)",
-        yaxis_title="Intervalle de dates",
-        xaxis_title="Pourcentage (%)",
-        bargap=0.25,
-        height=height,
-        margin=dict(l=180, r=60, t=60, b=60),
-        yaxis=dict(autorange="reversed", automargin=True),
-        xaxis=dict(range=[0, 105], automargin=True),
-        plot_bgcolor="#fff",
-    )
-    return fig
-
-
-def build_interval_table_data(df: pl.DataFrame) -> tuple[list[dict], list[dict]]:
-    if df.is_empty() or PERIOD_START not in df.columns:
-        return [], []
-
-    has_end = PERIOD_END in df.columns and PERIOD_END != PERIOD_START
-    if has_end:
-        df_lab = df.with_columns(
-            [
-                pl.col(PERIOD_START).cast(pl.Date).alias("WINDOW_DATETIME_DEP"),
-                pl.col(PERIOD_END).cast(pl.Date).alias("WINDOW_DATETIME_DEP_MAX"),
-            ]
+        return pl.DataFrame(
+            {
+                COL_NAME_WINDOW_TIME: [],
+                "count": [],
+                COL_NAME_PERCENTAGE_DELAY: [],
+            }
         )
-    else:
-        df_lab = df.with_columns(
-            [
-                pl.col(PERIOD_START).cast(pl.Date).alias("WINDOW_DATETIME_DEP"),
-                pl.col(PERIOD_START).cast(pl.Date).alias("WINDOW_DATETIME_DEP_MAX"),
-            ]
+    return counts_df.with_columns(
+        (pl.col("count") * 100 / total).round(2).alias(COL_NAME_PERCENTAGE_DELAY)
+    )
+
+
+def calculate_delay_pct(df: pl.LazyFrame) -> pl.LazyFrame:
+    # 1) Categorize delays
+    df = df.with_columns(
+        pl.when(pl.col("DELAY_TIME") >= 15)
+        .then(pl.lit("flights with delay ≥ 15 min"))
+        .otherwise(pl.lit("flights with delay < 15 min"))
+        .alias(COL_NAME_CATEGORY_GT_15MIN)
+    )
+
+    # 2) Group by time window and delay category
+    res = df.group_by(
+        [COL_NAME_WINDOW_TIME_MAX, COL_NAME_WINDOW_TIME, COL_NAME_CATEGORY_GT_15MIN]
+    ).agg(pl.count().alias(COL_NAME_CATEGORY_GT_15MIN_COUNT))
+
+    # 3) Compute percentage per time window
+    res = res.with_columns(
+        (
+            pl.col(COL_NAME_CATEGORY_GT_15MIN_COUNT)
+            * 100
+            / pl.col(COL_NAME_CATEGORY_GT_15MIN_COUNT)
+            .sum()
+            .over([COL_NAME_WINDOW_TIME_MAX, COL_NAME_WINDOW_TIME])
         )
-
-    counts_df = (
-        df_lab.group_by(["WINDOW_DATETIME_DEP", "WINDOW_DATETIME_DEP_MAX"])
-        .agg(pl.count().alias("nbr_de_vol"))
-        .sort("WINDOW_DATETIME_DEP", descending=False)
+        .round(2)
+        .alias(COL_NAME_CATEGORY_GT_15MIN_MEAN)
     )
-    total = counts_df["nbr_de_vol"].sum()
-    if total == 0:
-        return [], []
-    counts_df = counts_df.with_columns(
-        (pl.col("nbr_de_vol") * 100 / total).round(2).alias("pourcentage")
-    )
-    columns = [
-        {"name": "Min_Date", "id": "WINDOW_DATETIME_DEP", "type": "datetime"},
-        {"name": "Max_Date", "id": "WINDOW_DATETIME_DEP_MAX", "type": "datetime"},
-        {"name": "Nbr_de_vol", "id": "nbr_de_vol", "type": "numeric"},
-        {
-            "name": "Pourcentage",
-            "id": "pourcentage",
-            "type": "numeric",
-            "format": {"specifier": ".2f"},
-        },
-    ]
-    data = counts_df.to_dicts()
-    return columns, data
 
+    return res
 
-# --- LAYOUT COMPLET ---
 
 layout = dbc.Container(
     [
         html.Div(
             [
                 dbc.Alert(
-                    id="summary-info",
-                    color="info",
-                    is_open=False,
-                    className="mb-4",
-                    style={
-                        "fontWeight": "bold",
-                        "fontSize": "1.1rem",
-                        "whiteSpace": "pre-line",
-                    },
-                ),
-                dbc.Alert(
                     id="result-message",
                     is_open=False,
-                    dismissable=True,
                     className="mt-3",
                 ),
                 # Premier bouton + tableau + export
                 dbc.Button("Exporter Excel", id="result-export-btn", className="mt-2"),
                 dash_table.DataTable(
-                    id="result-table-1",
+                    id=ID_SUMMERY_TABLE,
                     columns=[],
                     data=[],
                     page_size=10,
@@ -338,11 +166,21 @@ layout = dbc.Container(
                     },
                     style_cell={"textAlign": "left"},
                     sort_action="native",
+                    style_data_conditional=[
+                        {
+                            "if": {"row_index": "odd"},
+                            "backgroundColor": "#f8f9fa",  # light gray
+                        },
+                        {
+                            "if": {"row_index": "even"},
+                            "backgroundColor": "white",
+                        },
+                    ],
                 ),
                 # Graphique subtype pct
                 html.Div(
                     dcc.Graph(
-                        id="bar-chart-subtype-pct",
+                        id=ID_FIGURE_SUBTYPE_PR_DELAY_MEAN,
                         style={"margin": "auto", "height": "400px", "width": "90%"},
                     ),
                     style={
@@ -361,7 +199,7 @@ layout = dbc.Container(
                             className="mb-2",
                         ),
                         dash_table.DataTable(
-                            id="subtype-table",
+                            id=ID_TABLE_SUBTYPE_PR_DELAY_MEAN,
                             columns=[],
                             data=[],
                             page_size=10,
@@ -372,13 +210,23 @@ layout = dbc.Container(
                             },
                             style_cell={"textAlign": "left"},
                             sort_action="native",
+                            style_data_conditional=[
+                                {
+                                    "if": {"row_index": "odd"},
+                                    "backgroundColor": "#f8f9fa",  # light gray
+                                },
+                                {
+                                    "if": {"row_index": "even"},
+                                    "backgroundColor": "white",
+                                },
+                            ],
                         ),
                     ]
                 ),
                 # Graphique retard %
                 html.Div(
                     dcc.Graph(
-                        id="bar-chart-pct",
+                        id=ID_FIGURE_CATEGORY_DELAY_GT_15MIN,
                         style={"margin": "auto", "height": "400px", "width": "90%"},
                     ),
                     style={
@@ -388,10 +236,43 @@ layout = dbc.Container(
                         "marginBottom": "40px",
                     },
                 ),
+                html.Div(
+                    [
+                        dbc.Button(
+                            "Exporter Excel",
+                            id="category-export-btn",
+                            className="mb-2",
+                        ),
+                        dash_table.DataTable(
+                            id=ID_TABLE_CATEGORY_DELAY_GT_15MIN,
+                            columns=[],
+                            data=[],
+                            page_size=10,
+                            style_table={
+                                "overflowX": "auto",
+                                "marginTop": "10px",
+                                "marginBottom": "40px",
+                            },
+                            style_cell={"textAlign": "left"},
+                            sort_action="native",
+                            style_data_conditional=[
+                                {
+                                    "if": {"row_index": "odd"},
+                                    "backgroundColor": "#f8f9fa",  # light gray
+                                },
+                                {
+                                    "if": {"row_index": "even"},
+                                    "backgroundColor": "white",
+                                },
+                            ],
+                        ),
+                    ],
+                    style={"marginBottom": "40px"},
+                ),
                 # Graphique intervalles
                 html.Div(
                     dcc.Graph(
-                        id="bar-chart-interval",
+                        id=ID_FIGURE_FLIGHT_DELAY,
                         style={"margin": "auto", "width": "100%"},
                     ),
                     style={
@@ -410,7 +291,7 @@ layout = dbc.Container(
                             className="mb-2",
                         ),
                         dash_table.DataTable(
-                            id="interval-table",
+                            id=ID_TABLE_FLIGHT_DELAY,
                             columns=[],
                             data=[],
                             page_size=10,
@@ -421,6 +302,16 @@ layout = dbc.Container(
                             },
                             style_cell={"textAlign": "left"},
                             sort_action="native",
+                            style_data_conditional=[
+                                {
+                                    "if": {"row_index": "odd"},
+                                    "backgroundColor": "#f8f9fa",  # light gray
+                                },
+                                {
+                                    "if": {"row_index": "even"},
+                                    "backgroundColor": "white",
+                                },
+                            ],
                         ),
                     ],
                     style={"marginBottom": "40px"},
@@ -432,150 +323,160 @@ layout = dbc.Container(
     fluid=True,
 )
 
-# --- CALLBACKS ---
 
-
+# 1) Summary table callback
 @app.callback(
-    Output("subtype-table", "columns"),
-    Output("subtype-table", "data"),
-    add_watcher_for_data(),
-)
-def update_subtype_table(_):
-    df_lazy = get_df()
-    if df_lazy is None:
-        return [], []
-    df = df_lazy.collect()
-    if df.is_empty():
-        return [], []
-    df, _ = _filter_and_prepare(df)
-    columns, data = build_subtype_table_data(df)
-    return columns, data
-
-
-@app.callback(
-    Output("summary-info", "children"),
-    Output("summary-info", "is_open"),
     Output("result-message", "children"),
     Output("result-message", "color"),
     Output("result-message", "is_open"),
+    Output(ID_SUMMERY_TABLE, "columns"),
+    Output(ID_SUMMERY_TABLE, "data"),
     add_watcher_for_data(),
 )
 def update_summary(_):
     df_lazy = get_df()
     if df_lazy is None:
         alert = dbc.Alert(
-            "Aucun fichier Excel chargé. Veuillez charger un fichier Excel d'abord.",
+            "No Excel file loaded. Please upload first.",
             color="danger",
             className="mt-3",
         )
-        return "", False, alert, "danger", True
+        return alert, "danger", True, [], []
     df = df_lazy.collect()
     if df.is_empty():
-        alert = dbc.Alert(
-            "Aucun résultat trouvé pour les critères spécifiés.",
-            color="warning",
-            className="mt-3",
+        return (
+            dbc.Alert("No results found.", color="warning", className="mt-3"),
+            "warning",
+            True,
+            [],
+            [],
         )
-        return "", False, alert, "warning", True
-    df, summary_text = _filter_and_prepare(df)
-    result_msg = dbc.Alert(
-        f"{df.height} résultat(s) trouvé(s).", color="success", className="mt-3"
+    # build summary table
+    df_summary = df.select(
+        [
+            "AC_SUBTYPE",
+            "AC_REGISTRATION",
+            "DEP_DAY_SCHED",
+            "DELAY_TIME",
+            "DELAY_CODE",
+        ]
     )
-    return summary_text, True, result_msg, "success", True
+    cols = [{"name": TABLE_NAMES_RENAME.get(c, c), "id": c} for c in df_summary.columns]
+    data = df_summary.to_dicts()
+    alert = dbc.Alert(
+        f"{df.height} result(s) found.", color="success", className="mt-3"
+    )
+    return alert, "success", True, cols, data
 
 
+# 2) Subtype-delay % chart + table callback
 @app.callback(
-    Output("result-table-1", "columns"),
-    Output("result-table-1", "data"),
+    Output(ID_FIGURE_SUBTYPE_PR_DELAY_MEAN, "figure"),
+    Output(ID_TABLE_SUBTYPE_PR_DELAY_MEAN, "columns"),
+    Output(ID_TABLE_SUBTYPE_PR_DELAY_MEAN, "data"),
     add_watcher_for_data(),
 )
-def update_table(_):
+def update_subtype(_):
     df_lazy = get_df()
     if df_lazy is None:
-        return [], []
-    df = df_lazy.collect()
-    if df.is_empty():
-        return [], []
-    df, _ = _filter_and_prepare(df)
-    columns, data = _build_table(df)
-    return columns, data
+        return go.Figure(), [], []
+    df_sub = process_subtype_pct_data(df_lazy).collect()
+    # figure
+    fig = create_bar_horizontal_figure(
+        df_sub,
+        x=COL_NAME_PERCENTAGE_DELAY,
+        y=COL_NAME_SUBTYPE,
+        title="Delayed flights by SUBTYPE (%)",
+    )
+
+    # fig = create_bar_horizontal_figure(
+    #     df_sub,
+    #     x=COL_NAME_PERCENTAGE_DELAY,
+    #     y=COL_NAME_WINDOW_TIME,
+    #     title="Delayed flights by SUBTYPE (%) per time window",
+    #     color="AC_SUBTYPE",
+    #     legend_title="Subtype",
+    #     barmode="stack",
+    # )
+
+    # table
+    cols = [{"name": TABLE_NAMES_RENAME.get(c, c), "id": c} for c in df_sub.columns]
+    data = df_sub.to_dicts()
+    return fig, cols, data
 
 
+# 3) Delay-category chart + table callback
 @app.callback(
-    Output("bar-chart-pct", "figure"),
+    Output(ID_FIGURE_CATEGORY_DELAY_GT_15MIN, "figure"),
+    Output(ID_TABLE_CATEGORY_DELAY_GT_15MIN, "columns"),
+    Output(ID_TABLE_CATEGORY_DELAY_GT_15MIN, "data"),
     add_watcher_for_data(),
 )
-def update_pct_chart(_):
+def update_category(_):
     df_lazy = get_df()
     if df_lazy is None:
-        return go.Figure()
-    df = df_lazy.collect()
-    if df.is_empty():
-        return go.Figure()
-    df, _ = _filter_and_prepare(df)
-    return _build_pct_figure(df)
+        return go.Figure(), [], []
+    df_cat = calculate_delay_pct(df_lazy).collect()
+    # figure
+    fig = create_bar_figure(
+        df_cat,
+        x=COL_NAME_WINDOW_TIME,
+        y=COL_NAME_CATEGORY_GT_15MIN_MEAN,
+        color=COL_NAME_CATEGORY_GT_15MIN,
+        legend_title="Category of delay",
+        title="Flight delays ≥15 min vs <15 min (per time window)",
+    )
+    # table
+    display_cols = [
+        COL_NAME_WINDOW_TIME,
+        COL_NAME_WINDOW_TIME_MAX,
+        COL_NAME_CATEGORY_GT_15MIN,
+        COL_NAME_CATEGORY_GT_15MIN_MEAN,
+    ]
+
+    df_disp = df_cat.select(display_cols)
+    cols = [{"name": TABLE_NAMES_RENAME.get(c, c), "id": c} for c in display_cols]
+    data = df_disp.to_dicts()
+    return fig, cols, data
 
 
+# 4) Interval-distribution chart + table callback
 @app.callback(
-    Output("bar-chart-interval", "figure"),
+    Output(ID_FIGURE_FLIGHT_DELAY, "figure"),
+    Output(ID_TABLE_FLIGHT_DELAY, "columns"),
+    Output(ID_TABLE_FLIGHT_DELAY, "data"),
     add_watcher_for_data(),
 )
-def update_period_chart(_):
+def update_interval(_):
     df_lazy = get_df()
     if df_lazy is None:
-        return go.Figure()
+        return go.Figure(), [], []
     df = df_lazy.collect()
     if df.is_empty():
-        return go.Figure()
-    return build_period_chart(df)
-
-
-@app.callback(
-    Output("bar-chart-subtype-pct", "figure"),
-    add_watcher_for_data(),
-)
-def update_subtype_pct_chart(_):
-    df_lazy = get_df()
-    if df_lazy is None:
-        return go.Figure()
-    df = df_lazy.collect()
-    if df.is_empty():
-        return go.Figure()
-    df, _ = _filter_and_prepare(df)
-    return _build_subtype_pct_figure(df)
-
-
-@app.callback(
-    Output("interval-table", "columns"),
-    Output("interval-table", "data"),
-    add_watcher_for_data(),
-)
-def update_interval_table(_):
-    df_lazy = get_df()
-    if df_lazy is None:
-        return [], []
-    df = df_lazy.collect()
-    if df.is_empty():
-        return [], []
-    columns, data = build_interval_table_data(df)
-    return columns, data
+        return go.Figure(), [], []
+    df_period = calculate_period_distribution(df)
+    # figure
+    fig = create_bar_horizontal_figure(
+        df_period,
+        x=COL_NAME_PERCENTAGE_DELAY,
+        y=COL_NAME_WINDOW_TIME,
+        title="Distribution of flights by time intervals",
+    )
+    # table
+    cols = [{"name": TABLE_NAMES_RENAME.get(c, c), "id": c} for c in df_period.columns]
+    data = df_period.to_dicts()
+    return fig, cols, data
 
 
 # --- CALLBACKS POUR TELECHARGEMENT EXCEL ---
-add_export_callbacks(
-    id_table="result-table-1",
-    id_button="result-export-btn",
-    name="vols_filtres",
-)
-
-add_export_callbacks(
-    id_table="subtype-table",
-    id_button="subtype-export-btn",
-    name="vols_subtype_filtres",
-)
-
-add_export_callbacks(
-    id_table="interval-table",
-    id_button="interval-export-btn",
-    name="vols_intervalles",
-)
+for tbl, btn, name in [
+    (ID_SUMMERY_TABLE, "result-export-btn", "vols_filtres"),
+    (ID_TABLE_SUBTYPE_PR_DELAY_MEAN, "subtype-export-btn", "vols_subtype_filtres"),
+    (ID_TABLE_FLIGHT_DELAY, "interval-export-btn", "vols_intervalles"),
+    (
+        ID_TABLE_CATEGORY_DELAY_GT_15MIN,
+        "category-export-btn",
+        "vols_lt_15min_vs_gt_15min_filtres",
+    ),
+]:
+    add_export_callbacks(id_table=tbl, id_button=btn, name=name)

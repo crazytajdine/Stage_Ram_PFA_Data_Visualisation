@@ -1,30 +1,53 @@
 # utils_graph.py
 
-import logging
+from typing import Literal
 import dash_bootstrap_components as dbc
 from dash import html, dcc
-import plotly.express as px
+import plotly.express as px, plotly.graph_objs as go
+
 import polars as pl
 
 from excel_manager import COL_NAME_WINDOW_TIME
 
-def load_graph():
-    logging.info("Loading graph module...")
+import plotly.io as pio
 
-def create_graph_bar_card(
-    df: pl.DataFrame, x: str, y: str, title: str, text=None, color: str | None = None, barmode: str = "group"
-) -> dbc.Card | None:
+pio.templates.default = "plotly"
 
-    logging.info("Creating vertical bar chart: title='%s'", title)
 
-    if x not in df.columns:
-        logging.warning("Column '%s' not found in dataframe. Cannot create graph.", x)
+def create_bar_figure(
+    df: pl.DataFrame,
+    x: str,
+    y: str,
+    title: str,
+    unit: str = "%",
+    color: str | None = None,
+    barmode: Literal["group", "stack"] = "group",
+    legend_title: str | None = None,
+) -> go.Figure | None:
+
+    if x not in df.columns or y not in df.columns:
         return None
+
+    # Create a new column for text display
+    df = df.with_columns(
+        pl.col(y)
+        .round(2)
+        .map_elements(lambda v: f"{v:.2f}{unit}", return_dtype=pl.Utf8)
+        .alias("text_label")
+    )
 
     len_date = df.select(pl.col(x).len()).item()
     logging.debug("Number of rows in x-axis: %d", len_date)
 
-    fig = px.bar(df, x=x, y=y, title=title, text=text, barmode=barmode, color=color)
+    fig = px.bar(
+        df,
+        x=x,
+        y=y,
+        title=title,
+        text="text_label",
+        barmode=barmode,
+        color=color,
+    )
 
     threshold_sep_x = 12
     threshold_show_y = 20
@@ -41,10 +64,17 @@ def create_graph_bar_card(
         xaxis_title="",
     )
 
+    if legend_title is not None:
+        fig.update_layout(legend_title_text=legend_title)
+
+    hover_template_base = (
+        "%{x}<br>Percentage : %{text}<br>Detailed : %{y}<extra></extra>"
+    )
+
     fig.update_traces(
-        textposition="auto" if len_date <= threshold_show_y else "none",
-        marker_color="rgb(0, 123, 255)",
-        hovertemplate="%{x}<br>Percentage : %{text}<br>Detailed : %{y} <extra></extra>",
+        textposition="outside" if len_date <= threshold_show_y else "none",
+        textangle=0,
+        hovertemplate=hover_template_base,
         textfont_size=16,
     )
 
@@ -54,20 +84,25 @@ def create_graph_bar_card(
         logging.debug("Setting tickmode to 'array' with tickvals")
         fig.update_xaxes(tickmode="array", tickvals=unique_x)
 
-    return dbc.Card(
-        dbc.CardBody([dcc.Graph(figure=fig)]),
-        className="mb-4",
-    )
+    return fig
 
-def create_graph_bar_horizontal_card(
-    df: pl.DataFrame, x: str, y: str, title: str, text=None, color: str | None = None, barmode: str = "group"
-) -> dbc.Card | None:
 
-    logging.info("Creating horizontal bar chart: title='%s'", title)
+def create_bar_horizontal_figure(
+    df: pl.DataFrame,
+    x: str,
+    y: str,
+    title: str,
+    unit: str = "%",
+    color: str | None = None,
+    barmode: Literal["group", "stack"] = "group",
+    legend_title: str | None = None,
+) -> go.Figure | None:
 
-    if x not in df.columns:
-        logging.warning("Column '%s' not found in dataframe. Cannot create graph.", x)
+    if x not in df.columns or y not in df.columns:
         return None
+
+    # Create text label column
+    df = df.with_columns((pl.col(x).round(2).cast(str) + unit).alias("text_label"))
 
     len_date = df.select(pl.col(x).len()).item()
     logging.debug("Number of rows in x-axis: %d", len_date)
@@ -75,7 +110,16 @@ def create_graph_bar_horizontal_card(
     threshold_sep_y = 20
     threshold_show_x = 20
 
-    fig = px.bar(df, x=x, y=y, title=title, text=text, orientation="h", barmode=barmode, color=color)
+    fig = px.bar(
+        df,
+        x=x,
+        y=y,
+        title=title,
+        text="text_label",
+        orientation="h",
+        barmode=barmode,
+        color=color,
+    )
 
     fig.update_yaxes(tickformat="%y-%m-%d")
 
@@ -84,23 +128,62 @@ def create_graph_bar_horizontal_card(
         paper_bgcolor="rgba(0,0,0,0)",
         title_x=0.5,
         margin=dict(t=50, b=30, l=20, r=20),
-        xaxis=dict(range=[0, 115], visible=len_date > threshold_show_x),
+        xaxis=dict(range=[0, 120], visible=len_date > threshold_show_x),
         yaxis_title="",
         xaxis_title="",
     )
 
     fig.update_traces(
-        textposition="auto" if len_date <= threshold_show_x else "none",
-        marker_color="rgb(0, 123, 255)",
-        hovertemplate="%{x}<br>Percentage : %{text}<br>Detailed : %{y} <extra></extra>",
+        textposition=("auto" if len_date <= threshold_show_x else "none"),
+        textangle=0,
+        hovertemplate="%{y}<br>Percentage : %{text}<br>Detailed : %{x} <extra></extra>",
         textfont_size=16,
     )
+    if legend_title is not None:
+        fig.update_layout(legend_title_text=legend_title)
 
     unique_y = df[y].unique()
     logging.debug("Unique values on y-axis: %s", unique_y)
     if len(unique_y) <= threshold_sep_y:
         logging.debug("Setting tickmode to 'array' with tickvals")
         fig.update_yaxes(tickmode="array", tickvals=unique_y)
+
+    return fig
+
+
+def create_graph_bar_card(
+    df: pl.DataFrame,
+    x: str,
+    y: str,
+    title: str,
+    unit: str = "%",
+    color: str | None = None,
+    barmode: Literal["group", "stacked"] = "group",
+) -> dbc.Card | None:
+
+    fig = create_bar_figure(df, x, y, title, unit, color, barmode)
+    if fig is None:
+        return None
+
+    return dbc.Card(
+        dbc.CardBody([dcc.Graph(figure=fig)]),
+        className="mb-4",
+    )
+
+
+def create_graph_bar_horizontal_card(
+    df: pl.DataFrame,
+    x: str,
+    y: str,
+    title: str,
+    unit: str = "%",
+    color: str | None = None,
+    barmode: str = "group",
+) -> dbc.Card | None:
+
+    fig = create_bar_horizontal_figure(df, x, y, title, unit, color, barmode)
+    if fig is None:
+        return None
 
     return dbc.Card(
         dbc.CardBody([dcc.Graph(figure=fig)]),

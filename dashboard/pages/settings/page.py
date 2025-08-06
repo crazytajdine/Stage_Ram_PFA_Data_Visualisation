@@ -8,6 +8,7 @@ import logging
 from server_instance import get_app
 from excel_manager import (
     ID_INTERVAL_WATCHER,
+    ID_PATH_STORE,
     get_path_to_excel,
     update_path_to_excel,
     toggle_auto_refresh,
@@ -40,23 +41,22 @@ ID_CONTAINER_VISIBILITY_CONTROLS = "page-visibility-controls"
 layout = html.Div(
     [
         dcc.Store(ID_TRIGGER_PARAMS_CHANGE_NAVBAR),
-        html.H1("Paramètres", className="mb-4"),
-        # ── Fichier Excel
+        # ── Excel File
         dbc.Card(
             [
-                dbc.CardHeader("Fichier Excel"),
+                dbc.CardHeader("Excel File"),
                 dbc.CardBody(
                     [
-                        dbc.Label("Chemin actuel :", className="fw-bold me-2"),
+                        dbc.Label("Current path:", className="fw-bold me-2"),
                         html.Span(id=ID_CURRENT_PATH, className="mb-3"),
                         dbc.Input(
                             id=ID_NEW_PATH_INPUT,
-                            placeholder="Entrez un nouveau chemin…",
+                            placeholder="Enter a new path…",
                             type="text",
                             className="my-2",
                         ),
                         dbc.Button(
-                            "Mettre à jour",
+                            "Update",
                             id=ID_UPDATE_PATH_BTN,
                             color="primary",
                             className="my-2",
@@ -67,33 +67,33 @@ layout = html.Div(
             ],
             className="mb-4",
         ),
-        # ── Actualisation automatique
+        # ── Auto Refresh
         dbc.Card(
             [
-                dbc.CardHeader("Actualisation automatique"),
+                dbc.CardHeader("Auto Refresh"),
                 dbc.CardBody(
                     [
                         html.Div(
                             [
-                                dbc.Label("Statut :", className="fw-bold me-2 mb-0"),
+                                dbc.Label("Status:", className="fw-bold me-2 mb-0"),
                                 html.Span(id=ID_AUTO_REFRESH_STATUS),
                             ],
-                            className=" d-flex align-items-center mb-2",
+                            className="d-flex align-items-center mb-2",
                         ),
                         html.Div(
                             [
                                 dbc.Label(
-                                    "Dernière actualisation :",
-                                    className="fw-bold me-2 ",
+                                    "Last refresh:",
+                                    className="fw-bold me-2",
                                 ),
                                 html.Span(
                                     id=ID_LAST_REFRESH_TIME, className="text-muted"
                                 ),
                             ],
-                            className="mb-3 d-flex  ",
+                            className="mb-3 d-flex",
                         ),
                         dbc.Button(
-                            "Basculer l'état",
+                            "Toggle state",
                             id=ID_TOGGLE_AUTO_REFRESH,
                             color="secondary",
                         ),
@@ -105,22 +105,20 @@ layout = html.Div(
             ],
             className="mb-4",
         ),
-        # ── Visibilité des pages
+        # ── Page Visibility
         dbc.Card(
             [
-                dbc.CardHeader("Visibilité des pages"),
+                dbc.CardHeader("Page Visibility"),
                 dbc.CardBody(
                     [
                         html.P(
-                            "Sélectionnez les pages à afficher dans la navigation :",
+                            "Select which pages to show in the navigation:",
                             className="mb-3",
                         ),
-                        html.Div(
-                            id=ID_CONTAINER_VISIBILITY_CONTROLS,
-                        ),
+                        html.Div(id=ID_CONTAINER_VISIBILITY_CONTROLS),
                         html.Hr(className="my-3"),
                         dbc.Button(
-                            "Sauvegarder les modifications",
+                            "Save changes",
                             id=ID_SETTINGS_BUTTON_NAV,
                             color="primary",
                             className="me-2",
@@ -132,16 +130,15 @@ layout = html.Div(
                 ),
             ]
         ),
-        # --- Stores & interval interne --------------------------------------
-    ]
+        # --- Internal stores & interval --------------------------------------
+    ],
+    className="mx-4",
 )
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # CALLBACKS
 # ──────────────────────────────────────────────────────────────────────────────
-
-
 # 1. Display current Excel path
 @app.callback(
     Output(ID_CURRENT_PATH, "children"),
@@ -159,7 +156,7 @@ def display_current_path(_):
     Output(ID_UPDATE_PATH_MSG, "children"),
     Output(ID_UPDATE_PATH_MSG, "color"),
     Output(ID_UPDATE_PATH_MSG, "is_open"),
-    Output("is-path-store", "data", allow_duplicate=True),  # ➕  nouveau
+    Output(ID_PATH_STORE, "data", allow_duplicate=True),
     Input(ID_UPDATE_PATH_BTN, "n_clicks"),
     State(ID_NEW_PATH_INPUT, "value"),
     prevent_initial_call=True,
@@ -169,13 +166,12 @@ def handle_update_path(_, new_path):
 
     if not new_path:
         logging.warning("Empty path submitted for update.")
-        return "Veuillez entrer un chemin.", "warning", True, dash.no_update
+        return "Please enter a path.", "warning", True, dash.no_update
 
     success, msg = update_path_to_excel(new_path)
     logging.info(f"Excel path updated successfully: {new_path}")
 
     color = "success" if success else "danger"
-    # si succès → on propage le chemin pour que root.py ré-évalue path_exits()
     return msg, color, True, (new_path if success else dash.no_update)
 
 
@@ -199,29 +195,26 @@ def toggle_auto_refresh_cb(n_clicks):
         logging.info(f"Auto-refresh toggled, new status disabled={status}")
 
         return (
-            f"Actualisation {'activée' if status else 'désactivée'}.",
+            f"Auto-refresh {'enabled' if status else 'disabled'}.",
             "success",
             False,
             status,
         )
     except Exception as e:
         logging.error(f"Error toggling auto-refresh: {e}", exc_info=True)
-        return f"Erreur : {e}", "danger", False, is_auto_refresh_disabled()
+        return f"Error: {e}", "danger", False, is_auto_refresh_disabled()
 
 
-# 4. Update the "Activée / Désactivée" text
+# 4. Update the "Enabled / Disabled" text
 @app.callback(
     Output(ID_AUTO_REFRESH_STATUS, "children"),
     Output(ID_AUTO_REFRESH_STATUS, "className"),
-    Input(
-        ID_INTERVAL_WATCHER,
-        "disabled",
-    ),
+    Input(ID_INTERVAL_WATCHER, "disabled"),
 )
 def update_status_text(disabled):
     logging.debug(f"Auto-refresh status updated:")
     return (
-        "Activée" if not disabled else "Désactivée",
+        "Enabled" if not disabled else "Disabled",
         "text-success" if not disabled else "text-danger",
     )
 
@@ -229,14 +222,13 @@ def update_status_text(disabled):
 # 5. Update the last-refresh timestamp
 @app.callback(Output(ID_LAST_REFRESH_TIME, "children"), add_watch_file())
 def update_refresh_time(_):
-
     modification_time = get_modification_time_cashed()
     logging.debug(f"Last refresh time updated: {modification_time}")
 
     return str(modification_time)
 
 
-# 6. Save page-visibility settings
+# 6. Display page visibility controls
 @app.callback(
     Output(ID_CONTAINER_VISIBILITY_CONTROLS, "children"),
     Input("url", "pathname"),
@@ -262,6 +254,7 @@ def update_page_visibility_controls(pathname):
         return []
 
 
+# 7. Save page visibility preferences
 @app.callback(
     Output(ID_TRIGGER_PARAMS_CHANGE_NAVBAR, "data"),
     Output(ID_PAGE_VISIBILITY_MSG, "children"),
@@ -273,24 +266,22 @@ def update_page_visibility_controls(pathname):
     prevent_initial_call=True,
 )
 def save_page_visibility_cb(n_clicks, values, ids):
-    # Build a dict { page_label: bool }
     prefs = {
         ids[i]["index"]: (values[i] if values[i] is not None else False)
         for i in range(len(ids))
     }
     logging.info(f"Saving page visibility settings: {prefs}")
 
-    # Validate at least one page is shown
+
     if not any(prefs.values()):
         logging.warning("User attempted to save page visibility with no pages selected.")
         return (
             dash.no_update,
-            "Erreur : Au moins une page doit être sélectionnée.",
+            "Error: At least one page must be selected.",
             "danger",
             True,
         )
 
-    # Persist
     set_page_visibility(prefs)
     logging.info("Page visibility settings saved successfully.")
-    return None, "Paramètres sauvegardés avec succès.", "success", True
+    return None, "Settings saved successfully.", "success", True

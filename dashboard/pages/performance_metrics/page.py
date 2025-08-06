@@ -101,7 +101,7 @@ def calculate_graph_info_with_period(df: pl.LazyFrame) -> pl.LazyFrame:
         pl.len().alias(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY)
     )
 
-    delayed_15min_df = df.filter((pl.col("Retard en min") >= 15))
+    delayed_15min_df = df.filter((pl.col("DELAY_TIME") >= 15))
 
     ##
     delayed_15min_count_df = delayed_15min_df.group_by(COL_NAME_WINDOW_TIME).agg(
@@ -110,7 +110,7 @@ def calculate_graph_info_with_period(df: pl.LazyFrame) -> pl.LazyFrame:
 
     ##
     delayed_flights_41_46_gte_15min_count_df = (
-        delayed_15min_df.filter(pl.col("CODE_DR").is_in({41, 46}))
+        delayed_15min_df.filter(pl.col("DELAY_CODE").is_in({41, 46}))
         .group_by(COL_NAME_WINDOW_TIME)
         .agg(pl.len().alias(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_41_46_GTE_15MIN))
     )
@@ -310,21 +310,18 @@ def create_layout(
         COL_NAME_WINDOW_TIME,
         COL_NAME_PER_FLIGHTS_NOT_DELAYED,
         "Percentage of On-Time Flights",
-        COL_NAME_PER_FLIGHTS_NOT_DELAYED_SHOW,
     )
     fig2 = create_graph_bar_card(
         result,
         COL_NAME_WINDOW_TIME,
         COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN,
         "Percentage of On-Time or Delays Less Than 15 Minutes",
-        COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN_SHOW,
     )
     fig3 = create_graph_bar_card(
         result,
         COL_NAME_WINDOW_TIME,
         COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46,
         "Percentage of On-Time or less than 15 Minutes, or Delays Not Due to Reasons 41/46",
-        COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46_SHOW,
     )
 
     table_col_names = [
@@ -359,6 +356,16 @@ def create_layout(
             },
             style_cell={"textAlign": "left"},
             sort_by=[{"column_id": COL_NAME_WINDOW_TIME, "direction": "desc"}],
+            style_data_conditional=[
+                {
+                    "if": {"row_index": "odd"},
+                    "backgroundColor": "#f8f9fa",  # light gray
+                },
+                {
+                    "if": {"row_index": "even"},
+                    "backgroundColor": "white",
+                },
+            ],
         )
 
     return card1, card2, card3, fig1, fig2, fig3, table

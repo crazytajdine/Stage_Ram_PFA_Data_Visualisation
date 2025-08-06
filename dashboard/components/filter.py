@@ -9,6 +9,7 @@ from excel_manager import (
     COL_NAME_WINDOW_TIME,
     COL_NAME_WINDOW_TIME_MAX,
     ID_DATA_STORE_TRIGGER,
+    ID_PATH_STORE,
     update_df,
     get_df_unfiltered,
     add_watch_file,
@@ -36,7 +37,6 @@ FILTER_STORE_ACTUAL = "filter-store-actual"
 
 ID_FILTER_CONTAINER = "filter-container"
 
-ID_FILTER_TITLE = "filter_title"
 
 app = get_app()
 
@@ -45,7 +45,7 @@ layout = dbc.Card(
         [
             dcc.Store(id=FILTER_STORE_SUGGESTIONS),
             dcc.Store(id=FILTER_STORE_ACTUAL),
-            html.H2("Title", id=ID_FILTER_TITLE),
+            html.H4("Filter", className="mb-3"),
             dbc.Row(
                 [
                     dbc.Col(
@@ -221,7 +221,7 @@ def apply_filters(
 
     if code_delays:
         logging.info("Filtering by CODE_DR values: %s", code_delays)
-        df = df.filter(pl.col("CODE_DR").is_in(code_delays))
+        df = df.filter(pl.col("DELAY_CODE").is_in(code_delays))
 
     if not is_suggestions:
         logging.info("Generating total_df via get_count_df")
@@ -246,7 +246,7 @@ def apply_filters(
     if segmentation:
         logging.info("Applying segmentation: %s%s", segmentation, unit_segmentation)
         min_segmentation = str(segmentation) + unit_segmentation
-        max_segmentation = str(segmentation - 1) + unit_segmentation
+        max_segmentation = str(segmentation) + unit_segmentation
 
         df = df.with_columns(
             pl.col(COL_NAME_DEPARTURE_DATETIME)
@@ -255,6 +255,7 @@ def apply_filters(
         ).with_columns(
             pl.col(COL_NAME_WINDOW_TIME)
             .dt.offset_by(max_segmentation)
+            .dt.offset_by("-1d")
             .alias(COL_NAME_WINDOW_TIME_MAX),
         )
     else:
@@ -342,7 +343,7 @@ def add_callbacks():
         base_lazy = get_df_unfiltered()  # your global LazyFrame
         if base_lazy is None:
             logging.warning("Base LazyFrame is None, returning empty options.")
-            return [], [], None, None
+            return [], [], [], None, None
         v_sub = split_views_by_exclusion(base_lazy, store_data, "fl_subtypes")
         v_mat = split_views_by_exclusion(base_lazy, store_data, "fl_matricules")
         v_delay = split_views_by_exclusion(base_lazy, store_data, "fl_code_delays")
@@ -351,7 +352,7 @@ def add_callbacks():
 
         df_delay = v_delay.collect()
         delay_codes = sorted(
-            df_delay.get_column("CODE_DR").drop_nulls().unique().to_list()
+            df_delay.get_column("DELAY_CODE").drop_nulls().unique().to_list()
         )
 
         # subtype dropdown

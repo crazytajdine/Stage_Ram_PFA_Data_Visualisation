@@ -6,5 +6,5 @@ metadata = NavItemMeta(
     href="/settings",
     preference_show=False,
     show_filter=False,
-    title="Performance Metrics",
+    title="Settings",
 )

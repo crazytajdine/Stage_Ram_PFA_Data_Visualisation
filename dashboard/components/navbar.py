@@ -1,10 +1,11 @@
 from dash import Input, Output, dcc
 from configurations.nav_config import build_nav_items_meta
+from components.title import ID_FILTER_TITLE
 from excel_manager import ID_PATH_STORE, path_exits
 from server_instance import get_app
 
 from pages.settings.page import ID_TRIGGER_PARAMS_CHANGE_NAVBAR
-from components.filter import ID_FILTER_CONTAINER, ID_FILTER_TITLE
+from components.filter import ID_FILTER_CONTAINER
 
 import dash_bootstrap_components as dbc
 from dash import html
@@ -49,7 +50,7 @@ def add_callback():
         logging.debug("Nav items metadata: %s", [(i.name, i.show) for i in nav_items])
 
         navbar = []
-        title = "Filter"
+        title = ""
         show_filter = False
 
         for nav_item in nav_items:
