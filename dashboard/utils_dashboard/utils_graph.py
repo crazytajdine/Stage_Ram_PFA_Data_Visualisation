@@ -60,7 +60,7 @@ def create_bar_figure(
         paper_bgcolor="rgba(0,0,0,0)",
         title_x=0.5,
         margin=dict(t=50, b=30, l=20, r=20),
-        yaxis=dict(range=[0, 115], visible=len_date < threshold_show_y),
+        yaxis=dict(range=[0, 115], visible=len_date > threshold_show_y),
         yaxis_title="",
         xaxis_title="",
     )
