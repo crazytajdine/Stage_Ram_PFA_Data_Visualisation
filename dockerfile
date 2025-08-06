@@ -10,8 +10,9 @@ RUN pip install --upgrade pip && \
     \
     rm -rf ~/.cache/pip
 
-COPY dashboard/ .
+EXPOSE 8000
 
+COPY dashboard/ .
 
 
 CMD [ "gunicorn", "root:server", "--bind", "0.0.0.0:8000"]
