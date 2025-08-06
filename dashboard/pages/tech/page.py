@@ -30,17 +30,18 @@ time_period = excel_manager.COL_NAME_WINDOW_TIME
 time_period_max = excel_manager.COL_NAME_WINDOW_TIME_MAX
 
 
+COL_NAME_COUNT_DELAY_FAMILY = "count_delay_family"
+COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY = "count_delay_per_code_delay_per_family"
+COL_NAME_PERCENTAGE_PER_CODE_DELAY_PER_FAMILY = "percentage_per_code_delay_per_family"
+
 TABLE_NAMES_RENAME = {
-    "Code": "Delay Code",
-    "Famille": "Family",
-    "Occurrences": "Number of Occurrences",
-    "Aeroports": "Concerned Airports",
-    "count_aeroports": "Number of Airports",
     time_period: "Time Window",
     time_period_max: "Max Time Window",
+    COL_NAME_COUNT_DELAY_FAMILY: "Number of Occurrences",
+    COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY: "Number of Occurrences of Delay Code",
+    COL_NAME_PERCENTAGE_PER_CODE_DELAY_PER_FAMILY: "Percentage of Occurrences",
     "FAMILLE_DR": "Family",
     "DELAY_CODE": "Delay Code",
-    "count": "Number of Occurrences of Delay Code",
 }
 
 
@@ -261,7 +262,7 @@ def build_structured_table(df: pl.DataFrame) -> pl.DataFrame:
                 time_period: [],
                 time_period_max: [],
                 "Famille": [],
-                "Code": [],
+                "DELAY_CODE": [],
                 "Occurrences": [],
                 "Aeroports": [],
                 "count_aeroports": [],
@@ -380,25 +381,38 @@ def build_outputs(n_clicks):
     # ---------- COMMON PERIOD TOTALS (used by every family chart) -------
     # 2️⃣ exact counts per (period, family, code)
     temporal_all = df.group_by([time_period, "FAMILLE_DR", "DELAY_CODE"]).agg(
-        pl.len().alias("count"), pl.col(time_period_max).first().alias(time_period_max)
+        pl.len().alias(COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY),
+        pl.col(time_period_max).first().alias(time_period_max),
     )
 
     # 3️⃣ grand-total per period (all families, all codes)
     period_totals = temporal_all.group_by(time_period).agg(
-        pl.col("count").sum().alias("period_total")
+        pl.col(COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY)
+        .sum()
+        .alias("period_total")
     )
 
     # 4️⃣ join + exact share
     temporal_all = temporal_all.join(period_totals, on=time_period).with_columns(
-        (pl.col("count") / pl.col("period_total") * 100).alias("perc")
+        (
+            pl.col(COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY)
+            / pl.col("period_total")
+            * 100
+        ).alias("perc")
     )
     # (Re-)use temporal_all
     famille_share_df = (
         temporal_all.group_by([time_period, "FAMILLE_DR"])
-        .agg(pl.col("count").sum().alias("famille_count"))
+        .agg(
+            pl.col(COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY)
+            .sum()
+            .alias("famille_count")
+        )
         .join(period_totals, on=time_period)
         .with_columns(
-            (pl.col("famille_count") / pl.col("period_total") * 100).alias("percentage")
+            (pl.col("famille_count") / pl.col("period_total") * 100).alias(
+                COL_NAME_PERCENTAGE_PER_CODE_DELAY_PER_FAMILY
+            )
         )
     )
 
@@ -421,7 +435,9 @@ def build_outputs(n_clicks):
         dts = (
             fam_data.group_by(time_period, "DELAY_CODE")
             .agg(
-                pl.col("count").sum().alias("all_counts"),
+                pl.col(COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY)
+                .sum()
+                .alias("all_counts"),
                 pl.col("perc").sum().alias("y_vals"),
             )
             .with_columns(pl.col("DELAY_CODE").cast(pl.Utf8))
@@ -480,7 +496,13 @@ def build_outputs(n_clicks):
             )
 
     summary_table = temporal_all.select(
-        [time_period, time_period_max, "FAMILLE_DR", "DELAY_CODE", "count"]
+        [
+            time_period,
+            time_period_max,
+            "FAMILLE_DR",
+            "DELAY_CODE",
+            COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY,
+        ]
     )
 
     data = summary_table.to_dicts()
@@ -523,7 +545,7 @@ def build_outputs(n_clicks):
     for famille in famille_share_df["FAMILLE_DR"].unique().sort():
         fig_familles = create_bar_horizontal_figure(
             df=famille_share_df,
-            x="percentage",
+            x=COL_NAME_PERCENTAGE_PER_CODE_DELAY_PER_FAMILY,
             y=time_period,
             title=f"Percentage of delays by family – by segmentation",
             unit="%",
@@ -552,14 +574,16 @@ def build_outputs(n_clicks):
     family_summary = (
         temporal_all.group_by([time_period, time_period_max, "FAMILLE_DR"])
         .agg(
-            pl.col("count").sum().alias("Sum of Occurrences")  # total delays per family
+            pl.col(COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY)
+            .sum()
+            .alias(COL_NAME_COUNT_DELAY_FAMILY)  # total delays per family
         )
         # bring in the period total so we can compute a share
         .join(period_totals, on=time_period)
         .with_columns(
-            (pl.col("Sum of Occurrences") / pl.col("period_total") * 100)
+            (pl.col(COL_NAME_COUNT_DELAY_FAMILY) / pl.col("period_total") * 100)
             .round(2)
-            .alias("Percentage")  # new column 0-100 %
+            .alias(COL_NAME_PERCENTAGE_PER_CODE_DELAY_PER_FAMILY)  # new column 0-100 %
         )
         # make the column names human-readable
         # keep only the columns you want, in order
@@ -568,8 +592,8 @@ def build_outputs(n_clicks):
                 time_period,
                 time_period_max,
                 "FAMILLE_DR",
-                "Sum of Occurrences",
-                "Percentage",
+                COL_NAME_COUNT_DELAY_FAMILY,
+                COL_NAME_PERCENTAGE_PER_CODE_DELAY_PER_FAMILY,
             ]
         )
         .sort([time_period, "FAMILLE_DR"])
