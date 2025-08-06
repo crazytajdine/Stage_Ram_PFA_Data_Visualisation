@@ -6,6 +6,6 @@ metadata = NavItemMeta(
     href="/",
     preference_show=False,
     show_filter=False,
-    title="Verify",
+    title="",
     show=False,
 )

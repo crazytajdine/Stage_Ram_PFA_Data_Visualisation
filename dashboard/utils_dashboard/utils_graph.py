@@ -126,17 +126,13 @@ def create_bar_horizontal_figure(
         paper_bgcolor="rgba(0,0,0,0)",
         title_x=0.5,
         margin=dict(t=50, b=30, l=20, r=20),
-        xaxis=dict(
-            range=[0, 120], visible=len_date > threshold_show_x or barmode != "stack"
-        ),
+        xaxis=dict(range=[0, 120], visible=len_date > threshold_show_x),
         yaxis_title="",
         xaxis_title="",
     )
 
     fig.update_traces(
-        textposition=(
-            "auto" if len_date <= threshold_show_x or barmode == "stack" else "none"
-        ),
+        textposition=("auto" if len_date <= threshold_show_x else "none"),
         textangle=0,
         hovertemplate="%{y}<br>Percentage : %{text}<br>Detailed : %{x} <extra></extra>",
         textfont_size=16,

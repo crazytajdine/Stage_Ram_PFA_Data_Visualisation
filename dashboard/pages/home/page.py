@@ -49,7 +49,7 @@ TABLE_NAMES_RENAME = {
     COL_NAME_PERCENTAGE_DELAY: "Percentage of Delayed Flights",
     COL_NAME_COUNT_FLIGHTS: "Count of Delayed Flights",
     COL_NAME_CATEGORY_GT_15MIN: "Delay Category",
-    COL_NAME_CATEGORY_GT_15MIN_MEAN: "Category %",
+    COL_NAME_CATEGORY_GT_15MIN_MEAN: "Perentage of Delayed Flights",
     COL_NAME_CATEGORY_GT_15MIN_COUNT: "Category Count",
 }
 

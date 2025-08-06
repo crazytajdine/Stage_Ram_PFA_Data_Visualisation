@@ -340,7 +340,7 @@ def add_callbacks():
 
         base_lazy = get_df_unfiltered()  # your global LazyFrame
         if base_lazy is None:
-            return [], [], None, None
+            return [], [], [], None, None
         v_sub = split_views_by_exclusion(base_lazy, store_data, "fl_subtypes")
         v_mat = split_views_by_exclusion(base_lazy, store_data, "fl_matricules")
         v_delay = split_views_by_exclusion(base_lazy, store_data, "fl_code_delays")

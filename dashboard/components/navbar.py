@@ -40,7 +40,7 @@ def add_callback():
         nav_items = build_nav_items_meta(path_exists)
         print("start navbar :", [(i.name, i.show) for i in nav_items])
         navbar = []
-        title = "Filter"
+        title = ""
         show_filter = False
 
         for nav_item in nav_items:
