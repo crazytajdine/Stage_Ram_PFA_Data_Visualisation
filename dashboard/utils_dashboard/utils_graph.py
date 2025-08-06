@@ -1,34 +1,36 @@
 # utils_graph.py
 
+import logging
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 import plotly.express as px
-
 import polars as pl
 
-from excel_manager import (
-    COL_NAME_WINDOW_TIME,
-)
+from excel_manager import COL_NAME_WINDOW_TIME
 
+def load_graph():
+    logging.info("Loading graph module...")
 
 def create_graph_bar_card(
     df: pl.DataFrame, x: str, y: str, title: str, text=None, color: str | None = None, barmode: str = "group"
 ) -> dbc.Card | None:
 
+    logging.info("Creating vertical bar chart: title='%s'", title)
+
     if x not in df.columns:
+        logging.warning("Column '%s' not found in dataframe. Cannot create graph.", x)
         return None
 
     len_date = df.select(pl.col(x).len()).item()
+    logging.debug("Number of rows in x-axis: %d", len_date)
 
-    # Create figure
-    fig = px.bar(df, x=x, y=y, title=title, text=text,barmode=barmode, color=color)
+    fig = px.bar(df, x=x, y=y, title=title, text=text, barmode=barmode, color=color)
 
     threshold_sep_x = 12
     threshold_show_y = 20
 
     fig.update_xaxes(tickformat="%y-%m-%d")
 
-    # Update layout
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
@@ -39,7 +41,6 @@ def create_graph_bar_card(
         xaxis_title="",
     )
 
-    # Style bars
     fig.update_traces(
         textposition="auto" if len_date <= threshold_show_y else "none",
         marker_color="rgb(0, 123, 255)",
@@ -47,36 +48,37 @@ def create_graph_bar_card(
         textfont_size=16,
     )
 
-    # Handle short x-axis
     unique_x = df[x].unique()
+    logging.debug("Unique values on x-axis: %s", unique_x)
     if len(unique_x) <= threshold_sep_x:
+        logging.debug("Setting tickmode to 'array' with tickvals")
         fig.update_xaxes(tickmode="array", tickvals=unique_x)
 
-    # Return the full card component
     return dbc.Card(
         dbc.CardBody([dcc.Graph(figure=fig)]),
-        className=f"mb-4",
+        className="mb-4",
     )
 
-
 def create_graph_bar_horizontal_card(
-    df: pl.DataFrame, x: str, y: str, title: str, text=None,  color: str | None = None, barmode: str = "group"
+    df: pl.DataFrame, x: str, y: str, title: str, text=None, color: str | None = None, barmode: str = "group"
 ) -> dbc.Card | None:
 
+    logging.info("Creating horizontal bar chart: title='%s'", title)
+
     if x not in df.columns:
+        logging.warning("Column '%s' not found in dataframe. Cannot create graph.", x)
         return None
 
     len_date = df.select(pl.col(x).len()).item()
+    logging.debug("Number of rows in x-axis: %d", len_date)
 
     threshold_sep_y = 20
     threshold_show_x = 20
 
-    # Create figure
-    fig = px.bar(df, x=x, y=y, title=title, text=text, orientation="h",barmode=barmode, color=color)
+    fig = px.bar(df, x=x, y=y, title=title, text=text, orientation="h", barmode=barmode, color=color)
 
     fig.update_yaxes(tickformat="%y-%m-%d")
 
-    # Update layout
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
@@ -87,7 +89,6 @@ def create_graph_bar_horizontal_card(
         xaxis_title="",
     )
 
-    # Style bars
     fig.update_traces(
         textposition="auto" if len_date <= threshold_show_x else "none",
         marker_color="rgb(0, 123, 255)",
@@ -96,15 +97,15 @@ def create_graph_bar_horizontal_card(
     )
 
     unique_y = df[y].unique()
+    logging.debug("Unique values on y-axis: %s", unique_y)
     if len(unique_y) <= threshold_sep_y:
+        logging.debug("Setting tickmode to 'array' with tickvals")
         fig.update_yaxes(tickmode="array", tickvals=unique_y)
 
-    # Return the full card component
     return dbc.Card(
         dbc.CardBody([dcc.Graph(figure=fig)]),
-        className=f"mb-4",
+        className="mb-4",
     )
-
 
 def generate_card_info_change(
     df: pl.DataFrame,
@@ -112,28 +113,34 @@ def generate_card_info_change(
     title: str,
     include_footer: bool = True,
 ) -> dbc.Card:
+
+    logging.info("Generating info card for column '%s' with title '%s'", col_name, title)
+
     assert df is not None and col_name is not None
 
-    # pull last two non-null values
     latest_values = (
         df.drop_nulls(pl.col(col_name))
         .select(pl.col(col_name).tail(2))
         .to_series()
         .to_list()
     )
+    logging.debug("Latest non-null values: %s", latest_values)
 
-    # calc current value and change
     if COL_NAME_WINDOW_TIME in df.columns and len(latest_values) == 2:
         last_year, this_year = latest_values
         change = this_year - last_year
+        logging.debug("Calculated change: %f (this_year - last_year)", change)
+
     elif len(latest_values) == 1:
         this_year = latest_values[0]
         change = None
+        logging.debug("Only one latest value available: %f", this_year)
+
     else:
         this_year = None
         change = None
+        logging.warning("Not enough data to calculate change. Latest values: %s", latest_values)
 
-    # prepare change display
     if change is None:
         change_div = html.Span("N/A", className="text-secondary")
         stripe_color = "secondary"
@@ -159,7 +166,6 @@ def generate_card_info_change(
             className=f"{color_cls} d-flex justify-content-center align-items-center",
         )
 
-    # build children list
     children = [
         dbc.CardHeader(
             [
@@ -171,7 +177,6 @@ def generate_card_info_change(
             ],
             className="p-0 border-0 text-center bg-transparent",
         ),
-        # main value
         dbc.CardBody(
             [
                 html.H2(
@@ -183,7 +188,6 @@ def generate_card_info_change(
         ),
     ]
 
-    # conditionally add footer
     if include_footer:
         children.append(
             dbc.CardFooter(

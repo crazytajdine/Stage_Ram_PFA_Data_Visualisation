@@ -3,6 +3,7 @@ from datetime import datetime
 from dash import html, dcc, Input, Output, State
 import dash
 import dash_bootstrap_components as dbc
+import logging
 
 from server_instance import get_app
 from excel_manager import (
@@ -33,6 +34,8 @@ ID_SETTINGS_BUTTON_NAV = "settings-button-navbar"
 ID_PAGE_VISIBILITY_MSG = "page-visibility-message"
 
 ID_CONTAINER_VISIBILITY_CONTROLS = "page-visibility-controls"
+
+
 
 layout = html.Div(
     [
@@ -146,7 +149,9 @@ layout = html.Div(
     prevent_initial_call=False,
 )
 def display_current_path(_):
-    return get_path_to_excel()
+     path = get_path_to_excel()
+     logging.debug(f"Displaying current Excel path: {path}")
+     return get_path_to_excel()
 
 
 # 2. Handle Excel path update
@@ -160,10 +165,15 @@ def display_current_path(_):
     prevent_initial_call=True,
 )
 def handle_update_path(_, new_path):
+    logging.info(f"User requested path update to: {new_path}")
+
     if not new_path:
+        logging.warning("Empty path submitted for update.")
         return "Veuillez entrer un chemin.", "warning", True, dash.no_update
 
     success, msg = update_path_to_excel(new_path)
+    logging.info(f"Excel path updated successfully: {new_path}")
+
     color = "success" if success else "danger"
     # si succès → on propage le chemin pour que root.py ré-évalue path_exits()
     return msg, color, True, (new_path if success else dash.no_update)
@@ -180,10 +190,14 @@ def handle_update_path(_, new_path):
 )
 def toggle_auto_refresh_cb(n_clicks):
     if not n_clicks:
+        logging.debug("Toggle auto-refresh clicked with no clicks count.")
+
         raise dash.exceptions.PreventUpdate
 
     try:
         status = toggle_auto_refresh()
+        logging.info(f"Auto-refresh toggled, new status disabled={status}")
+
         return (
             f"Actualisation {'activée' if status else 'désactivée'}.",
             "success",
@@ -191,6 +205,7 @@ def toggle_auto_refresh_cb(n_clicks):
             status,
         )
     except Exception as e:
+        logging.error(f"Error toggling auto-refresh: {e}", exc_info=True)
         return f"Erreur : {e}", "danger", False, is_auto_refresh_disabled()
 
 
@@ -204,6 +219,7 @@ def toggle_auto_refresh_cb(n_clicks):
     ),
 )
 def update_status_text(disabled):
+    logging.debug(f"Auto-refresh status updated:")
     return (
         "Activée" if not disabled else "Désactivée",
         "text-success" if not disabled else "text-danger",
@@ -215,6 +231,8 @@ def update_status_text(disabled):
 def update_refresh_time(_):
 
     modification_time = get_modification_time_cashed()
+    logging.debug(f"Last refresh time updated: {modification_time}")
+
     return str(modification_time)
 
 
@@ -226,6 +244,8 @@ def update_refresh_time(_):
 def update_page_visibility_controls(pathname):
     if pathname == metadata.href:
         nav_preferences = get_nav_preferences()
+        logging.debug(f"Loading page visibility controls for {len(nav_preferences)} pages")
+
         checkboxes = [
             dbc.Checkbox(
                 id={"type": "page-checkbox", "index": page_label},
@@ -237,6 +257,8 @@ def update_page_visibility_controls(pathname):
         ]
         return checkboxes
     else:
+        logging.debug(f"Not on settings page ({pathname}), no visibility controls loaded.")
+    
         return []
 
 
@@ -256,8 +278,11 @@ def save_page_visibility_cb(n_clicks, values, ids):
         ids[i]["index"]: (values[i] if values[i] is not None else False)
         for i in range(len(ids))
     }
+    logging.info(f"Saving page visibility settings: {prefs}")
+
     # Validate at least one page is shown
     if not any(prefs.values()):
+        logging.warning("User attempted to save page visibility with no pages selected.")
         return (
             dash.no_update,
             "Erreur : Au moins une page doit être sélectionnée.",
@@ -267,5 +292,5 @@ def save_page_visibility_cb(n_clicks, values, ids):
 
     # Persist
     set_page_visibility(prefs)
-
+    logging.info("Page visibility settings saved successfully.")
     return None, "Paramètres sauvegardés avec succès.", "success", True

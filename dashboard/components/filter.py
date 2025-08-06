@@ -20,6 +20,8 @@ import dash_bootstrap_components as dbc
 from schemas.filter import FilterKey, FilterType
 
 from dash import html, dcc
+import logging
+
 
 FILTER_SUBTYPE = "filter-subtype"
 FILTER_MATRICULE = "filter-matricule"
@@ -32,13 +34,11 @@ FILTER_SUBMIT_BTN = "filter-go-btn"
 FILTER_STORE_SUGGESTIONS = "filter-store-suggestions"
 FILTER_STORE_ACTUAL = "filter-store-actual"
 
-
 ID_FILTER_CONTAINER = "filter-container"
 
 ID_FILTER_TITLE = "filter_title"
 
 app = get_app()
-
 
 layout = dbc.Card(
     dbc.CardBody(
@@ -171,6 +171,7 @@ layout = dbc.Card(
 def apply_filters(
     df: pl.LazyFrame, filters: FilterType, is_suggestions=False
 ) -> Tuple[pl.LazyFrame, Optional[pl.LazyFrame]]:
+    logging.info("Applying filters to dataframe")
     total_df = None
 
     segmentation = filters.get("fl_segmentation") if filters else None
@@ -181,9 +182,14 @@ def apply_filters(
     min_dt = filters.get("dt_start") if filters else None
     max_dt = filters.get("dt_end") if filters else None
 
+    logging.debug(f"Filter parameters: segmentation={segmentation}, unit={unit_segmentation}, "
+                  f"codes={code_delays}, subtypes={subtypes}, regs={matricules}, "
+                  f"min_dt={min_dt}, max_dt={max_dt}, suggestions={is_suggestions}")
+
     start = end = None
     if (not segmentation) and (not min_dt or not max_dt):
         min_total_dt, max_total_dt = get_min_max_date_raw_df()
+        logging.debug("Loaded full date range from raw df: %s to %s", min_total_dt, max_total_dt)
 
     if min_dt:
         start = (
@@ -193,10 +199,11 @@ def apply_filters(
         )
         stmt_start = pl.lit(start)
     else:
-        if segmentation:
-            stmt_start = pl.lit(COL_NAME_DEPARTURE_DATETIME).min()
-        else:
-            stmt_start = pl.lit(min_total_dt)
+        stmt_start = (
+            pl.lit(COL_NAME_DEPARTURE_DATETIME).min()
+            if segmentation
+            else pl.lit(min_total_dt)
+        )
 
     if max_dt:
         end = (
@@ -206,39 +213,38 @@ def apply_filters(
         )
         stmt_end = pl.lit(end)
     else:
-        if segmentation:
-            stmt_end = pl.col(COL_NAME_DEPARTURE_DATETIME).max()
-        else:
-            stmt_end = pl.lit(max_total_dt)
+        stmt_end = (
+            pl.col(COL_NAME_DEPARTURE_DATETIME).max()
+            if segmentation
+            else pl.lit(max_total_dt)
+        )
 
     if code_delays:
+        logging.info("Filtering by CODE_DR values: %s", code_delays)
         df = df.filter(pl.col("CODE_DR").is_in(code_delays))
 
     if not is_suggestions:
+        logging.info("Generating total_df via get_count_df")
         total_df = get_count_df(segmentation, unit_segmentation, start, end)
 
     stmt_start = stmt_start.alias(COL_NAME_WINDOW_TIME)
     stmt_end = stmt_end.alias(COL_NAME_WINDOW_TIME_MAX)
 
     if not filters:
-
-        df = df.with_columns(
-            stmt_start,
-            stmt_end,
-        )
-
+        logging.info("No filters applied, adding default window time columns")
+        df = df.with_columns(stmt_start, stmt_end)
         return df, total_df
 
-    # Filter by AC_SUBTYPE
     if subtypes:
+        logging.info("Filtering by AC_SUBTYPE: %s", subtypes)
         df = df.filter(pl.col("AC_SUBTYPE").is_in(subtypes))
 
-    # Filter by AC_REGISTRATION
     if matricules:
+        logging.info("Filtering by AC_REGISTRATION: %s", matricules)
         df = df.filter(pl.col("AC_REGISTRATION").is_in(matricules))
 
-    # Filter by SEGMENTATION
     if segmentation:
+        logging.info("Applying segmentation: %s%s", segmentation, unit_segmentation)
         min_segmentation = str(segmentation) + unit_segmentation
         max_segmentation = str(segmentation - 1) + unit_segmentation
 
@@ -251,25 +257,20 @@ def apply_filters(
             .dt.offset_by(max_segmentation)
             .alias(COL_NAME_WINDOW_TIME_MAX),
         )
-
     else:
+        logging.info("No segmentation, using literal time range")
+        df = df.with_columns(stmt_start, stmt_end)
 
-        df = df.with_columns(
-            stmt_start,
-            stmt_end,
-        )
-
-    # Filter by date range (DEP_DAY_SCHED)
     if start:
-
+        logging.debug("Filtering from date: %s", start)
         df = df.filter(pl.col(COL_NAME_DEPARTURE_DATETIME) >= start)
 
     if end:
-
+        logging.debug("Filtering to date: %s", end)
         df = df.filter(pl.col(COL_NAME_DEPARTURE_DATETIME) <= end)
 
+    logging.info("Filtering complete.")
     return df, total_df
-
 
 def split_views_by_exclusion(
     df: pl.LazyFrame, filters: dict, *excludes: FilterKey
@@ -305,12 +306,12 @@ def compare_filters(filter1: FilterType, filter2: FilterType):
 
     is_segments_similar = check_segmentation(filter1, filter2)
 
-    print(filter1, filter2)
+    logging.info(f"Comparing filters: {filter1} vs {filter2}")
     filter1 = get_filter_without_segmentation_and_none(filter1)
 
     filter2 = get_filter_without_segmentation_and_none(filter2)
 
-    print(filter1, filter2)
+    logging.info(f"Filtered filters for comparison: {filter1} vs {filter2}")
     return is_segments_similar and (filter1 == filter2)
 
 
@@ -340,6 +341,7 @@ def add_callbacks():
 
         base_lazy = get_df_unfiltered()  # your global LazyFrame
         if base_lazy is None:
+            logging.warning("Base LazyFrame is None, returning empty options.")
             return [], [], None, None
         v_sub = split_views_by_exclusion(base_lazy, store_data, "fl_subtypes")
         v_mat = split_views_by_exclusion(base_lazy, store_data, "fl_matricules")
@@ -363,6 +365,8 @@ def add_callbacks():
         matricules = sorted(
             df_mat.get_column("AC_REGISTRATION").drop_nulls().unique().to_list()
         )
+        logging.debug("Matricules extracted: %d items", len(matricules))
+
 
         # date bounds
 
@@ -380,7 +384,10 @@ def add_callbacks():
         dt_max_iso = dt_max.strftime("%Y-%m-%d")
 
         def to_options(lst):
+            logging.debug("Converting list to dropdown options. List size: %d", len(lst))
             return [{"label": x, "value": x} for x in lst]
+
+        logging.debug("Returning filter dropdown options: subtypes=%d, matricules=%d, delay_codes=%d", len(subtypes), len(matricules), len(delay_codes))
 
         return (
             to_options(subtypes),
@@ -401,6 +408,9 @@ def add_callbacks():
     def update_filter_submit_button(
         filter_suggestions, filter_actual, segmentation, segmentation_segmentation_unit
     ):
+        logging.debug("Updating filter submit button color")
+        logging.debug("Segmentation value: %s | Unit: %s", segmentation, segmentation_segmentation_unit)
+
 
         if filter_suggestions:
             filter_suggestions["fl_segmentation"] = segmentation
@@ -426,7 +436,7 @@ def add_callbacks():
         fl_subtypes, fl_matricules, fl_code_delays, dt_start, dt_end
     ) -> FilterType:
 
-        print(
+        logging.info(
             f"Filtering data with: {fl_subtypes}, {fl_matricules}, {fl_code_delays}, {dt_start}, {dt_end}"
         )
 
@@ -444,18 +454,25 @@ def add_callbacks():
         Input(FILTER_STORE_ACTUAL, "data"),
     )
     def filter_data(_, filter_store_data: FilterType):
+        logging.debug("filter_data triggered with filter_store_data: %s", filter_store_data)
+
 
         df = get_df_unfiltered()
 
         if df is None:
-            return {"payload": [], "count": 0}
+            logging.warning("Unfiltered DataFrame is None. Returning empty payload.")
 
+            return {"payload": [], "count": 0}
+        logging.debug("Applying filters to DataFrame.")
         df, total_df = apply_filters(df, filter_store_data)
 
+        logging.debug("Setting name from filter for display/logging.")
         set_name_from_filter(filter_store_data)
 
+        logging.debug("Updating global DataFrame after filtering.")
         update_df(df, total_df)
 
+        logging.info("Data filtered successfully. Returning payload.")
         return None
 
     @app.callback(
@@ -472,9 +489,12 @@ def add_callbacks():
         segmentation: Optional[int],
         segmentation_segmentation_unit: Optional[str],
     ) -> FilterType:
+        logging.debug("submit_filter triggered by click %s", n_clicks)
         data = store_suggestions_data if store_suggestions_data else {}
+        logging.debug("Initial store_suggestions_data: %s", store_suggestions_data)
         data["fl_segmentation"] = segmentation
         data["fl_unit_segmentation"] = segmentation_segmentation_unit
+        logging.info("Filter data submitted: %s", data)
         return data
 
 
