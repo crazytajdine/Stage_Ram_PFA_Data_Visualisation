@@ -130,12 +130,6 @@ layout = dbc.Container(
             ),
             className="mb-4",
         ),
-        dbc.Row(
-            dbc.Col(
-                [html.Hr(), html.Small(id="last-update", className="text-muted")],
-                className="text-center",
-            )
-        ),
     ],
 )
 
@@ -148,15 +142,14 @@ layout = dbc.Container(
 @app.callback(
     Output(ID_WEEKLY_TABLE, "data"),
     Output(ID_WEEKLY_TABLE, "columns"),
-    Output("last-update", "children"),
     add_watcher_for_data(),
 )
 def refresh_weekly_table(_):
     data, columns = analyze_weekly_codes()
     if not data:
-        return [], [], "No data available"
+        return [], []
 
-    return data, columns, f"Last updated: {datetime.now():%d/%m/%Y %H:%M}"
+    return data, columns
 
 
 add_export_callbacks(
