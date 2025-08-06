@@ -548,19 +548,39 @@ def build_outputs(n_clicks):
     # 5 ▸ summary table – one line per family
     #     Time Window  |  Max Time Window  |  Family  |  Sum of Occurrences
     # ────────────────────────────────────────────────────────────────────
+    # period_totals has:  time_period | period_total
+# temporal_all has:   time_period | FAMILLE_DR | count …
+
     family_summary = (
-    temporal_all
-    .group_by([time_period, time_period_max, "FAMILLE_DR"])          # ⇦ keep segment!
-    .agg(
-        pl.col("count").sum().alias("Sum of Occurrences")            # total delays
+        temporal_all
+        .group_by([time_period, time_period_max, "FAMILLE_DR"])
+        .agg(
+            pl.col("count").sum().alias("Sum of Occurrences")   # total delays per family
+        )
+        # bring in the period total so we can compute a share
+        .join(period_totals, on=time_period)
+        .with_columns(
+            (pl.col("Sum of Occurrences") / pl.col("period_total") * 100)
+            .round(2)
+            .alias("Percentage")                                # new column 0-100 %
+        )
+        # make the column names human-readable
+        .rename({
+            time_period:     "Time Window",
+            time_period_max: "Max Time Window",
+            "FAMILLE_DR":    "Family"
+        })
+        # keep only the columns you want, in order
+        .select([
+            "Time Window",
+            "Max Time Window",
+            "Family",
+            "Sum of Occurrences",
+            "Percentage",
+        ])
+        .sort(["Time Window", "Family"])
     )
-    .rename({
-        time_period:     "Time Window",
-        time_period_max: "Max Time Window",
-        "FAMILLE_DR":    "Family"
-    })
-    .sort(["Time Window", "Family"])
-)
+
     family_summary_table = dash_table.DataTable(
         id="family-summary-table",
         data=family_summary.to_dicts(),
