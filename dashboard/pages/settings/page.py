@@ -7,6 +7,7 @@ import dash_bootstrap_components as dbc
 from server_instance import get_app
 from excel_manager import (
     ID_INTERVAL_WATCHER,
+    ID_PATH_STORE,
     get_path_to_excel,
     update_path_to_excel,
     toggle_auto_refresh,
@@ -150,7 +151,7 @@ def display_current_path(_):
     Output(ID_UPDATE_PATH_MSG, "children"),
     Output(ID_UPDATE_PATH_MSG, "color"),
     Output(ID_UPDATE_PATH_MSG, "is_open"),
-    Output("is-path-store", "data", allow_duplicate=True),
+    Output(ID_PATH_STORE, "data", allow_duplicate=True),
     Input(ID_UPDATE_PATH_BTN, "n_clicks"),
     State(ID_NEW_PATH_INPUT, "value"),
     prevent_initial_call=True,
