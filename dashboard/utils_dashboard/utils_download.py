@@ -55,6 +55,7 @@ def export_excel(
 def add_export_callbacks(
     id_table: str, id_button: str, name: str, with_filter: bool = True
 ):
+    logging.debug("Adding Excel export callback for button '%s' and table '%s'.", id_button, id_table)
 
     @app.callback(
         get_download_trigger(),
