@@ -431,7 +431,7 @@ def build_outputs(n_clicks):
             df=dts,
             x=time_period,
             y="y_vals",
-            title=fam,
+            title=f"",
             unit="%",
             color="DELAY_CODE",
             barmode="group",
@@ -509,7 +509,8 @@ def build_outputs(n_clicks):
             },
             style_cell={"textAlign": "left"},
             sort_action="native",
-            page_size=30,
+            page_size=15,
+            
             style_data_conditional=[
                 {
                     "if": {"row_index": "odd"},
@@ -527,7 +528,7 @@ def build_outputs(n_clicks):
             df=famille_share_df,
             x="percentage",
             y=time_period,
-            title=f"{famille}",
+            title=f"Pourcentage des retards par famille – par segmentation",
             unit="%",
             color="FAMILLE_DR",
             barmode="stack",
@@ -543,10 +544,64 @@ def build_outputs(n_clicks):
         # ↓ la clé : span de la colonne 1 jusqu’à la dernière (‑1)
         style={"gridColumn": "1 / -1"},  # ou "1 / span 2" si tu préfères
     )
+    # ────────────────────────────────────────────────────────────────────
+    # 5 ▸ summary table – one line per family
+    #     Time Window  |  Max Time Window  |  Family  |  Sum of Occurrences
+    # ────────────────────────────────────────────────────────────────────
+    family_summary = (
+    temporal_all
+    .group_by([time_period, time_period_max, "FAMILLE_DR"])          # ⇦ keep segment!
+    .agg(
+        pl.col("count").sum().alias("Sum of Occurrences")            # total delays
+    )
+    .rename({
+        time_period:     "Time Window",
+        time_period_max: "Max Time Window",
+        "FAMILLE_DR":    "Family"
+    })
+    .sort(["Time Window", "Family"])
+)
+    family_summary_table = dash_table.DataTable(
+        id="family-summary-table",
+        data=family_summary.to_dicts(),
+        columns=[{"name": c, "id": c} for c in family_summary.columns],
+        style_table={
+                "overflowX": "auto",
+                "marginTop": "10px",
+                "marginBottom": "40px",
+            },
+        style_cell={"textAlign": "left"},
+        page_action="native",   # enable paging (default)
+        page_size=10,  
+        style_data_conditional=[
+            {
+                "if": {"row_index": "odd"},
+                "backgroundColor": "#f8f9fa",  # light gray
+            },
+            {
+                "if": {"row_index": "even"},
+                "backgroundColor": "white",
+            },  
+        ],
+    )
+    # ──────────────────────────────────────────────────────────────
+    # Family-level summary (already built in family_summary_table)
+    # ──────────────────────────────────────────────────────────────
+    family_summary_block = html.Div(
+        [
+            html.H3("Family summary per segmentation", className="h4 mt-4"),
+            dcc.Download(id="download-family-summary"),                 # invisible
+            dbc.Button("Export Excel", id="export-family-btn",
+                    color="primary", className="mt-2"),
+            family_summary_table,                                        # the DataTable
+        ],
+        style={"gridColumn": "1 / -1"},      # occupy full width like big_chart
+    )
 
     charts_out = [
-    big_chart,     # graphique global (déjà défini plus haut)
-    family_tabs,   # barre d’onglets avec un seul graph visible
+    big_chart,             # horizontal share chart
+    family_summary_block,  # ← new table (one row per Family)
+    family_tabs,           # tabbed per-code charts
 ]
 
     return stats, charts_out, table
@@ -556,4 +611,9 @@ add_export_callbacks(
     id_table="codes-table",
     id_button="export-btn",
     name="codes-retard",
+)
+add_export_callbacks(
+    id_table="family-summary-table",
+    id_button="export-family-btn",
+    name="family-summary",
 )
