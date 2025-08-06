@@ -16,7 +16,11 @@ import math
 from dash import ctx, no_update
 import io
 from components.filter import FILTER_STORE_ACTUAL
-from dashboard.utils_dashboard.utils_graph import create_bar_figure, create_bar_horizontal_figure, create_graph_bar_card
+from dashboard.utils_dashboard.utils_graph import (
+    create_bar_figure,
+    create_bar_horizontal_figure,
+    create_graph_bar_card,
+)
 
 app = get_app()
 # ------------------------------------------------------------------ #
@@ -218,13 +222,13 @@ stats_block = html.Div(
     ]
 )
 
-    # ----- CHART GRID ----------------------------------------------
+# ----- CHART GRID ----------------------------------------------
 charts_block = html.Div(
     id="charts-container",
     children=[],
     style={
         "display": "grid",
-        "gridTemplateColumns": "1fr",   # ← au lieu de repeat(2, 1fr)
+        "gridTemplateColumns": "1fr",  # ← au lieu de repeat(2, 1fr)
         "gap": "16px",
         "alignItems": "start",
     },
@@ -314,7 +318,6 @@ def build_structured_table(df: pl.DataFrame) -> pl.DataFrame:
                 "count_aeroports",
             ]
         )
-        .rename({"DELAY_CODE": "Code", "FAMILLE_DR": "Famille"})  # ✅ ICI
         .sort([time_period, "Famille", "Occurrences"], descending=[False, False, True])
     )
     return grouped
@@ -399,7 +402,6 @@ def build_outputs(n_clicks):
         )
     )
 
-
     # Group by time period and code
     # ---------- FAMILY-LEVEL CHARTS ------------------------------------
     family_figs = []  # list of Graph components to return
@@ -407,11 +409,9 @@ def build_outputs(n_clicks):
     # consistent colour map across all charts
     all_unique_codes = df["DELAY_CODE"].unique().sort().to_list()
     palette = px.colors.qualitative.Set3
-    color_map = {
-        c: palette[i % len(palette)] for i, c in enumerate(all_unique_codes)
-    }
+    color_map = {c: palette[i % len(palette)] for i, c in enumerate(all_unique_codes)}
 
- # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # Construire les onglets (une Tab par famille)
     tab_children = []
 
@@ -420,11 +420,11 @@ def build_outputs(n_clicks):
 
         dts = (
             fam_data.group_by(time_period, "DELAY_CODE")
-                    .agg(
-                        pl.col("count").sum().alias("all_counts"),
-                        pl.col("perc").sum().alias("y_vals"),
-                    )
-                    .with_columns(pl.col("DELAY_CODE").cast(pl.Utf8))
+            .agg(
+                pl.col("count").sum().alias("all_counts"),
+                pl.col("perc").sum().alias("y_vals"),
+            )
+            .with_columns(pl.col("DELAY_CODE").cast(pl.Utf8))
         )
 
         fig = create_bar_figure(
@@ -441,12 +441,11 @@ def build_outputs(n_clicks):
         # ➜ un onglet ; inutile de mettre un id sur le Graph
         tab_children.append(
             dcc.Tab(
-                label=fam,          # texte de l’onglet
-                value=fam,          # valeur (pour l’état actif)
+                label=fam,  # texte de l’onglet
+                value=fam,  # valeur (pour l’état actif)
                 children=[
                     dcc.Graph(figure=fig, config=plot_config, style={"height": 450})
                 ],
-                
             )
         )
 
@@ -461,13 +460,12 @@ def build_outputs(n_clicks):
             "primary": "#0d6efd",
             "border": "#dee2e6",
         },
-        style={                         # ← ajoutez ceci
-        "width": "100%",            # occupe toute la colonne
-        "display": "flex",          # les onglets se comportent comme flex-items
-        "justifyContent": "center", # centrés horizontalement
+        style={  # ← ajoutez ceci
+            "width": "100%",  # occupe toute la colonne
+            "display": "flex",  # les onglets se comportent comme flex-items
+            "justifyContent": "center",  # centrés horizontalement
         },
     )
-
 
     # 3. Build table (independent of code and segmentation selection)
     # --- Table structurée ---
@@ -510,7 +508,6 @@ def build_outputs(n_clicks):
             style_cell={"textAlign": "left"},
             sort_action="native",
             page_size=15,
-            
             style_data_conditional=[
                 {
                     "if": {"row_index": "odd"},
@@ -549,50 +546,49 @@ def build_outputs(n_clicks):
     #     Time Window  |  Max Time Window  |  Family  |  Sum of Occurrences
     # ────────────────────────────────────────────────────────────────────
     # period_totals has:  time_period | period_total
-# temporal_all has:   time_period | FAMILLE_DR | count …
+    # temporal_all has:   time_period | FAMILLE_DR | count …
 
     family_summary = (
-        temporal_all
-        .group_by([time_period, time_period_max, "FAMILLE_DR"])
+        temporal_all.group_by([time_period, time_period_max, "FAMILLE_DR"])
         .agg(
-            pl.col("count").sum().alias("Sum of Occurrences")   # total delays per family
+            pl.col("count").sum().alias("Sum of Occurrences")  # total delays per family
         )
         # bring in the period total so we can compute a share
         .join(period_totals, on=time_period)
         .with_columns(
             (pl.col("Sum of Occurrences") / pl.col("period_total") * 100)
             .round(2)
-            .alias("Percentage")                                # new column 0-100 %
+            .alias("Percentage")  # new column 0-100 %
         )
         # make the column names human-readable
-        .rename({
-            time_period:     "Time Window",
-            time_period_max: "Max Time Window",
-            "FAMILLE_DR":    "Family"
-        })
         # keep only the columns you want, in order
-        .select([
-            "Time Window",
-            "Max Time Window",
-            "Family",
-            "Sum of Occurrences",
-            "Percentage",
-        ])
-        .sort(["Time Window", "Family"])
+        .select(
+            [
+                time_period,
+                time_period_max,
+                "FAMILLE_DR",
+                "Sum of Occurrences",
+                "Percentage",
+            ]
+        )
+        .sort([time_period, "FAMILLE_DR"])
     )
 
     family_summary_table = dash_table.DataTable(
         id="family-summary-table",
         data=family_summary.to_dicts(),
-        columns=[{"name": c, "id": c} for c in family_summary.columns],
+        columns=[
+            {"name": TABLE_NAMES_RENAME.get(c, c), "id": c}
+            for c in family_summary.columns
+        ],
         style_table={
-                "overflowX": "auto",
-                "marginTop": "10px",
-                "marginBottom": "40px",
-            },
+            "overflowX": "auto",
+            "marginTop": "10px",
+            "marginBottom": "40px",
+        },
         style_cell={"textAlign": "left"},
-        page_action="native",   # enable paging (default)
-        page_size=10,  
+        page_action="native",  # enable paging (default)
+        page_size=10,
         style_data_conditional=[
             {
                 "if": {"row_index": "odd"},
@@ -601,7 +597,7 @@ def build_outputs(n_clicks):
             {
                 "if": {"row_index": "even"},
                 "backgroundColor": "white",
-            },  
+            },
         ],
     )
     # ──────────────────────────────────────────────────────────────
@@ -610,19 +606,23 @@ def build_outputs(n_clicks):
     family_summary_block = html.Div(
         [
             html.H3("Family summary per segmentation", className="h4 mt-4"),
-            dcc.Download(id="download-family-summary"),                 # invisible
-            dbc.Button("Export Excel", id="export-family-btn",
-                    color="primary", className="mt-2"),
-            family_summary_table,                                        # the DataTable
+            dcc.Download(id="download-family-summary"),  # invisible
+            dbc.Button(
+                "Export Excel",
+                id="export-family-btn",
+                color="primary",
+                className="mt-2",
+            ),
+            family_summary_table,  # the DataTable
         ],
-        style={"gridColumn": "1 / -1"},      # occupy full width like big_chart
+        style={"gridColumn": "1 / -1"},  # occupy full width like big_chart
     )
 
     charts_out = [
-    big_chart,             # horizontal share chart
-    family_summary_block,  # ← new table (one row per Family)
-    family_tabs,           # tabbed per-code charts
-]
+        big_chart,  # horizontal share chart
+        family_summary_block,  # ← new table (one row per Family)
+        family_tabs,  # tabbed per-code charts
+    ]
 
     return stats, charts_out, table
 
