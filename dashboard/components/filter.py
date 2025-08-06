@@ -9,6 +9,7 @@ from excel_manager import (
     COL_NAME_WINDOW_TIME,
     COL_NAME_WINDOW_TIME_MAX,
     ID_DATA_STORE_TRIGGER,
+    ID_PATH_STORE,
     update_df,
     get_df_unfiltered,
     add_watch_file,

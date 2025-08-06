@@ -374,6 +374,14 @@ def add_callbacks():
         return not is_path_correct
 
     @app.callback(
+        Output(ID_STORE_DATE_WATCHER, "data", allow_duplicate=True),
+        Input(ID_PATH_STORE, "data"),
+        prevent_initial_call=True,
+    )
+    def trigger_data_path_change(_):
+        return None
+
+    @app.callback(
         # output
         Output(ID_STORE_DATE_WATCHER, "data"),
         # input
@@ -382,11 +390,13 @@ def add_callbacks():
     )
     def watch_file(date_latest_fetch, _):
         global path_to_excel
+
         print("watching every second")
         if not path_to_excel:
             return dash.no_update
         try:
             latest_modification_time = get_latest_modification_time()
+            print("watching file:", latest_modification_time, "new:", date_latest_fetch)
 
             if latest_modification_time != date_latest_fetch:
                 print("file changed")
