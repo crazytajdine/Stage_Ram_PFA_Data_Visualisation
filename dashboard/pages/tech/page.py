@@ -251,7 +251,13 @@ table_block = html.Div(
 layout = dbc.Container(
     fluid=True,
     className="px-4",
-    children=[stats_block, charts_block, table_block],
+    children=[
+        stats_block,
+        charts_block,
+        table_block,
+        # ← insert this:
+        html.Div(id="about-container")
+    ],
 )
 
 
@@ -342,6 +348,7 @@ plot_config = {
         Output("stats-div", "children"),
         Output("charts-container", "children"),
         Output("table-container", "children"),
+        Output("about-container",   "children"),
     ],
     excel_manager.add_watcher_for_data(),  # watch for data changes
     prevent_initial_call=False,
@@ -384,6 +391,65 @@ def build_outputs(n_clicks):
         pl.len().alias(COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY),
         pl.col(time_period_max).first().alias(time_period_max),
     )
+        # 1️⃣  Table de correspondance « famille → liste de codes »
+    STATIC_FAM_CODES = {
+        "Technique": list(range(41, 48)),  # 41-47 inclus
+        "Argo":      [56],
+        "Avarie":    [51, 52],
+        "Tiers2":    [55],
+    }
+
+    # 2️⃣  Courtes descriptions pour chaque code (complète / adapte si besoin)
+    CODE_DESCRIPTIONS = {
+        41: "TECHNICAL DEFECTS",
+        42: "SCHEDULED MAINTENANCE",
+        43: "NON-SCHEDULED MAINTENANCE",
+        44: "SPARES AND MAINTENANCE",
+        45: "AOG SPARES",
+        46: "AIRCRAFT CHANGE",
+        47: "STANDBY AIRCRAFT",
+        51: "DAMAGE DURING FLIGHT OPERATIONS",
+        52: "DAMAGE DURING GROUND OPERATIONS",
+        55: "DEPARTURE CONTROL",
+        56: "CARGO PREPARATION DOCUMENTATION",
+        # 57: "FLIGHT PLANS",              # ajoute-le si tu l’utilises
+    }
+
+    # 3️⃣  Construction des cartes
+    family_code_cards = []
+    for fam, codes in STATIC_FAM_CODES.items():
+        code_items = [
+            html.Li(f"{code} – {CODE_DESCRIPTIONS.get(code, ' ')}")
+            for code in codes
+        ]
+        code_list = html.Ul(code_items, className="mb-0 ps-3")
+
+        family_code_cards.append(
+            dbc.Card(
+                [
+                    dbc.CardHeader(f"Family: {fam}", className="bg-secondary text-white"),
+                    dbc.CardBody(code_list),
+                ],
+                className="mb-3",
+            )
+        )
+
+    # 4️⃣  Section « About » inchangée
+    about_section = html.Div(
+        [
+            html.H3("About", className="h4 mt-4"),
+            html.Div(
+                family_code_cards,
+                style={
+                    "display": "grid",
+                    "gridTemplateColumns": "repeat(auto-fit, minmax(200px, 1fr))",
+                    "gap": "16px",
+                },
+            ),
+        ],
+        style={"gridColumn": "1 / -1"},
+    )
+
 
     # 3️⃣ grand-total per period (all families, all codes)
     period_totals = temporal_all.group_by(time_period).agg(
@@ -625,6 +691,7 @@ def build_outputs(n_clicks):
             },
         ],
     )
+
     # ──────────────────────────────────────────────────────────────
     # Family-level summary (already built in family_summary_table)
     # ──────────────────────────────────────────────────────────────
@@ -644,12 +711,12 @@ def build_outputs(n_clicks):
     )
 
     charts_out = [
-        big_chart,  # horizontal share chart
-        family_summary_block,  # ← new table (one row per Family)
-        family_tabs,  # tabbed per-code charts
+        big_chart,
+        family_summary_block,
+        family_tabs,           # ← our new ABOUT block
     ]
 
-    return stats, charts_out, table
+    return stats, charts_out, table, about_section
 
 
 add_export_callbacks(
