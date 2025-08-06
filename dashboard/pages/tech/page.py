@@ -326,7 +326,7 @@ plot_config = {
         "format": "png",  # or "svg" / "pdf" for vector
         "filename": "codes-chart",
         "width": 1600,  # px  (≈ A4 landscape)
-        "height": 900,  # px
+        "height": 600,  # px
         "scale": 3,  # 3× pixel-density → crisp on Retina
     }
 }
@@ -358,14 +358,14 @@ def build_outputs(n_clicks):
         [
             dbc.Col(
                 [
-                    html.H5("Codes uniques", className="text-muted"),
+                    html.H5("Unique codes", className="text-muted"),
                     html.H3(f"{unique_codes}", className="text-success mb-0"),
                 ],
                 md=6,
             ),
             dbc.Col(
                 [
-                    html.H5("Total retards", className="text-muted"),
+                    html.H5("Total delays", className="text-muted"),
                     html.H3(f"{total_delays}", className="text-warning mb-0"),
                 ],
                 md=6,
@@ -528,7 +528,7 @@ def build_outputs(n_clicks):
             df=famille_share_df,
             x="percentage",
             y=time_period,
-            title=f"Pourcentage des retards par famille – par segmentation",
+            title=f"Percentage of delays by family – by segmentation",
             unit="%",
             color="FAMILLE_DR",
             barmode="stack",
@@ -539,7 +539,7 @@ def build_outputs(n_clicks):
         dcc.Graph(
             figure=fig_familles,
             config=plot_config,
-            style={"width": "100%"},  # occupe 100 % de la div
+            style={"width": "100%", "height": "600px"},  # occupe 100 % de la div
         ),
         # ↓ la clé : span de la colonne 1 jusqu’à la dernière (‑1)
         style={"gridColumn": "1 / -1"},  # ou "1 / span 2" si tu préfères
