@@ -9,14 +9,14 @@ from dash import Dash, html, dcc, dash_table, Input, Output, State
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 import plotly.express as px
-from dashboard.utils_dashboard.utils_download import add_export_callbacks
+from utils_dashboard.utils_download import add_export_callbacks
 from server_instance import get_app
 import excel_manager
 import math
 from dash import ctx, no_update
 import io
 from components.filter import FILTER_STORE_ACTUAL
-from dashboard.utils_dashboard.utils_graph import (
+from utils_dashboard.utils_graph import (
     create_bar_figure,
     create_bar_horizontal_figure,
     create_graph_bar_card,
@@ -273,7 +273,7 @@ layout = dbc.Container(
         charts_block,
         table_block,
         # ← insert this:
-        html.Div(id="about-container")
+        html.Div(id="about-container"),
     ],
 )
 
@@ -365,7 +365,7 @@ plot_config = {
         Output("stats-div", "children"),
         Output("charts-container", "children"),
         Output("table-container", "children"),
-        Output("about-container",   "children"),
+        Output("about-container", "children"),
     ],
     excel_manager.add_watcher_for_data(),  # watch for data changes
     prevent_initial_call=False,
@@ -408,12 +408,12 @@ def build_outputs(n_clicks):
         pl.len().alias(COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY),
         pl.col(time_period_max).first().alias(time_period_max),
     )
-        # 1️⃣  Table de correspondance « famille → liste de codes »
+    # 1️⃣  Table de correspondance « famille → liste de codes »
     STATIC_FAM_CODES = {
         "Technique": list(range(41, 48)),  # 41-47 inclus
-        "Argo":      [56],
-        "Avarie":    [51, 52],
-        "Tiers2":    [55],
+        "Argo": [56],
+        "Avarie": [51, 52],
+        "Tiers2": [55],
     }
 
     # 2️⃣  Courtes descriptions pour chaque code (complète / adapte si besoin)
@@ -436,15 +436,16 @@ def build_outputs(n_clicks):
     family_code_cards = []
     for fam, codes in STATIC_FAM_CODES.items():
         code_items = [
-            html.Li(f"{code} – {CODE_DESCRIPTIONS.get(code, ' ')}")
-            for code in codes
+            html.Li(f"{code} – {CODE_DESCRIPTIONS.get(code, ' ')}") for code in codes
         ]
         code_list = html.Ul(code_items, className="mb-0 ps-3")
 
         family_code_cards.append(
             dbc.Card(
                 [
-                    dbc.CardHeader(f"Family: {fam}", className="bg-secondary text-white"),
+                    dbc.CardHeader(
+                        f"Family: {fam}", className="bg-secondary text-white"
+                    ),
                     dbc.CardBody(code_list),
                 ],
                 className="mb-3",
@@ -466,7 +467,6 @@ def build_outputs(n_clicks):
         ],
         style={"gridColumn": "1 / -1"},
     )
-
 
     # 3️⃣ grand-total per period (all families, all codes)
     period_totals = temporal_all.group_by(time_period).agg(
@@ -724,7 +724,7 @@ def build_outputs(n_clicks):
     charts_out = [
         big_chart,
         family_summary_block,
-        family_tabs,           # ← our new ABOUT block
+        family_tabs,  # ← our new ABOUT block
     ]
 
     return stats, charts_out, table, about_section

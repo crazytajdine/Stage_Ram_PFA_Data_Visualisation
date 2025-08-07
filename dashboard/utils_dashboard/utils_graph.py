@@ -1,5 +1,6 @@
 # utils_graph.py
 
+import logging
 from typing import Literal
 import dash_bootstrap_components as dbc
 from dash import html, dcc
@@ -7,9 +8,7 @@ import plotly.express as px, plotly.graph_objs as go
 
 import polars as pl
 
-from excel_manager import (
-    COL_NAME_WINDOW_TIME,
-)
+from excel_manager import COL_NAME_WINDOW_TIME
 
 import plotly.io as pio
 
@@ -39,6 +38,7 @@ def create_bar_figure(
     )
 
     len_date = df.select(pl.col(x).len()).item()
+    logging.debug("Number of rows in x-axis: %d", len_date)
 
     fig = px.bar(
         df,
@@ -80,7 +80,9 @@ def create_bar_figure(
     )
 
     unique_x = df[x].unique()
+    logging.debug("Unique values on x-axis: %s", unique_x)
     if len(unique_x) <= threshold_sep_x:
+        logging.debug("Setting tickmode to 'array' with tickvals")
         fig.update_xaxes(tickmode="array", tickvals=unique_x)
 
     return fig
@@ -104,6 +106,7 @@ def create_bar_horizontal_figure(
     df = df.with_columns((pl.col(x).round(2).cast(str) + unit).alias("text_label"))
 
     len_date = df.select(pl.col(x).len()).item()
+    logging.debug("Number of rows in x-axis: %d", len_date)
 
     threshold_sep_y = 20
     threshold_show_x = 20
@@ -141,7 +144,9 @@ def create_bar_horizontal_figure(
         fig.update_layout(legend_title_text=legend_title)
 
     unique_y = df[y].unique()
+    logging.debug("Unique values on y-axis: %s", unique_y)
     if len(unique_y) <= threshold_sep_y:
+        logging.debug("Setting tickmode to 'array' with tickvals")
         fig.update_yaxes(tickmode="array", tickvals=unique_y)
 
     return fig
@@ -186,7 +191,6 @@ def create_graph_bar_horizontal_card(
         className="mb-4",
     )
 
-
 def generate_card_info_change(
     df: pl.DataFrame,
     col_name: str,
@@ -194,28 +198,34 @@ def generate_card_info_change(
     include_footer: bool = True,
     extra_class="",
 ) -> dbc.Card:
+
+    logging.info("Generating info card for column '%s' with title '%s'", col_name, title)
+
     assert df is not None and col_name is not None
 
-    # pull last two non-null values
     latest_values = (
         df.drop_nulls(pl.col(col_name))
         .select(pl.col(col_name).tail(2))
         .to_series()
         .to_list()
     )
+    logging.debug("Latest non-null values: %s", latest_values)
 
-    # calc current value and change
     if COL_NAME_WINDOW_TIME in df.columns and len(latest_values) == 2:
         last_year, this_year = latest_values
         change = this_year - last_year
+        logging.debug("Calculated change: %f (this_year - last_year)", change)
+
     elif len(latest_values) == 1:
         this_year = latest_values[0]
         change = None
+        logging.debug("Only one latest value available: %f", this_year)
+
     else:
         this_year = None
         change = None
+        logging.warning("Not enough data to calculate change. Latest values: %s", latest_values)
 
-    # prepare change display
     if change is None:
         change_div = html.Span("N/A", className="text-secondary")
         stripe_color = "secondary"
@@ -241,7 +251,6 @@ def generate_card_info_change(
             className=f"{color_cls} d-flex justify-content-center align-items-center",
         )
 
-    # build children list
     children = [
         dbc.CardHeader(
             [
@@ -253,7 +262,6 @@ def generate_card_info_change(
             ],
             className="p-0 border-0 text-center bg-transparent",
         ),
-        # main value
         dbc.CardBody(
             [
                 html.H2(
@@ -265,7 +273,6 @@ def generate_card_info_change(
         ),
     ]
 
-    # conditionally add footer
     if include_footer:
         children.append(
             dbc.CardFooter(

@@ -6,8 +6,13 @@ from utils_dashboard.utils_filter import get_filter_name
 import polars as pl
 from dash.dcc import send_bytes
 from dash import Input, Output, State, dcc
+import logging
+
 
 from server_instance import get_app
+
+logging.info("Excel file uploading...")
+
 
 ID_DOWNLOAD = "id-download"
 download_dash = dcc.Download(id=ID_DOWNLOAD)
@@ -27,6 +32,7 @@ def export_excel(
     name: str,
     with_filter: bool = True,
 ) -> None:
+    logging.debug("Start export_excel - with_filter=%s", with_filter)
 
     if with_filter:
 
@@ -34,6 +40,7 @@ def export_excel(
         filename = f"{name}_{filt}.xlsx"
     else:
         filename = f"{name}.xlsx"
+    logging.info("Name of generate file : %s", filename)
 
     # Create in-memory workbook
     buffer = io.BytesIO()
@@ -48,6 +55,8 @@ def export_excel(
 def add_export_callbacks(
     id_table: str, id_button: str, name: str, with_filter: bool = True
 ):
+    logging.debug("Adding Excel export callback for button '%s' and table '%s'.", id_button, id_table)
+
     @app.callback(
         get_download_trigger(),
         Input(id_button, "n_clicks"),

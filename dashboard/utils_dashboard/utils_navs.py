@@ -1,5 +1,7 @@
 # dashboard/utils_dashboard/utils_navs.py
+import logging
 
+logging.info("Loading nav file...")
 from typing import Any
 from configurations.nav_config import (
     NAV_CONFIG,
@@ -28,10 +30,14 @@ PAGE_MAP: dict[str, Any] = {
 
 
 def build_nav_items(path_exists: bool) -> list[NavItem]:
+    logging.info("Building navigation items; path_exists=%s", path_exists)
+
 
     pages_meta = build_nav_items_meta(path_exists)
 
     results = [
         NavItem(**item.model_dump(), page=PAGE_MAP[item.name]) for item in pages_meta
     ]
+    logging.info("Built %d navigation items", len(results))
+
     return results
