@@ -131,7 +131,6 @@ layout = dbc.Card(
                                 clearable=True,
                                 display_format="DD-MM-YYYY",
                                 number_of_months_shown=2,
-                                with_portal=True, 
                             ),
                         ],
                         md=6,
@@ -146,7 +145,7 @@ layout = dbc.Card(
                         dbc.Button(
                             "Analyser",
                             id=FILTER_SUBMIT_BTN,
-                            color="primary",                  # keeps your RAM red (or Bootstrap blue)
+                            color="primary",  # keeps your RAM red (or Bootstrap blue)
                             className="btn-glass-frame w-100 mb-3",
                             type="submit",
                         ),

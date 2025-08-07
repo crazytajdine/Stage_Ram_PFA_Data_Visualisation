@@ -274,7 +274,6 @@ layout = dbc.Container(
                         style={"margin": "auto", "width": "100%"},
                     ),
                     className="graph mb-4 mx-auto",  # ← nouvelle classe CSS
-                    style={"width": "90%"},
                 ),
                 # Troisième bouton + tableau + export
                 html.Div(

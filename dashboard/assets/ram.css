@@ -1,49 +1,34 @@
-/* ============ Royal Air Maroc palette (navbar-related colors) ============ */
+/* ============ RAM navbar core styles ============ */
 :root {
-  /* accent color for navbar links and active tabs */
+  /* RAM red accent */
   --bs-primary: #C40434;
-  /* RAM red */
   --bs-link-color: #C40434;
   --bs-link-hover-color: #9a0225;
 }
 
-/* RAM logo sizing in navbar */
-#ram-logo {
-  height: 90px;
-  margin-top: -18px;
-  /* let it “spill” upward */
-  margin-bottom: -18px;
-  /* … and downward */
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .35));
-}
-
-/* Navbar brand styling */
-.navbar-brand {
-  font-weight: 600;
-  letter-spacing: .5px;
-}
-
-/* Active tab/pill in navbar */
-.navbar .nav-tabs .nav-link.active,
-.navbar .nav-pills .nav-link.active {
-  background-color: var(--bs-primary);
-  color: #ffffff;
-  border: none;
-}
-
-/* Dark navbar background and bottom border */
+/* Dark navbar background, bottom border & shadow */
 .navbar.navbar-dark {
-  background: linear-gradient(145deg, #1a1a1a 0%, #000000 50%, #1a1a1a 100%);
+  background: linear-gradient(145deg, #1a1a1a 0%, #000 50%, #1a1a1a 100%);
   border-bottom: 1px solid rgba(255, 255, 255, .25);
   box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
 }
 
-/* Push page content below fixed navbar */
-body {
-  padding-top: var(--navbar-offset, 70px);
+/* Center all navbar items vertically */
+.navbar .container,
+.navbar .navbar-nav {
+  display: flex;
+  align-items: center;
 }
 
-/* Navbar title styling */
+/* RAM logo sizing */
+#ram-logo {
+  height: 90px;
+  margin: -18px 0;
+  /* spill upward & downward */
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .35));
+}
+
+/* Navbar title next to logo */
 .navbar-title {
   font-size: 1.75rem;
   font-weight: 500;
@@ -52,31 +37,30 @@ body {
   letter-spacing: .1em;
 }
 
+/* Active tab / pill styling */
+.navbar .nav-tabs .nav-link.active,
+.navbar .nav-pills .nav-link.active {
+  background-color: var(--bs-primary);
+  color: #ffffff;
+  border: none;
+}
 
 /* ===== Bouton Export – Glossy Black Rect ===== */
 .btn-export {
-  position: relative;
   display: inline-flex;
   align-items: center;
   gap: .45rem;
-  /* espace icône / texte */
   margin-bottom: 1rem;
   padding: .65rem 1.8rem;
   border-radius: 10px;
-  /* RECTANGULAIRE, coins 10 px */
   border: 1px solid rgba(255, 255, 255, .35);
-
-  /* dégradé glossy noir permanent */
-  background: linear-gradient(145deg, #1a1a1a 0%, #000000 50%, #1a1a1a 100%);
+  background: linear-gradient(145deg, #1a1a1a 0%, #000 50%, #1a1a1a 100%);
   color: #ffffff;
   font-weight: 700;
   letter-spacing: .03em;
-
-  /* relief initial */
   box-shadow:
     inset 0 1px 1px rgba(255, 255, 255, .25),
     0 4px 12px rgba(0, 0, 0, .25);
-
   transition: transform .18s ease, box-shadow .18s ease;
 }
 

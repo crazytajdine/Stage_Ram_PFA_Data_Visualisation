@@ -18,38 +18,42 @@ app = get_app()
 navbar = dbc.Navbar(
     dbc.Container(
         [
-            html.Img(src=app.get_asset_url("logo_ram-2.png"), id="ram-logo"),
-            html.Span("Delay Dashboard", className="navbar-title"),
-            dbc.Nav(
-                id="navbar",
-                className="flex-grow-1 justify-content-center nav-tabs",
-            ),
-            # Icône utilisateur (on ajoute un menu au clic juste après)
-            dbc.DropdownMenu(
-                children=[
-                    dbc.DropdownMenuItem("Profil", href="#"),
-                    dbc.DropdownMenuItem("Déconnexion", href="#"),
+            # ─── Left: Logo + Title ─────────────────────────────
+            dbc.NavbarBrand(
+                [
+                    html.Img(
+                        src=app.get_asset_url("logo_ram-2.png"),
+                        id="ram-logo",
+                        style={"height": "70px"},  # tweak as needed
+                    ),
+                    html.Span("Delay Dashboard", className="navbar-title"),
                 ],
-                nav=True,
-                in_navbar=True,
-                label=html.I(className="bi bi-person-circle fs-3", id="user-icon"),
-                align_end=True,
+                className="d-flex align-items-center",
+                href="#",
+            ),
+            # ─── Right: Settings button + User dropdown ──────────
+            html.Div(
+                [
+                    dbc.Nav(
+                        id="navbar",  # your @app.callback writes into here
+                        navbar=True,
+                        className="nav-tabs mx-auto",
+                    ),
+                    dbc.Button("Logout", color="secondary"),
+                ],
+                className="d-flex align-items-center",
             ),
         ],
         fluid=True,
-        className="align-items-center",
     ),
-    color=None,  # enlève le fond noir opaque
+    color="dark",
     dark=True,
-    fixed="top",
-    className="shadow-sm glass-dark",  # <-- effet glass ici
+    className="py-2",
 )
-
-
 # ---------- ROOT LAYOUT ----------
 layout = html.Div(
     [
-        navbar,
+        dbc.Container([navbar], class_name="p-0", fluid=True),
         dcc.Location(id="url"),  # keeps multipage routing
         html.Div(id="page-content"),  # where page callbacks inject content
     ]
