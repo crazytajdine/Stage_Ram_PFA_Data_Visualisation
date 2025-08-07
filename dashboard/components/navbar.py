@@ -11,12 +11,6 @@ import logging
 
 from dash import html
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [INFO] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
 
 app = get_app()
 # ← re-use the single app created earlier
@@ -39,7 +33,6 @@ navbar = dbc.Navbar(
                 nav=True,
                 in_navbar=True,
                 label=html.I(className="bi bi-person-circle fs-3", id="user-icon"),
-                toggle_style={"background": "transparent", "border": "none"},
                 align_end=True,
             ),
         ],
