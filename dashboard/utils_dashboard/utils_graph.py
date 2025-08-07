@@ -192,6 +192,7 @@ def generate_card_info_change(
     col_name: str,
     title: str,
     include_footer: bool = True,
+    extra_class="",
 ) -> dbc.Card:
     assert df is not None and col_name is not None
 

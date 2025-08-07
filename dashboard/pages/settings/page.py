@@ -50,13 +50,12 @@ layout = html.Div(
                             id=ID_NEW_PATH_INPUT,
                             placeholder="Enter a new path…",
                             type="text",
-                            className="my-2",
+                            className="mb-4 excel-card-glass",
                         ),
                         dbc.Button(
                             "Update",
                             id=ID_UPDATE_PATH_BTN,
-                            color="primary",
-                            className="my-2",
+                            className="btn-glossy my-2",
                         ),
                         dbc.Alert(id=ID_UPDATE_PATH_MSG, is_open=False),
                     ]
@@ -92,7 +91,7 @@ layout = html.Div(
                         dbc.Button(
                             "Toggle state",
                             id=ID_TOGGLE_AUTO_REFRESH,
-                            color="secondary",
+                            className="btn-glossy",
                         ),
                         dbc.Alert(
                             id=ID_TOGGLE_REFRESH_MSG, is_open=False, className="mt-3"
@@ -117,8 +116,7 @@ layout = html.Div(
                         dbc.Button(
                             "Save changes",
                             id=ID_SETTINGS_BUTTON_NAV,
-                            color="primary",
-                            className="me-2",
+                            className="btn-glossy me-2",
                         ),
                         dbc.Alert(
                             id=ID_PAGE_VISIBILITY_MSG, is_open=False, className="mt-3"

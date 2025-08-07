@@ -43,7 +43,19 @@ TABLE_NAMES_RENAME = {
     "FAMILLE_DR": "Family",
     "DELAY_CODE": "Delay Code",
 }
-
+# utils.py (ou en haut de ton fichier)
+GLASS_STYLE = {
+    "background": "rgba(255,255,255,0.15)",     # voile translucide
+    "backdropFilter": "blur(12px)",             # flou derrière
+    "WebkitBackdropFilter": "blur(12px)",       # Safari
+    "border": "1px solid rgba(255,255,255,0.40)",
+    "borderRadius": "12px",
+    "boxShadow": "0 6px 24px rgba(0,0,0,0.12)",
+    "overflowX": "auto",                        # ce que tu avais déjà
+    "marginTop": "10px",
+    "marginBottom": "40px",
+}
+style_table=GLASS_STYLE,
 
 # ------------------------------------------------------------------ #
 # 2 ▸  Helper – aggregate per code                                   #
@@ -239,7 +251,12 @@ charts_block = html.Div(
 table_block = html.Div(
     [
         html.H3("Delay Code Details", className="h4 mt-4"),
-        dbc.Button("Export Excel", id="export-btn", className="mt-2"),
+        dbc.Button(
+                            [html.I(className="bi bi-download me-2"), "Exporter Excel"],
+                            id="result-export-btn",
+                            className="btn-export mt-2",
+                            n_clicks=0,
+                        ),
         html.Div(id="table-container"),
     ]
 )
@@ -526,7 +543,8 @@ def build_outputs(n_clicks):
                 label=fam,  # texte de l’onglet
                 value=fam,  # valeur (pour l’état actif)
                 children=[
-                    dcc.Graph(figure=fig, config=plot_config, style={"height": 450})
+                    dcc.Graph(figure=fig, config=plot_config, style={"height": 450},className="graph-glass mb-4 mx-auto",          # ← nouvelle classe CSS
+                )
                 ],
             )
         )
@@ -588,11 +606,7 @@ def build_outputs(n_clicks):
                 {"name": TABLE_NAMES_RENAME.get(c, c), "id": c}
                 for c in summary_table.columns
             ],
-            style_table={
-                "overflowX": "auto",
-                "marginTop": "10px",
-                "marginBottom": "40px",
-            },
+            style_table=GLASS_STYLE,
             style_cell={"textAlign": "left"},
             sort_action="native",
             page_size=15,
@@ -627,8 +641,9 @@ def build_outputs(n_clicks):
             config=plot_config,
             style={"width": "100%", "height": "600px"},  # occupe 100 % de la div
         ),
-        # ↓ la clé : span de la colonne 1 jusqu’à la dernière (‑1)
-        style={"gridColumn": "1 / -1"},  # ou "1 / span 2" si tu préfères
+        className="graph-glass mb-4 mx-auto",          # ← nouvelle classe CSS
+        style={"width": "90%", "gridColumn": "1 / -1"},
+        # ↓ la clé : span de la colonne 1 jusqu’à la dernière (‑1) # ou "1 / span 2" si tu préfères
     )
     # ────────────────────────────────────────────────────────────────────
     # 5 ▸ summary table – one line per family
@@ -672,11 +687,7 @@ def build_outputs(n_clicks):
             {"name": TABLE_NAMES_RENAME.get(c, c), "id": c}
             for c in family_summary.columns
         ],
-        style_table={
-            "overflowX": "auto",
-            "marginTop": "10px",
-            "marginBottom": "40px",
-        },
+        style_table=GLASS_STYLE,
         style_cell={"textAlign": "left"},
         page_action="native",  # enable paging (default)
         page_size=10,
@@ -700,11 +711,11 @@ def build_outputs(n_clicks):
             html.H3("Family summary per segmentation", className="h4 mt-4"),
             dcc.Download(id="download-family-summary"),  # invisible
             dbc.Button(
-                "Export Excel",
-                id="export-family-btn",
-                color="primary",
-                className="mt-2",
-            ),
+                            [html.I(className="bi bi-download me-2"), "Exporter Excel"],
+                            id="result-export-btn",
+                            className="btn-export mt-2",
+                            n_clicks=0,
+                        ),
             family_summary_table,  # the DataTable
         ],
         style={"gridColumn": "1 / -1"},  # occupy full width like big_chart
