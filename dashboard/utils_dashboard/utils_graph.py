@@ -5,7 +5,7 @@ from typing import Literal
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 import plotly.express as px, plotly.graph_objs as go
-from utils_dashboard.utils_download import plot_config
+
 import polars as pl
 
 from excel_manager import COL_NAME_WINDOW_TIME
@@ -167,8 +167,7 @@ def create_graph_bar_card(
         return None
 
     return dbc.Card(
-        dbc.CardBody([dcc.Graph(figure=fig, config={**plot_config, "responsive": True},
-  useResizeHandler=True,)]),
+        dbc.CardBody([dcc.Graph(figure=fig)]),
         className="mb-4",
     )
 
