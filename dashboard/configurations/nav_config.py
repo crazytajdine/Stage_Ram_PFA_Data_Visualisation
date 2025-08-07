@@ -8,7 +8,7 @@ from pages.tech.metadata import metadata as tech_metadata
 from pages.weekly.metadata import metadata as weekly_metadata
 from pages.performance_metrics.metadata import metadata as perf_metrics_metadata
 from pages.settings.metadata import metadata as settings_metadata
-from pages.verify.metadata import metadata as verify_metadata
+from pages.undefined.metadata import metadata as undefined_metadata
 
 NAV_CONFIG = [
     home_metadata,
@@ -18,7 +18,7 @@ NAV_CONFIG = [
     settings_metadata,
 ]
 
-NAV_CONFIG_VERIFY = [verify_metadata]
+NAV_CONFIG_UNDEFINED = [undefined_metadata]
 
 
 def get_page_visibility(page_key: str) -> Optional[bool]:
@@ -29,7 +29,7 @@ def get_page_visibility(page_key: str) -> Optional[bool]:
 
 def build_nav_items_meta(path_exists: bool) -> list[NavItemMeta]:
 
-    meta_list: list[NavItemMeta] = NAV_CONFIG if path_exists else NAV_CONFIG_VERIFY
+    meta_list: list[NavItemMeta] = NAV_CONFIG if path_exists else NAV_CONFIG_UNDEFINED
     results = []
     for item in meta_list:
         is_visible_user = get_page_visibility(item.name)

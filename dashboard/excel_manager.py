@@ -7,14 +7,11 @@ import logging
 
 from dash import Input, Output, State, dcc
 
-from configurations.config import get_user_config, save_config_sys
+from configurations.config import get_base_config, get_user_config, save_config_sys
+from schemas.data_status import StatusData
 from server_instance import get_app
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [INFO] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+from status.data_status_manager import compare_status, set_status
 
 logging.info("Loading excel file...")
 
@@ -25,6 +22,7 @@ ID_INTERVAL_WATCHER = "interval-file-selector"
 
 ID_STORE_DATE_WATCHER = "store-date-latest-fetch"
 
+
 COL_NAME_DEPARTURE_DATETIME = "DEP_DAY_SCHED"
 
 COL_NAME_WINDOW_TIME = "WINDOW_DATETIME_DEP"
@@ -33,44 +31,66 @@ COL_NAME_WINDOW_TIME_MAX = "WINDOW_DATETIME_DEP_MAX"
 COL_NAME_TOTAL_COUNT = "total_count"
 
 ID_DATA_STORE_TRIGGER = "filter-store-trigger"
+ID_DATA_STATUS_CHANGE_TRIGGER = "store-status-data-trigger"
 
 # init
 
 app = get_app()
 
+base_config = get_base_config()
 config = get_user_config()
 
-path_to_excel = config.get("path_to_excel", "")
-auto_refresh_disabled = config.get("auto_refresh", True)
-
-count_excel_lazy = None
-
+dir_path = base_config.get("dir_path", "")
+path_to_excel_cashed = config.get("path_to_excel", "")
 
 # func
 
-def get_path_to_excel():
-    return path_to_excel
 
+def get_path_to_excel() -> str:
+    global dir_path, path_to_excel_cashed, config
 
-def path_exits():
-    if not path_to_excel:
-        logging.debug("No path to Excel file configured.")
-        return False
+    if path_to_excel_cashed:
+        is_exist = os.path.exists(path_to_excel_cashed)
 
-    is_exist = os.path.exists(path_to_excel)
-    logging.debug(f"Path exists check: {is_exist} for path: {path_to_excel}")
+        if is_exist:
+            logging.debug(f"Using cached Excel path: {path_to_excel_cashed}")
+            return path_to_excel_cashed
+        else:
+            config = save_config_sys({"path_to_excel": ""})
+            path_to_excel_cashed = ""
 
-    if not is_exist:
-        return False
+            logging.debug(f"Cashed path doesn't exist : {path_to_excel_cashed}")
 
-    is_file = os.path.isfile(path_to_excel)
-    logging.debug(f"Is file check: {is_file} for path: {path_to_excel}")
+    logging.info(f"Scanning directory: {dir_path}")
 
+    os.makedirs(dir_path, exist_ok=True)
 
-    if not is_file:
-        return False
+    try:
+        list_name_excels: list[str] = os.listdir(dir_path)
+        logging.info(f"Found files: {list_name_excels}")
+    except Exception as e:
+        logging.error(f"Error reading directory: {e}")
+        return None
+    list_name_excels = [
+        name
+        for name in list_name_excels
+        if name.endswith(".xlsx") or name.endswith(".xls")
+    ]
 
-    return True
+    logging.info(f"Filtered Excel files: {list_name_excels}")
+
+    if not list_name_excels:
+        logging.warning("No Excel files found in the directory.")
+        return None
+
+    first_excel = list_name_excels[0]
+    full_path = os.path.join(dir_path, first_excel)
+
+    config = save_config_sys({"path_to_excel": full_path})
+    path_to_excel_cashed = full_path
+    logging.info(f"Selected Excel file: {full_path}")
+
+    return full_path
 
 
 def filter_tec(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
@@ -105,88 +125,23 @@ def create_dep_datetime(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
             .dt.combine(pl.col("DEP_TIME_SCHED").str.strptime(pl.Time, "%H:%M"))
             .alias(COL_NAME_DEPARTURE_DATETIME)
         )
-        logging.debug(f"Added column '{COL_NAME_DEPARTURE_DATETIME}' combining date and time")
+        logging.debug(
+            f"Added column '{COL_NAME_DEPARTURE_DATETIME}' combining date and time"
+        )
         return df_with_datetime
     except Exception as e:
         logging.error(f"Error creating departure datetime: {e}", exc_info=True)
         return df_lazy
 
 
-def modify_modification_date(new_modification_date: float):
-    global config
-
-    config = save_config_sys({"modification_date": new_modification_date})
-
-    logging.info(f"Set modification date to: {new_modification_date}")
-
-
-def update_path_to_excel(path) -> tuple[bool, str]:
-    global config, path_to_excel
-
-    if not path:
-        logging.warning("Provided path is empty.")
-
-        return False, "Path cannot be empty."
-
-    is_exist = os.path.exists(path)
-    if not is_exist:
-        logging.warning(f"File does not exist at path: {path}")
-
-        return is_exist, "The excel file doesn't exist."
-
-    is_file = os.path.isfile(path)
-
-    if not is_file:
-        logging.warning(f"Provided path is not a file: {path}")
-        return (
-            False,
-            "The Path you provided is not for a file. Make sure it ends with '.excel' or another valid Excel format.",
-        )
-
-    try:
-        load_excel_lazy(path)
-    except Exception as e :
-        logging.error(f"Error loading Excel file: {e}", exc_info=True)
-        return False, "Could not load the file, make sure it is a valid excel file."
-
-    path_to_excel = path
-
-    config = save_config_sys({"path_to_excel": path})
-
-    logging.info(f"Loaded the file successfully from: {path}")
-
-    return True, "Loaded The File successfully."
-
-
-def toggle_auto_refresh() -> bool:
-    global config, auto_refresh_disabled
-
-    auto_refresh_disabled = not auto_refresh_disabled
-
-    config = save_config_sys({"disabled_auto_refresh": auto_refresh_disabled})
-
-    logging.info(f"Auto refresh set disabled to: {auto_refresh_disabled}")
-
-    return auto_refresh_disabled
-
-
-def is_auto_refresh_disabled() -> bool:
-    global auto_refresh_disabled
-    return auto_refresh_disabled
-
-
-def load_excel_lazy(path):
+def load_excel_lazy(path_to_excel):
     global df_unfiltered, df_raw, df
 
-    if not path:
-        raise ValueError("Path cannot be empty.")
+    path_to_excel = get_path_to_excel()
+    if not path_to_excel:
+        return None
 
-    is_exist = os.path.exists(path)
-
-    if not is_exist:
-        raise ValueError("The path does not exist.")
-
-    df_read = pl.read_excel(path).lazy()
+    df_read = pl.read_excel(path_to_excel).lazy()
 
     df_raw = preprocess_df(df_read)
 
@@ -194,7 +149,7 @@ def load_excel_lazy(path):
 
     df = df_unfiltered
 
-    logging.info(f"Excel file loaded and processed: {path}")
+    logging.info(f"Excel file loaded and processed: {path_to_excel}")
 
 
 def preprocess_df(raw_df: pl.LazyFrame) -> pl.LazyFrame:
@@ -205,7 +160,9 @@ def preprocess_df(raw_df: pl.LazyFrame) -> pl.LazyFrame:
 
 def get_df_unfiltered() -> Optional[pl.LazyFrame]:
     global df_unfiltered
-    if df_unfiltered is None and path_to_excel:
+
+    path_excel = get_path_to_excel()
+    if df_unfiltered is None and path_excel:
         update_df_unfiltered()
     return df_unfiltered
 
@@ -248,19 +205,18 @@ def get_count_df(
         filter_list.append(pl.col(COL_NAME_DEPARTURE_DATETIME) <= end)
         logging.debug(f"Applying max_date filter: {end}")
 
-
-
     stmt = df_raw
     if filter_list:
         stmt = df_raw.filter(filter_list)
         logging.debug(f"Filtered df_raw with {len(filter_list)} filter(s).")
 
-
     if segmentation and unit_segmentation:
 
         min_segmentation = str(segmentation) + unit_segmentation
         max_segmentation = str(segmentation - 1) + unit_segmentation
-        logging.debug(f"Applying segmentation truncation: min={min_segmentation}, max={max_segmentation}")
+        logging.debug(
+            f"Applying segmentation truncation: min={min_segmentation}, max={max_segmentation}"
+        )
 
         stmt = (
             stmt.with_columns(
@@ -304,7 +260,9 @@ def get_modification_time_cashed() -> str:
     modification_date = config.get("modification_date", None)
 
     if modification_date is None:
-        logging.debug("Modification date not found in config; fetching latest modification time.")
+        logging.debug(
+            "Modification date not found in config; fetching latest modification time."
+        )
 
         modification_date = get_latest_modification_time()
 
@@ -314,12 +272,20 @@ def get_modification_time_cashed() -> str:
     return modification_date
 
 
+def path_exists():
+
+    path_excel = get_path_to_excel()
+    does_path_exists = bool(path_excel)
+    logging.info(f"Verifying if cashed path exists got : {does_path_exists}")
+    return does_path_exists
+
+
 def get_latest_modification_time():
-    global path_to_excel
-    is_path_exists = path_exits()
-    if not is_path_exists:
+
+    path_excel = get_path_to_excel()
+    if not path_excel:
         return None
-    latest_modification_timestamp = os.path.getmtime(path_to_excel)
+    latest_modification_timestamp = os.path.getmtime(path_excel)
     readable_time = datetime.fromtimestamp(latest_modification_timestamp)
     readable_time = readable_time.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -345,6 +311,7 @@ df_unfiltered: pl.LazyFrame = None
 df: pl.LazyFrame = None
 total_df: pl.LazyFrame = None
 
+path_to_excel = get_path_to_excel()
 if path_to_excel and path_to_excel.strip() != "":
     try:
         load_excel_lazy(path_to_excel)
@@ -369,16 +336,24 @@ store_latest_date_fetch = dcc.Store(
 )
 
 store_trigger_change = dcc.Store(id=ID_DATA_STORE_TRIGGER)
+store_trigger_status = dcc.Store(ID_DATA_STATUS_CHANGE_TRIGGER)
+interval_watcher = dcc.Interval(id=ID_INTERVAL_WATCHER, interval=1000)
 
-interval_watcher = dcc.Interval(
-    id=ID_INTERVAL_WATCHER, interval=1000, disabled=auto_refresh_disabled
-)
-
-hookers = [store_excel, store_latest_date_fetch, interval_watcher, store_trigger_change]
+hookers = [
+    store_excel,
+    store_latest_date_fetch,
+    interval_watcher,
+    store_trigger_change,
+    store_trigger_status,
+]
 
 
 def add_watch_file():
     return Input(ID_STORE_DATE_WATCHER, "data")
+
+
+def add_watcher_for_data_status():
+    return Input(ID_DATA_STATUS_CHANGE_TRIGGER, "data")
 
 
 def add_watcher_for_data():
@@ -386,15 +361,22 @@ def add_watcher_for_data():
 
 
 def update_df_unfiltered():
-    global path_to_excel
     logging.info("Updating unfiltered dataframe by reloading Excel file")
-    load_excel_lazy(path_to_excel)
+
+    load_excel_lazy(get_path_to_excel())
+
+
+def modify_modification_date(new_modification_date: float):
+    global config
+
+    config = save_config_sys({"modification_date": new_modification_date})
+
+    logging.info(f"Set modification date to: {new_modification_date}")
 
 
 def update_df(filtred_df: pl.LazyFrame, filtered_total_df: pl.LazyFrame):
     global df, total_df
     logging.info("Updated DataFrame with new filtered data.")
-
 
     df = filtred_df
     total_df = filtered_total_df
@@ -404,53 +386,65 @@ def update_df(filtred_df: pl.LazyFrame, filtered_total_df: pl.LazyFrame):
 def add_callbacks():
 
     @app.callback(
-        # output
-        Output(ID_INTERVAL_WATCHER, "disabled"),
-        # input
-        Input(ID_PATH_STORE, "data"),
-    )
-    def loaded_file(_):
-        global auto_refresh_disabled
-
-        is_path_correct = path_exits() and (not auto_refresh_disabled)
-
-        logging.info(f"Setting interval watcher disabled to {not is_path_correct}")
-
-        return not is_path_correct
-
-    @app.callback(
         Output(ID_STORE_DATE_WATCHER, "data", allow_duplicate=True),
+        Output(ID_DATA_STORE_TRIGGER, "data", allow_duplicate=True),
         Input(ID_PATH_STORE, "data"),
         prevent_initial_call=True,
     )
     def trigger_data_path_change(_):
-        return None
+        return None, None
 
     @app.callback(
-        # output
-        Output(ID_STORE_DATE_WATCHER, "data"),
-        # input
+        Output(ID_PATH_STORE, "data"),
+        Output(ID_STORE_DATE_WATCHER, "data", allow_duplicate=True),
+        State(ID_PATH_STORE, "data"),
         State(ID_STORE_DATE_WATCHER, "data"),
         Input(ID_INTERVAL_WATCHER, "n_intervals"),
+        prevent_initial_call=True,
     )
-    def watch_file(date_latest_fetch, _):
-        global path_to_excel
-        logging.info("Watching file every second...")
-        if not path_to_excel:
-            logging.warning("No Excel file path configured during watch.")
-            return dash.no_update
+    def watch_file(current_path, date_latest_fetch, _):
+        logging.debug("Watching file every second...")
+
         try:
+            # Check if file path exists
+            if (not current_path) or (not os.path.exists(current_path)):
+                logging.warning("Excel file path no longer exists.")
+                return get_path_to_excel(), get_latest_modification_time()
+
+            # Check for modification time
             latest_modification_time = get_latest_modification_time()
-            print("watching file:", latest_modification_time, "new:", date_latest_fetch)
+            logging.debug(
+                f"watching file: {latest_modification_time} new: {date_latest_fetch}"
+            )
 
             if latest_modification_time != date_latest_fetch:
                 logging.info("File changed, updating DataFrame...")
+
                 update_df_unfiltered()
                 modify_modification_date(latest_modification_time)
-                return latest_modification_time
+                return dash.no_update, latest_modification_time
 
         except FileNotFoundError:
             logging.warning("Excel file not found during watch.")
+
         except Exception as e:
             logging.error(f"Error watching file: {e}", exc_info=True)
-        return dash.no_update
+
+        return dash.no_update, dash.no_update
+
+    @app.callback(
+        Output(ID_DATA_STATUS_CHANGE_TRIGGER, "data"),
+        Input(ID_PATH_STORE, "data"),
+    )
+    def trigger_data_status_change(_):
+
+        logging.info("Data status changed.")
+        new_status: StatusData = "selected" if path_exists() else "unselected"
+
+        same_as_old_status = compare_status(new_status)
+        set_status(new_status)
+
+        logging.info(
+            f"sending status change: {new_status}, same as old: {same_as_old_status}"
+        )
+        return dash.no_update if same_as_old_status else None

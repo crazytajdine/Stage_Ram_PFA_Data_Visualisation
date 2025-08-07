@@ -1,6 +1,6 @@
-from dash import html, dcc
+from dash import html
 
-ID_FILTER_TITLE = "main_title"
+ID_MAIN_TITLE = "main_title"
 
 
-layout = html.H2("Title", id=ID_FILTER_TITLE, className="ms-4 my-4 fw-bold")
+layout = html.H2("", id=ID_MAIN_TITLE, className="ms-4 my-4 fw-bold")

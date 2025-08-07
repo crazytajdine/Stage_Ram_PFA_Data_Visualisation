@@ -1,7 +1,11 @@
+import logging
 import os
 from typing import Any
 from platformdirs import user_config_dir
 import toml
+
+config = {}
+config_user = {}
 
 
 def save_config(path: str, config: dict[str, Any]) -> dict[str, Any]:
@@ -11,7 +15,7 @@ def save_config(path: str, config: dict[str, Any]) -> dict[str, Any]:
     old_config = load_config(path)
 
     new_config = {**old_config, **config}
-    print("saving :", new_config, "to :", path)
+    logging.info(f"saving : {new_config} to : {path}")
     with open(path, "w") as f:
         toml.dump(new_config, f)
     return new_config
@@ -33,16 +37,6 @@ def load_config(path: str) -> dict[str, Any]:
     return config
 
 
-def get_base_config() -> dict:
-    global config_path
-    return load_config(config_path)
-
-
-def get_config_dir_sys():
-    global app_name, auth
-    return user_config_dir(app_name, auth)
-
-
 def load_user_config() -> dict[str, Any]:
     global config_path_sys
 
@@ -51,13 +45,34 @@ def load_user_config() -> dict[str, Any]:
     return load_config(config_path_sys)
 
 
+def get_base_config() -> dict[str, Any]:
+    global config_path, config
+
+    if config:
+        logging.debug("loading base config from cache")
+        return config
+
+    config = load_config(config_path)
+
+    return config
+
+
 def get_user_config() -> dict[str, Any]:
     global config_user
 
-    if not config_user:
-        config_user = load_user_config()
-
+    if config_user:
+        logging.debug("loading user config from cache")
+        return config_user
+    config_user = load_user_config()
     return config_user
+
+
+def get_config_dir_sys():
+    global app_name, auth
+
+    path_user_config = user_config_dir(app_name, auth)
+    os.makedirs(path_user_config, exist_ok=True)
+    return path_user_config
 
 
 def save_config_sys(updated_config: dict[str, Any]) -> dict[str, Any]:
@@ -85,4 +100,4 @@ name_config = config.get("config", {}).get("config_data_name", "config_data.toml
 config_path_sys = os.path.join(get_config_dir_sys(), name_config)
 
 
-config_user = load_user_config()
+config_user = get_user_config()

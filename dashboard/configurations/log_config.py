@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 
+
 def init_log(log_file_template: str):
     log_dir = os.path.dirname(log_file_template)
     if log_dir:
@@ -18,7 +19,9 @@ def init_log(log_file_template: str):
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
 
-    formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", "%Y-%m-%d %H:%M:%S")
+    formatter = logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(message)s", "%Y-%m-%d %H:%M:%S"
+    )
 
     file_handler = logging.FileHandler(log_file, encoding="utf-8")
     file_handler.setFormatter(formatter)
