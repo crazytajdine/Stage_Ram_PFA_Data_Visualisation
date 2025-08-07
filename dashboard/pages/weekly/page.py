@@ -126,7 +126,7 @@ layout = dbc.Container(
         ),
         dbc.Button(
                             [html.I(className="bi bi-download me-2"), "Exporter Excel"],
-                            id="result-export-btn",
+                            id="weekly-export-btn",
                             className="btn-export mt-2",
                             n_clicks=0,
                         ),

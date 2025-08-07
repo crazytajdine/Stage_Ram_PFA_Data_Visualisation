@@ -253,7 +253,7 @@ table_block = html.Div(
         html.H3("Delay Code Details", className="h4 mt-4"),
         dbc.Button(
                             [html.I(className="bi bi-download me-2"), "Exporter Excel"],
-                            id="result-export-btn",
+                            id="export-btn",
                             className="btn-export mt-2",
                             n_clicks=0,
                         ),
@@ -726,7 +726,7 @@ def build_outputs(n_clicks):
             dcc.Download(id="download-family-summary"),  # invisible
             dbc.Button(
                             [html.I(className="bi bi-download me-2"), "Exporter Excel"],
-                            id="result-export-btn",
+                            id="export-family-btn",
                             className="btn-export mt-2",
                             n_clicks=0,
                         ),

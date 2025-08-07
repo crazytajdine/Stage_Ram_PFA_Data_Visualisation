@@ -209,7 +209,7 @@ layout = dbc.Container(
                     [
                         dbc.Button(
                             [html.I(className="bi bi-download me-2"), "Exporter Excel"],
-                            id="result-export-btn",
+                            id="subtype-export-btn",
                             className="btn-export mt-2",
                             n_clicks=0,
                         ),
@@ -247,7 +247,7 @@ layout = dbc.Container(
                     [
                         dbc.Button(
                             [html.I(className="bi bi-download me-2"), "Exporter Excel"],
-                            id="result-export-btn",
+                            id="category-export-btn",
                             className="btn-export mt-2",
                             n_clicks=0,
                         ),
@@ -287,7 +287,7 @@ layout = dbc.Container(
                     [
                         dbc.Button(
                             [html.I(className="bi bi-download me-2"), "Exporter Excel"],
-                            id="result-export-btn",
+                            id="interval-export-btn",
                             className="btn-export mt-2",
                             n_clicks=0,
                         ),
