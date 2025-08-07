@@ -12,14 +12,9 @@ import plotly.express as px
 from utils_dashboard.utils_download import add_export_callbacks
 from server_instance import get_app
 import excel_manager
-import math
-from dash import ctx, no_update
-import io
-from components.filter import FILTER_STORE_ACTUAL
 from utils_dashboard.utils_graph import (
     create_bar_figure,
     create_bar_horizontal_figure,
-    create_graph_bar_card,
 )
 
 app = get_app()
@@ -612,6 +607,7 @@ def build_outputs(n_clicks):
             style_cell={"textAlign": "left"},
             sort_action="native",
             page_size=15,
+            style_table={"overflowX": "auto"},
             style_data_conditional=[
                 {
                     "if": {"row_index": "odd"},
@@ -692,6 +688,7 @@ def build_outputs(n_clicks):
         style_cell={"textAlign": "left"},
         page_action="native",  # enable paging (default)
         page_size=10,
+        style_table={"overflowX": "auto"},
         style_data_conditional=[
             {
                 "if": {"row_index": "odd"},

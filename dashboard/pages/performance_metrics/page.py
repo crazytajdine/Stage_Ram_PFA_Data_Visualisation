@@ -380,8 +380,11 @@ def create_layout(
             id=ID_TABLE,
             page_size=10,
             sort_action="native",
-            style_cell={"textAlign": "left"},
             sort_by=[{"column_id": COL_NAME_WINDOW_TIME, "direction": "desc"}],
+            style_cell={
+                "textAlign": "left",
+            },
+            style_table={"overflowX": "auto"},
             style_data_conditional=[
                 {
                     "if": {"row_index": "odd"},
