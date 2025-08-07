@@ -9,7 +9,6 @@ from excel_manager import (
     COL_NAME_WINDOW_TIME,
     COL_NAME_WINDOW_TIME_MAX,
     ID_DATA_STORE_TRIGGER,
-    ID_PATH_STORE,
     update_df,
     get_df_unfiltered,
     add_watch_file,
@@ -164,6 +163,7 @@ layout = dbc.Card(
         ]
     ),
     className="m-4",
+    style={"display": "none"},
     id=ID_FILTER_CONTAINER,
 )
 
@@ -182,14 +182,18 @@ def apply_filters(
     min_dt = filters.get("dt_start") if filters else None
     max_dt = filters.get("dt_end") if filters else None
 
-    logging.debug(f"Filter parameters: segmentation={segmentation}, unit={unit_segmentation}, "
-                  f"codes={code_delays}, subtypes={subtypes}, regs={matricules}, "
-                  f"min_dt={min_dt}, max_dt={max_dt}, suggestions={is_suggestions}")
+    logging.debug(
+        f"Filter parameters: segmentation={segmentation}, unit={unit_segmentation}, "
+        f"codes={code_delays}, subtypes={subtypes}, regs={matricules}, "
+        f"min_dt={min_dt}, max_dt={max_dt}, suggestions={is_suggestions}"
+    )
 
     start = end = None
     if (not segmentation) and (not min_dt or not max_dt):
         min_total_dt, max_total_dt = get_min_max_date_raw_df()
-        logging.debug("Loaded full date range from raw df: %s to %s", min_total_dt, max_total_dt)
+        logging.debug(
+            "Loaded full date range from raw df: %s to %s", min_total_dt, max_total_dt
+        )
 
     if min_dt:
         start = (
@@ -272,6 +276,7 @@ def apply_filters(
 
     logging.info("Filtering complete.")
     return df, total_df
+
 
 def split_views_by_exclusion(
     df: pl.LazyFrame, filters: dict, *excludes: FilterKey
@@ -368,7 +373,6 @@ def add_callbacks():
         )
         logging.debug("Matricules extracted: %d items", len(matricules))
 
-
         # date bounds
 
         # df_dt = v_date.collect()
@@ -385,10 +389,17 @@ def add_callbacks():
         dt_max_iso = dt_max.strftime("%Y-%m-%d")
 
         def to_options(lst):
-            logging.debug("Converting list to dropdown options. List size: %d", len(lst))
+            logging.debug(
+                "Converting list to dropdown options. List size: %d", len(lst)
+            )
             return [{"label": x, "value": x} for x in lst]
 
-        logging.debug("Returning filter dropdown options: subtypes=%d, matricules=%d, delay_codes=%d", len(subtypes), len(matricules), len(delay_codes))
+        logging.debug(
+            "Returning filter dropdown options: subtypes=%d, matricules=%d, delay_codes=%d",
+            len(subtypes),
+            len(matricules),
+            len(delay_codes),
+        )
 
         return (
             to_options(subtypes),
@@ -410,8 +421,11 @@ def add_callbacks():
         filter_suggestions, filter_actual, segmentation, segmentation_segmentation_unit
     ):
         logging.debug("Updating filter submit button color")
-        logging.debug("Segmentation value: %s | Unit: %s", segmentation, segmentation_segmentation_unit)
-
+        logging.debug(
+            "Segmentation value: %s | Unit: %s",
+            segmentation,
+            segmentation_segmentation_unit,
+        )
 
         if filter_suggestions:
             filter_suggestions["fl_segmentation"] = segmentation
@@ -455,8 +469,9 @@ def add_callbacks():
         Input(FILTER_STORE_ACTUAL, "data"),
     )
     def filter_data(_, filter_store_data: FilterType):
-        logging.debug("filter_data triggered with filter_store_data: %s", filter_store_data)
-
+        logging.debug(
+            "filter_data triggered with filter_store_data: %s", filter_store_data
+        )
 
         df = get_df_unfiltered()
 

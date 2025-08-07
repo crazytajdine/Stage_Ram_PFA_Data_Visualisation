@@ -10,9 +10,6 @@ from excel_manager import (
     ID_INTERVAL_WATCHER,
     ID_PATH_STORE,
     get_path_to_excel,
-    update_path_to_excel,
-    toggle_auto_refresh,
-    is_auto_refresh_disabled,
     get_modification_time_cashed,
     add_watch_file,
 )
@@ -22,7 +19,6 @@ from pages.settings.metadata import metadata
 
 app = get_app()
 
-ID_TRIGGER_PARAMS_CHANGE_NAVBAR = "trigger_navbar"
 ID_CURRENT_PATH = "current-path"
 ID_UPDATE_PATH_BTN = "update-path-btn"
 ID_NEW_PATH_INPUT = "new-path"
@@ -37,10 +33,8 @@ ID_PAGE_VISIBILITY_MSG = "page-visibility-message"
 ID_CONTAINER_VISIBILITY_CONTROLS = "page-visibility-controls"
 
 
-
 layout = html.Div(
     [
-        dcc.Store(ID_TRIGGER_PARAMS_CHANGE_NAVBAR),
         # ── Excel File
         dbc.Card(
             [
@@ -146,63 +140,9 @@ layout = html.Div(
     prevent_initial_call=False,
 )
 def display_current_path(_):
-     path = get_path_to_excel()
-     logging.debug(f"Displaying current Excel path: {path}")
-     return get_path_to_excel()
-
-
-# 2. Handle Excel path update
-@app.callback(
-    Output(ID_UPDATE_PATH_MSG, "children"),
-    Output(ID_UPDATE_PATH_MSG, "color"),
-    Output(ID_UPDATE_PATH_MSG, "is_open"),
-    Output(ID_PATH_STORE, "data", allow_duplicate=True),
-    Input(ID_UPDATE_PATH_BTN, "n_clicks"),
-    State(ID_NEW_PATH_INPUT, "value"),
-    prevent_initial_call=True,
-)
-def handle_update_path(_, new_path):
-    logging.info(f"User requested path update to: {new_path}")
-
-    if not new_path:
-        logging.warning("Empty path submitted for update.")
-        return "Please enter a path.", "warning", True, dash.no_update
-
-    success, msg = update_path_to_excel(new_path)
-    logging.info(f"Excel path updated successfully: {new_path}")
-
-    color = "success" if success else "danger"
-    return msg, color, True, (new_path if success else dash.no_update)
-
-
-# 3. Toggle auto-refresh on/off
-@app.callback(
-    Output(ID_TOGGLE_REFRESH_MSG, "children"),
-    Output(ID_TOGGLE_REFRESH_MSG, "color"),
-    Output(ID_TOGGLE_REFRESH_MSG, "is_open"),
-    Output(ID_INTERVAL_WATCHER, "disabled", allow_duplicate=True),
-    Input(ID_TOGGLE_AUTO_REFRESH, "n_clicks"),
-    prevent_initial_call=True,
-)
-def toggle_auto_refresh_cb(n_clicks):
-    if not n_clicks:
-        logging.debug("Toggle auto-refresh clicked with no clicks count.")
-
-        raise dash.exceptions.PreventUpdate
-
-    try:
-        status = toggle_auto_refresh()
-        logging.info(f"Auto-refresh toggled, new status disabled={status}")
-
-        return (
-            f"Auto-refresh {'enabled' if status else 'disabled'}.",
-            "success",
-            False,
-            status,
-        )
-    except Exception as e:
-        logging.error(f"Error toggling auto-refresh: {e}", exc_info=True)
-        return f"Error: {e}", "danger", False, is_auto_refresh_disabled()
+    path = get_path_to_excel()
+    logging.debug(f"Displaying current Excel path: {path}")
+    return get_path_to_excel()
 
 
 # 4. Update the "Enabled / Disabled" text
@@ -236,7 +176,9 @@ def update_refresh_time(_):
 def update_page_visibility_controls(pathname):
     if pathname == metadata.href:
         nav_preferences = get_nav_preferences()
-        logging.debug(f"Loading page visibility controls for {len(nav_preferences)} pages")
+        logging.debug(
+            f"Loading page visibility controls for {len(nav_preferences)} pages"
+        )
 
         checkboxes = [
             dbc.Checkbox(
@@ -249,14 +191,15 @@ def update_page_visibility_controls(pathname):
         ]
         return checkboxes
     else:
-        logging.debug(f"Not on settings page ({pathname}), no visibility controls loaded.")
-    
+        logging.debug(
+            f"Not on settings page ({pathname}), no visibility controls loaded."
+        )
+
         return []
 
 
 # 7. Save page visibility preferences
 @app.callback(
-    Output(ID_TRIGGER_PARAMS_CHANGE_NAVBAR, "data"),
     Output(ID_PAGE_VISIBILITY_MSG, "children"),
     Output(ID_PAGE_VISIBILITY_MSG, "color"),
     Output(ID_PAGE_VISIBILITY_MSG, "is_open"),
@@ -272,11 +215,11 @@ def save_page_visibility_cb(n_clicks, values, ids):
     }
     logging.info(f"Saving page visibility settings: {prefs}")
 
-
     if not any(prefs.values()):
-        logging.warning("User attempted to save page visibility with no pages selected.")
+        logging.warning(
+            "User attempted to save page visibility with no pages selected."
+        )
         return (
-            dash.no_update,
             "Error: At least one page must be selected.",
             "danger",
             True,
@@ -284,4 +227,4 @@ def save_page_visibility_cb(n_clicks, values, ids):
 
     set_page_visibility(prefs)
     logging.info("Page visibility settings saved successfully.")
-    return None, "Settings saved successfully.", "success", True
+    return "Settings saved successfully.", "success", True

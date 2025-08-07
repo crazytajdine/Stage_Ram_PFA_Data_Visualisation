@@ -1,3 +1,6 @@
+
+dir_path = "D:\\shared\\data"
+
 [app]
 app_name = "DashboardApp"
 auth = "StagePFA"

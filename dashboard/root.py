@@ -1,5 +1,6 @@
 from dash import html, Output, Input, State
 from dash.dependencies import Input, Output
+import logging
 import plotly.io as pio
 import dash
 
@@ -12,9 +13,10 @@ from utils_dashboard.utils_download import download_dash
 
 from excel_manager import (
     ID_PATH_STORE,
+    add_watcher_for_data_status,
     hookers as excel_hookers,
     add_callbacks as add_excel_manager_callback,
-    path_exits,
+    path_exists,
 )
 from components.filter import (
     layout as filter_layout,
@@ -65,15 +67,15 @@ def export_current_chart(_, fig_dict):
     Output("page-content", "children"),
     [
         Input("url", "pathname"),
-        Input(ID_PATH_STORE, "data"),
+        add_watcher_for_data_status(),
     ],
 )
 def update_content_page(pathname, _):
-    path_exists = path_exits()
+    does_path_exists = path_exists()
 
-    nav_items = build_nav_items(path_exists)
-
-    if not path_exists and nav_items:
+    nav_items = build_nav_items(does_path_exists)
+    logging.info("does path exist set to %s", does_path_exists)
+    if not does_path_exists and nav_items:
         return nav_items[0].page
 
     for nav_item in nav_items:

@@ -1,10 +1,9 @@
 from dash import Input, Output, dcc
 from configurations.nav_config import build_nav_items_meta
-from components.title import ID_FILTER_TITLE
-from excel_manager import ID_PATH_STORE, path_exits
+from components.title import ID_MAIN_TITLE
+from excel_manager import ID_PATH_STORE, add_watcher_for_data_status, path_exists
 from server_instance import get_app
 
-from pages.settings.page import ID_TRIGGER_PARAMS_CHANGE_NAVBAR
 from components.filter import ID_FILTER_CONTAINER
 
 import dash_bootstrap_components as dbc
@@ -36,18 +35,16 @@ def add_callback():
     @app.callback(
         Output("navbar", "children"),
         Output(ID_FILTER_CONTAINER, "style"),
-        Output(ID_FILTER_TITLE, "children"),
+        Output(ID_MAIN_TITLE, "children"),
         # inputs
         Input("url", "pathname"),
-        Input(ID_PATH_STORE, "data"),
-        Input(ID_TRIGGER_PARAMS_CHANGE_NAVBAR, "data", True),
+        add_watcher_for_data_status(),
     )
-    def update_layout(pathname, _, n_clicks_settings):
-        path_exists = path_exits()
-        nav_items = build_nav_items_meta(path_exists)
+    def update_layout(pathname, _):
+        does_path_exists = path_exists()
+        nav_items = build_nav_items_meta(does_path_exists)
 
-        logging.info("Start navbar : %s", [(i.name, i.show) for i in nav_items])
-        logging.debug("Nav items metadata: %s", [(i.name, i.show) for i in nav_items])
+        logging.info("Nav items metadata: %s", [(i.name, i.show) for i in nav_items])
 
         navbar = []
         title = ""
@@ -59,7 +56,11 @@ def add_callback():
             if is_selected:
                 show_filter = nav_item.show_filter
                 title = nav_item.title
-            logging.debug("Selected nav item: %s, show_filter: %s", nav_item.name, nav_item.show_filter)
+            logging.debug(
+                "Selected nav item: %s, show_filter: %s",
+                nav_item.name,
+                nav_item.show_filter,
+            )
             if not nav_item.show:
                 continue
 
@@ -74,5 +75,5 @@ def add_callback():
             )
 
         show_filter = {} if show_filter else {"display": "none"}
-        logging.info("Navbar updated with %d items", len(navbar))   
+        logging.info("Navbar updated with %d items", len(navbar))
         return navbar, show_filter, title
