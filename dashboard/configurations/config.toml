@@ -12,5 +12,5 @@ name_of_python_exe = "server_dashboard"
 config_data_name = "config_data.toml"
 
 [log]
-log_file_desktop_app = "logs/dashboard_desktop_app.log"
-log_file_server = "logs/dashboard_server.log"
+log_file_desktop_app = "logs/{ts}_dashboard_desktop_app.log"
+log_file_server = "logs/{ts}_dashboard_server.log"
