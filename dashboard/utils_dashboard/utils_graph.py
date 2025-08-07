@@ -196,6 +196,7 @@ def generate_card_info_change(
     col_name: str,
     title: str,
     include_footer: bool = True,
+    extra_class="",
 ) -> dbc.Card:
 
     logging.info("Generating info card for column '%s' with title '%s'", col_name, title)

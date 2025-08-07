@@ -141,6 +141,19 @@ def calculate_delay_pct(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
     return res
+# utils.py (ou en haut de ton fichier)
+GLASS_STYLE = {
+    "background": "rgba(255,255,255,0.15)",     # voile translucide
+    "backdropFilter": "blur(12px)",             # flou derrière
+    "WebkitBackdropFilter": "blur(12px)",       # Safari
+    "border": "1px solid rgba(255,255,255,0.40)",
+    "borderRadius": "12px",
+    "boxShadow": "0 6px 24px rgba(0,0,0,0.12)",
+    "overflowX": "auto",                        # ce que tu avais déjà
+    "marginTop": "10px",
+    "marginBottom": "40px",
+}
+style_table=GLASS_STYLE,
 
 
 layout = dbc.Container(
@@ -148,22 +161,29 @@ layout = dbc.Container(
         html.Div(
             [
                 dbc.Alert(
+                    [
+                        html.I(className="bi bi-check-circle me-2"),   # icône Bootstrap Icons
+                        html.Span(id="result-message-text"),           # ↔ « 268 result(s) found »
+                    ],
                     id="result-message",
+                    color="success",
                     is_open=False,
-                    className="mt-3",
+                    dismissable=True,
+                    className="result-alert glass-success mt-4 mb-3",
                 ),
                 # Premier bouton + tableau + export
-                dbc.Button("Exporter Excel", id="result-export-btn", className="mt-2"),
+                dbc.Button(
+                            [html.I(className="bi bi-download me-2"), "Exporter Excel"],
+                            id="result-export-btn",
+                            className="btn-export mt-2",
+                            n_clicks=0,
+                        ),
                 dash_table.DataTable(
                     id=ID_SUMMERY_TABLE,
                     columns=[],
                     data=[],
                     page_size=10,
-                    style_table={
-                        "overflowX": "auto",
-                        "marginTop": "10px",
-                        "marginBottom": "40px",
-                    },
+                    style_table=GLASS_STYLE,
                     style_cell={"textAlign": "left"},
                     sort_action="native",
                     style_data_conditional=[
@@ -179,35 +199,26 @@ layout = dbc.Container(
                 ),
                 # Graphique subtype pct
                 html.Div(
-                    dcc.Graph(
-                        id=ID_FIGURE_SUBTYPE_PR_DELAY_MEAN,
-                        style={"margin": "auto", "height": "400px", "width": "90%"},
-                    ),
-                    style={
-                        "display": "flex",
-                        "justifyContent": "center",
-                        "alignItems": "center",
-                        "marginBottom": "40px",
-                    },
+                dcc.Graph(id=ID_FIGURE_SUBTYPE_PR_DELAY_MEAN, style={"height": "400px"}),
+                className="graph-glass mb-4 mx-auto",          # ← nouvelle classe CSS
+                style={"width": "90%"},
                 ),
+                # Tableau des subtypes
                 # Deuxième bouton + tableau + export
                 html.Div(
                     [
                         dbc.Button(
-                            "Exporter Excel",
-                            id="subtype-export-btn",
-                            className="mb-2",
+                            [html.I(className="bi bi-download me-2"), "Exporter Excel"],
+                            id="result-export-btn",
+                            className="btn-export mt-2",
+                            n_clicks=0,
                         ),
                         dash_table.DataTable(
                             id=ID_TABLE_SUBTYPE_PR_DELAY_MEAN,
                             columns=[],
                             data=[],
                             page_size=10,
-                            style_table={
-                                "overflowX": "auto",
-                                "marginTop": "10px",
-                                "marginBottom": "40px",
-                            },
+                            style_table=GLASS_STYLE,
                             style_cell={"textAlign": "left"},
                             sort_action="native",
                             style_data_conditional=[
@@ -229,30 +240,23 @@ layout = dbc.Container(
                         id=ID_FIGURE_CATEGORY_DELAY_GT_15MIN,
                         style={"margin": "auto", "height": "400px", "width": "90%"},
                     ),
-                    style={
-                        "display": "flex",
-                        "justifyContent": "center",
-                        "alignItems": "center",
-                        "marginBottom": "40px",
-                    },
+                    className="graph-glass mb-4 mx-auto",          # ← nouvelle classe CSS
+                    style={"width": "90%"},
                 ),
                 html.Div(
                     [
                         dbc.Button(
-                            "Exporter Excel",
-                            id="category-export-btn",
-                            className="mb-2",
+                            [html.I(className="bi bi-download me-2"), "Exporter Excel"],
+                            id="result-export-btn",
+                            className="btn-export mt-2",
+                            n_clicks=0,
                         ),
                         dash_table.DataTable(
                             id=ID_TABLE_CATEGORY_DELAY_GT_15MIN,
                             columns=[],
                             data=[],
                             page_size=10,
-                            style_table={
-                                "overflowX": "auto",
-                                "marginTop": "10px",
-                                "marginBottom": "40px",
-                            },
+                            style_table=GLASS_STYLE,
                             style_cell={"textAlign": "left"},
                             sort_action="native",
                             style_data_conditional=[
@@ -275,31 +279,24 @@ layout = dbc.Container(
                         id=ID_FIGURE_FLIGHT_DELAY,
                         style={"margin": "auto", "width": "100%"},
                     ),
-                    style={
-                        "marginBottom": "15px",
-                        "background": "white",
-                        "padding": "10px",
-                        "borderRadius": "8px",
-                    },
+                    className="graph-glass mb-4 mx-auto",          # ← nouvelle classe CSS
+                    style={"width": "90%"},
                 ),
                 # Troisième bouton + tableau + export
                 html.Div(
                     [
                         dbc.Button(
-                            "Exporter Excel",
-                            id="interval-export-btn",
-                            className="mb-2",
+                            [html.I(className="bi bi-download me-2"), "Exporter Excel"],
+                            id="result-export-btn",
+                            className="btn-export mt-2",
+                            n_clicks=0,
                         ),
                         dash_table.DataTable(
                             id=ID_TABLE_FLIGHT_DELAY,
                             columns=[],
                             data=[],
                             page_size=10,
-                            style_table={
-                                "overflowX": "auto",
-                                "marginTop": "10px",
-                                "marginBottom": "40px",
-                            },
+                            style_table=GLASS_STYLE,
                             style_cell={"textAlign": "left"},
                             sort_action="native",
                             style_data_conditional=[

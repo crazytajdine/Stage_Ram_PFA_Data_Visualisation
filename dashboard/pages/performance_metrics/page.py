@@ -7,8 +7,9 @@ from utils_dashboard.utils_graph import (
     generate_card_info_change,
 )
 from server_instance import get_app
-
+import dash.html as html
 import polars as pl
+from dash import dcc
 
 from excel_manager import (
     COL_NAME_WINDOW_TIME_MAX,
@@ -57,6 +58,26 @@ ID_TABLE_CONTAINER = "result_table_percentage_metrics"
 ID_TABLE = "result_table_metrics"
 
 app = get_app()
+
+# ---------- shared glass wrappers ---------------------------------
+GRAPH_CARD_CSS = "graph-glass"           # obsidian pane (defined in assets/ram.css)
+
+import plotly.graph_objects as go  # en haut du fichier
+
+def wrap_graph(obj):
+    """
+    Accepte indifféremment :
+      • un go.Figure / dict  → le transforme en dcc.Graph
+      • un composant Dash    → le garde tel quel
+    Puis l’enveloppe dans un pane ‘glass’.
+    """
+    if isinstance(obj, (go.Figure, dict)):
+        inner = dcc.Graph(figure=obj, style={"height": "400px"})
+    else:
+        inner = obj                     # déjà une Card ou un Graph prêt
+    return html.Div(inner, className=GRAPH_CARD_CSS)
+
+
 
 TABLE_COL_NAMES = [
     {"name": "Window Start", "id": COL_NAME_WINDOW_TIME},
@@ -189,7 +210,19 @@ def calculate_graph_info_with_period(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
     return joined_df
-
+# utils.py (ou en haut de ton fichier)
+GLASS_STYLE = {
+    "background": "rgba(255,255,255,0.15)",     # voile translucide
+    "backdropFilter": "blur(12px)",             # flou derrière
+    "WebkitBackdropFilter": "blur(12px)",       # Safari
+    "border": "1px solid rgba(255,255,255,0.40)",
+    "borderRadius": "12px",
+    "boxShadow": "0 6px 24px rgba(0,0,0,0.12)",
+    "overflowX": "auto",                        # ce que tu avais déjà
+    "marginTop": "10px",
+    "marginBottom": "40px",
+}
+style_table=GLASS_STYLE,
 
 def calculate_result() -> Optional[pl.DataFrame]:
     df = get_df()
@@ -247,7 +280,12 @@ layout = dbc.Container(
             ],
             className="g-4 justify-content-center",
         ),
-        dbc.Button("Export Excel", id="export-pre-metrics-btn", className="mt-2"),
+        dbc.Button(
+                            [html.I(className="bi bi-download me-2"), "Exporter Excel"],
+                            id="result-export-btn",
+                            className="btn-export mt-2",
+                            n_clicks=0,
+                        ),
         dbc.Row(
             id=ID_TABLE_CONTAINER,
         ),
@@ -341,6 +379,11 @@ def create_layout(
     )
 
     table = []
+        # ---- wrap graphs -------------------------------------------------
+    # builds
+    fig1_div = wrap_graph(fig1)
+    fig2_div = wrap_graph(fig2)
+    fig3_div = wrap_graph(fig3)
 
     if result.height != 0:
         table = dash_table.DataTable(
@@ -349,11 +392,7 @@ def create_layout(
             id=ID_TABLE,
             page_size=10,
             sort_action="native",
-            style_table={
-                "overflowX": "auto",
-                "marginTop": "10px",
-                "marginBottom": "40px",
-            },
+            style_table=GLASS_STYLE,
             style_cell={"textAlign": "left"},
             sort_by=[{"column_id": COL_NAME_WINDOW_TIME, "direction": "desc"}],
             style_data_conditional=[
@@ -368,4 +407,4 @@ def create_layout(
             ],
         )
 
-    return card1, card2, card3, fig1, fig2, fig3, table
+    return card1, card2, card3, fig1_div, fig2_div, fig3_div, table

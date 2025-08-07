@@ -5,22 +5,25 @@ app = None
 server = None
 
 
+
+from dash import Dash                  # ⬅️ import the class
+import dash_bootstrap_components as dbc
+
+
 def init_server():
     global app, server
-    app = dash.Dash(
-        __name__,
-        use_pages=False,  # ← Disable automatic page discovery
-        suppress_callback_exceptions=True,  # still needed for legacy callbacks
-        assets_folder="assets",
+    app = Dash(                        # ✅ class constructor
+         __name__,
+         use_pages=False,
+         suppress_callback_exceptions=True,
+         assets_folder="assets",
         external_stylesheets=[
-            dbc.themes.BOOTSTRAP,
-            dbc.icons.BOOTSTRAP,
+            dbc.themes.LUX,
+            # (optional) Bootstrap-Icons CDN for the user icon
+            "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css","/assets/ram.css",
         ],
-    )
-    app.title = "Dashboard Pro"
-    server = app.server
-    return app, server
-
+     )
+    return app, app.server
 
 def get_app() -> dash.Dash:
     global app, server

@@ -1,0 +1,374 @@
+/* ============ Royal Air Maroc palette ============ */
+:root {
+  /* couleur d’accent principale */
+  --bs-primary: #C40434;        /* rouge RAM */
+  --bs-danger:  #C40434;        /* mêmes tons pour alerts */
+  
+  /* lien + survol */
+  --bs-link-color:        #C40434;
+  --bs-link-hover-color:  #9a0225;
+
+  /* optionnel : petite touche or pour les badges… */
+  --bs-warning: #C9A438;
+}
+
+/* Navbar RAM */
+.navbar-brand {
+  font-weight: 600;
+  letter-spacing: .5px;
+}
+/* -------- NAVBAR / ONGLET ACTIF -------- */
+
+/* Si tu utilises .nav-tabs ---------------------------------- */
+.navbar .nav-tabs .nav-link.active {
+  background-color: var(--bs-primary);   /* rouge RAM  */
+  color: #fff;                           /* texte blanc */
+  border: none;                          /* enlève le cadre gris */
+}
+
+/* Si tu utilises .nav-pills (pills=True) ------------------- */
+.navbar .nav-pills .nav-link.active {
+  background-color: var(--bs-primary);
+  color: #ffffff;
+}
+
+
+/* (option) adoucir le survol pour tous les liens */
+/* =============== Liquid / Glassmorphism =============== */
+.glass {
+  background: rgba(255, 255, 255, 0.15);      /* translucide */
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(12px);                /* flou derrière l’élément */
+  -webkit-backdrop-filter: blur(12px);        /* Safari */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.glass-dark {
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+/* ────────────────────────────────────────────────
+   GLASS FILTER CARD
+   ──────────────────────────────────────────────── */
+
+/* FILTER CARD ── beige glass with true 16 px rounded corners */
+#filter-container{
+  /* -------------- visual style -------------- */
+  background:rgba(235,225,215,.65);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+
+  /* ⚠️ OVERWRITE bootstrap defaults */
+  border:none !important;                /* no grey outline  */
+  border-radius:16px !important;         /* keep this radius */
+  overflow:hidden;                       /* clip inner glow  */
+
+  /* soft “Apple” bevel */
+  box-shadow:
+      inset 0 0 0 1px  rgba(255,255,255,.35),
+      inset 0 0 15px   rgba(255,255,255,.07),
+      0 8px 28px       rgba(0,0,0,.25);
+
+  /* spacing / position unchanged */
+  padding:2rem 2.5rem;
+  position:relative;
+  transform:translateY(32px);
+  transition:transform .3s ease-out;
+}
+
+/* vignette must respect the same curve */
+#filter-container::before{
+  content:"";
+  position:absolute; inset:0;
+  border-radius:inherit;                 /* ← uses 16 px too */
+  background:radial-gradient(circle at 50% 0%,
+              rgba(255,255,255,.10) 0%,
+              rgba(0,0,0,.12) 85%);
+  z-index:-1; pointer-events:none;
+}
+
+/* vertical rhythm below card */
+#filter-container ~ *{ margin-top:5rem !important; }
+
+/* text colours for pale card */
+#filter-container h4   { color:#212529; }
+#filter-container label{ color:#343a40; }
+
+/* ────────────────────────────────────────────────
+   GLASS ALERTS
+   ──────────────────────────────────────────────── */
+
+
+
+/* petite alerte translucide verte */
+.glass-success {
+  background: rgba(40, 167, 69, 0.25);  /* vert Bootstrap + transparence */
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(40, 167, 69, 0.45);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
+  color: #155724 !important;            /* texte vert foncé */
+  font-weight: 500;
+}
+
+/* ===== Bouton Export – Glossy Black Rect ===== */
+.btn-export {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;                          /* espace icône / texte */
+
+  padding: .65rem 1.8rem;
+  border-radius: 10px;                  /* RECTANGULAIRE, coins 10 px */
+  border: 1px solid rgba(255,255,255,.35);
+
+  /* dégradé glossy noir permanent */
+  background: linear-gradient(145deg,#1a1a1a 0%,#000000 50%,#1a1a1a 100%);
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: .03em;
+
+  /* relief initial */
+  box-shadow:
+      inset 0 1px 1px rgba(255,255,255,.25),   /* liseré interne clair */
+      0 4px 12px rgba(0,0,0,.25);              /* ombre externe douce */
+
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.btn-export i { font-size: 1.1rem; }   /* taille de l’icône */
+
+/* Hover : même couleur, uniquement lift + halo */
+.btn-export:hover {
+  transform: scale(1.06) translateY(-2px);
+  box-shadow:
+      inset 0 1px 1px rgba(255,255,255,.25),
+      0 10px 28px rgba(0,0,0,.45);      /* ombre plus profonde */
+}
+
+
+/* === Glass frame for the Analyser button === */
+.btn-glass-frame {
+  /* keep the existing background colour set by `btn-primary` */
+  
+  /* rounded shape like the export button */
+  border-radius: 10px;
+
+  /* glass / frosted-glass effect */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  /* subtle relief */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  
+  /* optional thin inner border; comment out if you don’t want it */
+  border: 1px solid rgba(255,255,255,0.35);
+}
+
+/* no hover rule → the colour and size stay exactly the same */
+
+
+/* ────────────────────────────────────────────────
+   GRAPH PANE  ➜  “Apple-glass” look (neutral smoke)
+   affects ONLY the wrappers you already call  graph-glass
+   ──────────────────────────────────────────────── */
+.graph-glass{
+    /* translucent smoke-grey – lets Plotly colours pop through   */
+    background: rgba(140,140,140,.55);            /* ≈ #8c8c8c 55 % */
+    backdrop-filter: blur(14px) saturate(120%);
+    -webkit-backdrop-filter: blur(14px) saturate(120%);
+
+    /* nice rounded corners + bevel */
+    border:none !important;                       /* kill grey line   */
+    border-radius:18px;                           /* slightly softer  */
+    overflow:hidden;                              /* clip inner glow  */
+    box-shadow:
+        inset 0 0 0 1px  rgba(255,255,255,.30),   /* subtle inner rim */
+        inset 0 0 22px   rgba(255,255,255,.08),   /* inner shimmer    */
+        0 8px 26px       rgba(0,0,0,.25);         /* outer drop       */
+
+    /* breathing room around the figure */
+    padding:1rem 1.5rem;
+}
+
+/* very soft vignette so the pane isn’t flat */
+.graph-glass::before{
+    content:"";
+    position:absolute; inset:0;
+    border-radius:inherit;                        /* follow 18 px     */
+    background:radial-gradient(circle at 50% 0%,
+                rgba(255,255,255,.10) 0%,
+                rgba(0,0,0,.16) 90%);
+    pointer-events:none; z-index:-1;
+}
+
+/* keep inner Plotly tool-bar & any bootstrap cards transparent */
+.graph-glass .card,
+.graph-glass .card-body{
+    background:transparent !important;
+    border:none !important;
+    box-shadow:none !important;
+}
+/* consistent vertical rhythm */
+.section-gap { margin-top: 2.5rem; }
+
+/* ice-blue alert */
+.alert-success.glass {
+  background: rgba(0,173,181,0.25);
+  border: 1px solid rgba(0,173,181,0.45);
+  backdrop-filter: blur(10px);
+  color:#0c4e51;
+}
+
+/* wrap each DataTable like charts */
+.table-glass {
+  background: rgba(0,0,0,0.30);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 14px;
+  padding: .5rem 1rem;
+}
+
+
+
+/* Toute carte placée dans .graph-glass devient transparente */
+.graph-glass .card,
+.graph-glass .card-body {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* ----------  Buttons : glossy-black (same as Export)  ------------ */
+.btn-glossy {
+  display:inline-flex; align-items:center; gap:.4rem;
+  padding:.55rem 1.6rem; border-radius:10px;
+
+  /* permanent black glass */
+  background:linear-gradient(145deg,#1a1a1a 0%,#000 50%,#1a1a1a 100%);
+  color:#fff; font-weight:600; letter-spacing:.02em;
+  border:1px solid rgba(255,255,255,.35);
+
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.25),
+             0 4px 12px rgba(0,0,0,.25);
+  transition:transform .18s ease, box-shadow .18s ease;
+}
+
+.btn-glossy:hover{
+  transform:scale(1.06) translateY(-2px);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.25),
+             0 10px 28px rgba(0,0,0,.45);
+}
+
+/* ----------  Glass for the single Excel-File card  --------------- */
+.excel-card-glass {
+  background:rgba(0,0,0,.30);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.25);
+  border-radius:14px;
+  box-shadow:0 6px 24px rgba(0,0,0,.22);
+}
+.excel-card-glass .card-header{            /* keep header readable */
+  background:transparent; font-weight:600; color:#f8f9fa;
+}
+.excel-card-glass .card-body{color:#f8f9fa;}
+
+/* ────────────────────────────────────────────────
+   NAVBAR  ➜  glossy-black glass, fixed, no overlap
+   ──────────────────────────────────────────────── */
+
+/* 1 ▸ make the bar glossy black glass */
+.navbar.navbar-dark{
+  /* translucent black gradient (same family as your buttons) */
+  background: linear-gradient(145deg,#1a1a1a 0%,#000 50%,#1a1a1a 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,255,255,.25);   /* subtle separator */
+
+  box-shadow: 0 6px 18px rgba(0,0,0,.35);
+}
+
+/* 2 ▸ fix it to the top */
+.navbar{
+  position: fixed;          /* stays at the top during scroll            */
+  top: 0; left: 0; right: 0;
+  z-index: 1030;            /* higher than cards + pop-ups                */
+}
+
+/* 3 ▸ give the body the same height as the bar so content starts below */
+body{
+  /* run-time calc: gets the true navbar height even if it grows on mobile */
+  padding-top: var(--navbar-offset, 70px);   /* fallback = 70 px */
+}
+
+/* 4 ▸ JS-free technique: update the custom property once on load */
+@media (min-width:0px){
+  :root{
+    /* ‘env’ pulls the live height of .navbar when position:fixed */
+    --navbar-offset:  calc(
+          var(--bs-navbar-padding-y, .5rem)*2     /* padding top+bot */
+        + var(--bs-navbar-brand-height, 48px)     /* brand / logo    */
+    );
+  }
+}
+
+/* 5 ▸ keep your active-tab highlight */
+.navbar .nav-tabs .nav-link.active,
+.navbar .nav-pills .nav-link.active{
+  background: var(--bs-primary);
+  color:#fff;
+  border:none;
+}
+
+/* ────────────────────────────────────────────────
+   NAVBAR HEIGHT  ➜  push page content below it
+   ──────────────────────────────────────────────── */
+
+:root{
+  /* keep only ONE place to edit the bar height */
+  --ram-navbar-height: 60px;          /* ← set to your bar’s real height */
+}
+
+/* 1 ▸ fix the bar height explicitly (helps on mobile too) */
+.navbar{ height: var(--ram-navbar-height); }
+
+/* 2 ▸ push the document down by the same amount  */
+body{ padding-top: var(--ram-navbar-height); }
+
+/* 3 ▸ if you need a taller bar on small screens, tweak here */
+@media (max-width: 3000px){          /* typical Bootstrap “md” break */
+  :root{ --ram-navbar-height: 92px; }  /* example mobile height        */
+}
+
+/*  ▲ place in assets/ram.css  ───────────────────────────── */
+
+/* ─── NAV-BAR base height ─────────────────────────── */
+.navbar.glass-dark{                       /* class you already use   */
+  min-height: 56px;                       /* bar stays slim           */
+  padding-top: .25rem; padding-bottom:.25rem;
+  overflow: visible;                      /* allow logo to overflow   */
+}
+
+/* ─── Bigger logo only ───────────────────────────── */
+#ram-logo{
+  height: 90px;                           /* grow ONLY the picture    */
+  margin-top: -18px;                      /* let it “spill” upward    */
+  margin-bottom: -18px;                   /* … and downward           */
+  /* optional little shadow so it pops out */
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.35));
+}
+
+/* everything else (links, user-icon) keeps the bar height */
+/* neat white title, vertically centred with the logo */
+.navbar-title{
+  font-size: 1.75rem;       /* ≈ 20 px */
+  font-weight: 500;
+  color: #ffffff;
+  margin-left: 1rem;      /* small gap after the logo */
+  letter-spacing: .1em;
+  white-space: nowrap;      /* never wraps */
+}
+

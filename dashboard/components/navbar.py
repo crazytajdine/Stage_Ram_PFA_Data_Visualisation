@@ -1,4 +1,4 @@
-from dash import Input, Output, dcc
+from dash import Input, Output, dcc, html
 from configurations.nav_config import build_nav_items_meta
 from components.title import ID_MAIN_TITLE
 from excel_manager import ID_PATH_STORE, add_watcher_for_data_status, path_exists
@@ -7,9 +7,9 @@ from server_instance import get_app
 from components.filter import ID_FILTER_CONTAINER
 
 import dash_bootstrap_components as dbc
-from dash import html
 import logging
 
+from dash import html
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -18,17 +18,53 @@ logging.basicConfig(
 )
 
 app = get_app()
+   # ← re-use the single app created earlier
 
-layout = html.Div(
-    [
-        dbc.Nav(
-            className="justify-content-center nav-tabs",
-            id="navbar",
-        ),
-        dcc.Location(id="url"),
-    ]
+navbar = dbc.Navbar(
+    dbc.Container(
+        [
+            html.Img(src=app.get_asset_url("logo_ram-2.png"),
+                     id="ram-logo"),
+            html.Span("Delay Dashboard",
+                      className="navbar-title"),
+
+            dbc.Nav(
+                id="navbar",
+                className="flex-grow-1 justify-content-center nav-tabs",
+            ),
+
+            # Icône utilisateur (on ajoute un menu au clic juste après)
+            dbc.DropdownMenu(
+                children=[
+                    dbc.DropdownMenuItem("Profil", href="#"),
+                    dbc.DropdownMenuItem("Déconnexion", href="#"),
+                ],
+                nav=True,
+                in_navbar=True,
+                label=html.I(className="bi bi-person-circle fs-3", id="user-icon"),
+                toggle_style={"background": "transparent", "border": "none"},
+                align_end=True, 
+            ),
+        ],
+        fluid=True,
+        className="align-items-center"
+    ),
+    color=None,              # enlève le fond noir opaque
+    dark=True,
+    fixed="top",
+    className="shadow-sm glass-dark",   # <-- effet glass ici
 )
 
+
+
+# ---------- ROOT LAYOUT ----------
+layout = html.Div(
+    [
+        navbar,
+        dcc.Location(id="url"),      # keeps multipage routing
+        html.Div(id="page-content"), # where page callbacks inject content
+    ]
+)
 
 def add_callback():
 
