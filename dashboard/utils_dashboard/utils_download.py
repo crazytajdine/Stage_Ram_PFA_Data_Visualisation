@@ -55,7 +55,11 @@ def export_excel(
 def add_export_callbacks(
     id_table: str, id_button: str, name: str, with_filter: bool = True
 ):
-    logging.debug("Adding Excel export callback for button '%s' and table '%s'.", id_button, id_table)
+    logging.debug(
+        "Adding Excel export callback for button '%s' and table '%s'.",
+        id_button,
+        id_table,
+    )
 
     @app.callback(
         get_download_trigger(),
@@ -66,12 +70,12 @@ def add_export_callbacks(
         allow_duplicate=True,
     )
     def export_to_excel(n_clicks, table_data, table_columns):
-        if not n_clicks or not table_data or not table_columns:
+        print(table_columns)
+        print(bool(table_data))
+        print(n_clicks)
+        if (not n_clicks) or (not table_data) or (not table_columns):
             raise dash.exceptions.PreventUpdate
-
-        # Extract column names
-
-        # Create Polars DataFrame with correct columns
+        print("ff")
         rename_map = {col["id"]: col["name"] for col in table_columns}
 
         df = pl.DataFrame(table_data).rename(rename_map)

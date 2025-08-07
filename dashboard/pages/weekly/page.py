@@ -21,19 +21,20 @@ from excel_manager import (
     add_watcher_for_data,
     # COL_NAME_TOTAL_COUNT  # only needed if you reuse it here
 )
+
 # utils.py (ou en haut de ton fichier)
 GLASS_STYLE = {
-    "background": "rgba(255,255,255,0.15)",     # voile translucide
-    "backdropFilter": "blur(12px)",             # flou derrière
-    "WebkitBackdropFilter": "blur(12px)",       # Safari
+    "background": "rgba(255,255,255,0.15)",  # voile translucide
+    "backdropFilter": "blur(12px)",  # flou derrière
+    "WebkitBackdropFilter": "blur(12px)",  # Safari
     "border": "1px solid rgba(255,255,255,0.40)",
     "borderRadius": "12px",
     "boxShadow": "0 6px 24px rgba(0,0,0,0.12)",
-    "overflowX": "auto",                        # ce que tu avais déjà
+    "overflowX": "auto",  # ce que tu avais déjà
     "marginTop": "10px",
     "marginBottom": "40px",
 }
-style_table=GLASS_STYLE,
+style_table = (GLASS_STYLE,)
 
 
 DAYS_EN = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
