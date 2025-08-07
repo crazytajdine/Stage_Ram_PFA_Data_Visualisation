@@ -10,6 +10,7 @@ from components.filter import ID_FILTER_CONTAINER
 import dash_bootstrap_components as dbc
 import logging
 
+from dash import html
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
