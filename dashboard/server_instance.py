@@ -13,8 +13,9 @@ def init_server():
     global app, server
     app = Dash(
         __name__,
+        suppress_callback_exceptions=True,
         external_stylesheets=[
-            dbc.themes.CYBORG,
+            dbc.themes.LUX,
             "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css",
         ],
     )
