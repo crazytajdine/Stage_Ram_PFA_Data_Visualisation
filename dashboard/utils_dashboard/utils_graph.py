@@ -192,6 +192,7 @@ def create_graph_bar_horizontal_card(
         className="mb-4",
     )
 
+
 def generate_card_info_change(
     df: pl.DataFrame,
     col_name: str,
@@ -200,7 +201,9 @@ def generate_card_info_change(
     extra_class="",
 ) -> dbc.Card:
 
-    logging.info("Generating info card for column '%s' with title '%s'", col_name, title)
+    logging.info(
+        "Generating info card for column '%s' with title '%s'", col_name, title
+    )
 
     assert df is not None and col_name is not None
 
@@ -225,7 +228,9 @@ def generate_card_info_change(
     else:
         this_year = None
         change = None
-        logging.warning("Not enough data to calculate change. Latest values: %s", latest_values)
+        logging.warning(
+            "Not enough data to calculate change. Latest values: %s", latest_values
+        )
 
     if change is None:
         change_div = html.Span("N/A", className="text-secondary")

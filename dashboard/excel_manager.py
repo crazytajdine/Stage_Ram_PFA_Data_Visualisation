@@ -46,6 +46,30 @@ path_to_excel_cashed = config.get("path_to_excel", "")
 # func
 
 
+def get_path_to_excel():
+    return path_to_excel
+
+
+def path_exits():
+    if not path_to_excel:
+        logging.debug("No path to Excel file configured.")
+        return False
+
+    is_exist = os.path.exists(path_to_excel)
+    logging.debug(f"Path exists check: {is_exist} for path: {path_to_excel}")
+
+    if not is_exist:
+        return False
+
+    is_file = os.path.isfile(path_to_excel)
+    logging.debug(f"Is file check: {is_file} for path: {path_to_excel}")
+
+    if not is_file:
+        return False
+
+    return True
+
+
 def get_path_to_excel() -> str:
     global dir_path, path_to_excel_cashed, config
 
