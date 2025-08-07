@@ -372,3 +372,42 @@ body{ padding-top: var(--ram-navbar-height); }
   white-space: nowrap;      /* never wraps */
 }
 
+
+/* assets/custom.css */
+
+.about-card {
+  background: rgba(255,255,255,0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 0.75rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.about-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 48px rgba(0,0,0,0.08);
+}
+.about-card .card-header {
+  background: rgba(0,0,0,0.8) !important;
+  color: #fff;
+}
+.about-card .card-body {
+  background: rgba(255,255,255,0.5);
+  border-radius: 0 0 0.75rem 0.75rem;
+}
+/* before (no match) */
+.about‐section .badge {
+  background: rgba(255,255,255,0.4);
+  color: #111;
+}
+
+/* after (will match your badges) */
+.about-card .badge {
+  background: rgba(0, 0, 0, 0.7) !important;
+  color: #fff !important;
+  font-size: 0.8rem;
+  min-width: 2rem;
+  text-align: center;
+  display: inline-block;
+}
+

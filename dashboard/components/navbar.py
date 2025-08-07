@@ -53,6 +53,7 @@ navbar = dbc.Navbar(
     color=None,              # enlève le fond noir opaque
     dark=True,
     fixed="top",
+    expand="lg",
     className="shadow-sm glass-dark",   # <-- effet glass ici
 )
 

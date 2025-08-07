@@ -432,41 +432,55 @@ def build_outputs(n_clicks):
         # 57: "FLIGHT PLANS",              # ajoute-le si tu l’utilises
     }
 
-    # 3️⃣  Construction des cartes
+
     family_code_cards = []
     for fam, codes in STATIC_FAM_CODES.items():
-        code_items = [
-            html.Li(f"{code} – {CODE_DESCRIPTIONS.get(code, ' ')}") for code in codes
-        ]
-        code_list = html.Ul(code_items, className="mb-0 ps-3")
+        code_items = []
+        for code in codes:
+            code_items.append(
+                html.Li(
+                    [
+                        # restore the numeric badge
+                        dbc.Badge(
+                            str(code),
+                            className="me-2",
+                            style={
+                                "background": "rgba(0,0,0,0.7)",
+                                "color": "#fff",
+                                "font-size": "0.8rem",
+                                "min-width": "2rem",
+                                "text-align": "center",
+                            }
+                        ),
+                        html.Span(CODE_DESCRIPTIONS[code])
+                    ],
+                    className="d-flex align-items-center mb-2"
+                )
+            )
 
         family_code_cards.append(
             dbc.Card(
                 [
-                    dbc.CardHeader(
-                        f"Family: {fam}", className="bg-secondary text-white"
-                    ),
-                    dbc.CardBody(code_list),
+                    dbc.CardHeader(fam, className="bg-dark text-white"),
+                    dbc.CardBody(html.Ul(code_items, className="ps-3 mb-0")),
                 ],
-                className="mb-3",
+                className="about-card mb-4"
             )
         )
 
-    # 4️⃣  Section « About » inchangée
+
     about_section = html.Div(
-        [
-            html.H3("About", className="h4 mt-4"),
-            html.Div(
-                family_code_cards,
-                style={
-                    "display": "grid",
-                    "gridTemplateColumns": "repeat(auto-fit, minmax(200px, 1fr))",
-                    "gap": "16px",
-                },
-            ),
-        ],
-        style={"gridColumn": "1 / -1"},
-    )
+    [
+        html.H3("About", className="h4 mt-4"),
+        dbc.Row(
+            [dbc.Col(card, width=6, lg=3) for card in family_code_cards],
+            className="g-4",
+        ),
+    ],
+    style={"gridColumn": "1 / -1"},
+)
+
+
 
     # 3️⃣ grand-total per period (all families, all codes)
     period_totals = temporal_all.group_by(time_period).agg(
