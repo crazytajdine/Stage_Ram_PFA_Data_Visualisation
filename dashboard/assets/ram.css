@@ -1,92 +1,876 @@
-/* ============ Royal Air Maroc palette (navbar-related colors) ============ */
+/* ============ Professional Glass Effect Theme - Royal Air Maroc ============ */
+
+/* ============ Professional Color Palette ============ */
 :root {
-  /* accent color for navbar links and active tabs */
+  /* Royal Air Maroc Brand Colors */
+  --ram-red: #C40434;
+  --ram-red-dark: #9a0225;
+  --ram-red-light: #e63946;
+  --ram-gold: #D4AF37;
+  
+  /* Professional Background Colors */
+  --bg-primary: #f8f9fa;
+  --bg-secondary: #ffffff;
+  --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  
+  /* Glass Effect Variables - Subtle & Professional */
+  --glass-white: rgba(255, 255, 255, 0.7);
+  --glass-white-heavy: rgba(255, 255, 255, 0.85);
+  --glass-grey: rgba(248, 249, 250, 0.8);
+  --glass-beige: rgba(245, 237, 220, 0.75);
+  --glass-beige-light: rgba(250, 243, 232, 0.85);
+  --glass-green: rgba(40, 167, 69, 0.08);
+  --glass-green-border: rgba(40, 167, 69, 0.2);
+  
+  /* Professional Shadows */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+  
+  /* Borders */
+  --border-light: rgba(0, 0, 0, 0.06);
+  --border-medium: rgba(0, 0, 0, 0.09);
+  --border-dark: rgba(0, 0, 0, 0.12);
+  
+  /* Text Colors */
+  --text-primary: #2c3e50;
+  --text-secondary: #5a6c7d;
+  --text-muted: #94a3b8;
+  --text-light: #ffffff;
+  
+  /* Blur Effects */
+  --blur-sm: 8px;
+  --blur-md: 12px;
+  --blur-lg: 20px;
+  
+  /* Bootstrap Overrides */
   --bs-primary: #C40434;
-  /* RAM red */
+  --bs-success: #28a745;
+  --bs-warning: #ffc107;
+  --bs-info: #17a2b8;
   --bs-link-color: #C40434;
   --bs-link-hover-color: #9a0225;
+  
+  /* Spacing */
+  --navbar-offset: 72px;
 }
 
-/* RAM logo sizing in navbar */
-#ram-logo {
-  height: 90px;
-  margin-top: -18px;
-  /* let it “spill” upward */
-  margin-bottom: -18px;
-  /* … and downward */
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .35));
-}
-
-/* Navbar brand styling */
-.navbar-brand {
-  font-weight: 600;
-  letter-spacing: .5px;
-}
-
-/* Active tab/pill in navbar */
-.navbar .nav-tabs .nav-link.active,
-.navbar .nav-pills .nav-link.active {
-  background-color: var(--bs-primary);
-  color: #ffffff;
-  border: none;
-}
-
-/* Dark navbar background and bottom border */
-.navbar.navbar-dark {
-  background: linear-gradient(145deg, #1a1a1a 0%, #000000 50%, #1a1a1a 100%);
-  border-bottom: 1px solid rgba(255, 255, 255, .25);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
-}
-
-/* Push page content below fixed navbar */
+/* ============ Global Body - Professional Background ============ */
 body {
-  padding-top: var(--navbar-offset, 70px);
+  background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  padding-top: var(--navbar-offset);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Navbar title styling */
-.navbar-title {
-  font-size: 1.75rem;
-  font-weight: 500;
-  color: #ffffff;
-  margin-left: 1rem;
-  letter-spacing: .1em;
+/* Professional geometric pattern overlay */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 35px,
+      rgba(0, 0, 0, 0.01) 35px,
+      rgba(0, 0, 0, 0.01) 70px
+    );
+  pointer-events: none;
+  z-index: 1;
 }
 
-
-/* ===== Bouton Export – Glossy Black Rect ===== */
-.btn-export {
+/* ============ Container Adjustments ============ */
+.container-fluid {
   position: relative;
+  z-index: 2;
+}
+
+/* ============ Navbar - Premium Glass Effect ============ */
+.navbar {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 250, 0.95) 100%) !important;
+  backdrop-filter: blur(var(--blur-lg));
+  -webkit-backdrop-filter: blur(var(--blur-lg));
+  border-bottom: 1px solid var(--border-light);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+/* RAM Logo - Professional */
+#ram-logo {
+  height: 52px;
+  margin: 0 1rem 0 0;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  transition: transform 0.3s ease;
+}
+
+#ram-logo:hover {
+  transform: scale(1.05);
+}
+
+/* Navbar Title - Elegant */
+.navbar-title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin-left: 0.5rem;
+}
+
+/* Navbar Navigation - Professional Tabs */
+.navbar .nav-link {
+  color: var(--text-secondary) !important;
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 0.65rem 1.25rem !important;
+  margin: 0 0.15rem;
+  border-radius: 8px;
+  transition: all 0.25s ease;
+  position: relative;
+  letter-spacing: 0.01em;
+}
+
+.navbar .nav-link:hover {
+  background: rgba(196, 4, 52, 0.05);
+  color: var(--ram-red) !important;
+  transform: translateY(-1px);
+}
+
+.navbar .nav-link.active {
+  background: linear-gradient(135deg, var(--ram-red), var(--ram-red-dark));
+  color: var(--text-light) !important;
+  box-shadow: 0 4px 12px rgba(196, 4, 52, 0.25);
+  font-weight: 600;
+}
+
+/* User Icon - Professional */
+#user-icon {
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+  font-size: 1.5rem !important;
+}
+
+#user-icon:hover {
+  color: var(--ram-red);
+  transform: scale(1.1);
+}
+
+/* ============ Main Title - Professional Typography ============ */
+#main_title {
+  color: var(--text-primary);
+  font-weight: 700 !important;
+  font-size: 1.75rem !important;
+  letter-spacing: -0.03em;
+  margin-bottom: 1.5rem !important;
+  position: relative;
+  padding-bottom: 0.75rem;
+}
+
+#main_title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 1.5rem;
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--ram-red), transparent);
+  border-radius: 2px;
+}
+
+/* ============ Filter Card - Beige Fumed Glass ============ */
+#filter-container .card {
+  background: linear-gradient(135deg, 
+    rgba(245, 237, 220, 0.85) 0%, 
+    rgba(250, 243, 232, 0.75) 50%,
+    rgba(245, 237, 220, 0.85) 100%
+  ) !important;
+  backdrop-filter: blur(var(--blur-md));
+  -webkit-backdrop-filter: blur(var(--blur-md));
+  border: 1px solid rgba(212, 175, 55, 0.15) !important;
+  box-shadow: 
+    0 8px 32px rgba(212, 175, 55, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+  transition: all 0.3s ease;
+}
+
+#filter-container .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 40px rgba(212, 175, 55, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+}
+
+#filter-container h4 {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 1.25rem !important;
+}
+
+#filter-container label {
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.5rem;
+}
+
+/* ============ Cards - Professional White Glass ============ */
+.card {
+  background: var(--glass-white-heavy) !important;
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  border: 1px solid var(--border-light) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--shadow-md) !important;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg) !important;
+  border-color: var(--border-medium) !important;
+}
+
+.card-header {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.95), 
+    rgba(248, 249, 250, 0.95)
+  ) !important;
+  border-bottom: 1px solid var(--border-light) !important;
+  padding: 1rem 1.25rem !important;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.card-body {
+  padding: 1.25rem !important;
+  background: transparent !important;
+}
+
+/* ============ Result Messages - Green Glass ============ */
+.alert-success, #result-message.alert-success {
+  background: linear-gradient(135deg, 
+    rgba(40, 167, 69, 0.08) 0%, 
+    rgba(40, 167, 69, 0.05) 100%
+  ) !important;
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  border: 1px solid rgba(40, 167, 69, 0.25) !important;
+  border-left: 4px solid #28a745 !important;
+  color: #155724 !important;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.1) !important;
+}
+
+.alert-warning {
+  background: linear-gradient(135deg, 
+    rgba(255, 193, 7, 0.08) 0%, 
+    rgba(255, 193, 7, 0.05) 100%
+  ) !important;
+  border: 1px solid rgba(255, 193, 7, 0.25) !important;
+  border-left: 4px solid #ffc107 !important;
+  color: #856404 !important;
+}
+
+.alert-danger {
+  background: linear-gradient(135deg, 
+    rgba(220, 53, 69, 0.08) 0%, 
+    rgba(220, 53, 69, 0.05) 100%
+  ) !important;
+  border: 1px solid rgba(220, 53, 69, 0.25) !important;
+  border-left: 4px solid #dc3545 !important;
+  color: #721c24 !important;
+}
+
+/* ============ Tables - Professional Grey Glass ============ */
+.dash-table-container {
+  background: linear-gradient(135deg, 
+    rgba(248, 249, 250, 0.95) 0%, 
+    rgba(255, 255, 255, 0.9) 100%
+  ) !important;
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  border: 1px solid var(--border-light) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--shadow-md) !important;
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.dash-table-container table {
+  background: transparent !important;
+}
+
+/* Table Headers - Premium Style */
+.dash-table-container th {
+  background: linear-gradient(135deg, 
+    rgba(233, 236, 239, 0.95) 0%, 
+    rgba(241, 243, 245, 0.95) 100%
+  ) !important;
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+  font-size: 0.8rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  border-bottom: 2px solid var(--border-medium) !important;
+  padding: 0.875rem !important;
+  white-space: nowrap;
+}
+
+/* Table Cells */
+.dash-table-container td {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
+  padding: 0.75rem !important;
+  font-size: 0.9rem;
+}
+
+/* Alternating Rows - Subtle */
+.dash-table-container tbody tr:nth-child(odd) td {
+  background: rgba(248, 249, 250, 0.3) !important;
+}
+
+.dash-table-container tbody tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.5) !important;
+}
+
+.dash-table-container tbody tr:hover td {
+  background: rgba(196, 4, 52, 0.02) !important;
+  transition: background 0.2s ease;
+}
+
+/* ============ Graphs - Professional Glass Containers ============ */
+.graph {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.9) 0%, 
+    rgba(248, 249, 250, 0.85) 100%
+  );
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s ease;
+  margin-bottom: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.graph::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    var(--ram-red) 0%, 
+    var(--ram-gold) 50%, 
+    var(--ram-red) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.graph:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-medium);
+}
+
+/* Graph SVG Styling */
+.graph .main-svg {
+  background: transparent !important;
+}
+
+.graph .bg {
+  fill: transparent !important;
+}
+
+/* ============ Buttons - Professional Styles ============ */
+
+/* Base Button Style */
+.btn, button {
+  border-radius: 8px;
+  padding: 0.625rem 1.25rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
+  transition: all 0.25s ease;
+  border: 1px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Primary Button - Analyser */
+.btn-primary, .btn-glass-frame {
+  background: linear-gradient(135deg, var(--ram-red) 0%, var(--ram-red-dark) 100%) !important;
+  color: var(--text-light) !important;
+  border: 1px solid var(--ram-red-dark) !important;
+  box-shadow: 0 4px 14px rgba(196, 4, 52, 0.25) !important;
+}
+
+.btn-primary:hover, .btn-glass-frame:hover {
+  background: linear-gradient(135deg, var(--ram-red-light) 0%, var(--ram-red) 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(196, 4, 52, 0.35) !important;
+}
+
+.btn-primary:active, .btn-glass-frame:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(196, 4, 52, 0.25) !important;
+}
+
+/* Warning Button - Modified State */
+.btn-warning {
+  background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important;
+  color: var(--text-light) !important;
+  border: 1px solid #ff9800 !important;
+  box-shadow: 0 4px 14px rgba(255, 152, 0, 0.25) !important;
+}
+
+.btn-warning:hover {
+  background: linear-gradient(135deg, #ffca28 0%, #ffa726 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.35) !important;
+}
+
+/* Export Button - Professional Dark */
+.btn-export {
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%) !important;
+  color: var(--text-light) !important;
+  border: 1px solid #2c3e50 !important;
+  box-shadow: 0 4px 14px rgba(44, 62, 80, 0.25) !important;
   display: inline-flex;
   align-items: center;
-  gap: .45rem;
-  /* espace icône / texte */
+  gap: 0.5rem;
   margin-bottom: 1rem;
-  padding: .65rem 1.8rem;
-  border-radius: 10px;
-  /* RECTANGULAIRE, coins 10 px */
-  border: 1px solid rgba(255, 255, 255, .35);
-
-  /* dégradé glossy noir permanent */
-  background: linear-gradient(145deg, #1a1a1a 0%, #000000 50%, #1a1a1a 100%);
-  color: #ffffff;
-  font-weight: 700;
-  letter-spacing: .03em;
-
-  /* relief initial */
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, .25),
-    0 4px 12px rgba(0, 0, 0, .25);
-
-  transition: transform .18s ease, box-shadow .18s ease;
-}
-
-.btn-export i {
-  font-size: 1.1rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .btn-export:hover {
-  transform: scale(1.06);
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, .25),
-    0 10px 28px rgba(0, 0, 0, .45);
+  background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(44, 62, 80, 0.35) !important;
+}
+
+.btn-export i {
+  font-size: 1rem;
+}
+
+/* Glossy Button - Settings */
+.btn-glossy {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.9) 0%, 
+    rgba(248, 249, 250, 0.85) 100%
+  ) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-medium) !important;
+  box-shadow: 
+    0 4px 14px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+}
+
+.btn-glossy:hover {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 1) 0%, 
+    rgba(248, 249, 250, 0.95) 100%
+  ) !important;
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 20px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+}
+
+/* ============ Form Controls - Professional Glass ============ */
+
+/* Dropdowns & Inputs */
+.Select-control, .dash-dropdown, 
+.form-control, .form-select, 
+input[type="text"], input[type="number"], 
+select {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  border: 1px solid var(--border-light) !important;
+  border-radius: 8px !important;
+  color: var(--text-primary) !important;
+  font-size: 0.9rem !important;
+  padding: 0.625rem 0.875rem !important;
+  transition: all 0.25s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.Select-control:hover, .dash-dropdown:hover,
+.form-control:hover, .form-select:hover,
+input:hover, select:hover {
+  border-color: var(--border-medium) !important;
+  box-shadow: var(--shadow-md);
+}
+
+.Select-control:focus, .dash-dropdown:focus,
+.form-control:focus, .form-select:focus,
+input:focus, select:focus {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: var(--ram-red) !important;
+  box-shadow: 0 0 0 3px rgba(196, 4, 52, 0.1) !important;
+  outline: none !important;
+}
+
+/* Dropdown Menu */
+.Select-menu-outer, .dash-dropdown .Select-menu-outer {
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(var(--blur-lg));
+  -webkit-backdrop-filter: blur(var(--blur-lg));
+  border: 1px solid var(--border-light) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--shadow-xl) !important;
+  margin-top: 4px;
+}
+
+.Select-option {
+  padding: 0.5rem 0.875rem !important;
+  font-size: 0.9rem !important;
+  transition: all 0.15s ease;
+}
+
+.Select-option:hover {
+  background: rgba(196, 4, 52, 0.08) !important;
+}
+
+.Select-option.is-selected {
+  background: rgba(196, 4, 52, 0.12) !important;
+  color: var(--ram-red-dark) !important;
+  font-weight: 600;
+}
+
+/* Multi-select Tags */
+.Select--multi .Select-value {
+  background: linear-gradient(135deg, 
+    rgba(196, 4, 52, 0.1) 0%, 
+    rgba(196, 4, 52, 0.08) 100%
+  ) !important;
+  border: 1px solid rgba(196, 4, 52, 0.2) !important;
+  border-radius: 6px !important;
+  color: var(--ram-red-dark) !important;
+  font-weight: 500;
+  font-size: 0.85rem !important;
+}
+
+/* ============ Date Picker - Professional Style ============ */
+.DateRangePickerInput, .DateInput {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  border: 1px solid var(--border-light) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+}
+
+.DateInput_input {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  font-weight: 500;
+  font-size: 0.9rem !important;
+  padding: 0.625rem 0.875rem !important;
+}
+
+.DateRangePicker_picker {
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(var(--blur-lg));
+  -webkit-backdrop-filter: blur(var(--blur-lg));
+  border: 1px solid var(--border-light) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--shadow-xl) !important;
+}
+
+/* ============ Tabs - Professional Design ============ */
+.nav-tabs {
+  border-bottom: 2px solid var(--border-light) !important;
+  margin-bottom: 1.5rem;
+}
+
+.nav-tabs .nav-link {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 3px solid transparent !important;
+  border-radius: 0 !important;
+  color: var(--text-secondary) !important;
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 0.75rem 1.25rem !important;
+  margin-right: 0.5rem;
+  transition: all 0.25s ease;
+}
+
+.nav-tabs .nav-link:hover {
+  color: var(--ram-red) !important;
+  border-bottom-color: rgba(196, 4, 52, 0.3) !important;
+  background: rgba(196, 4, 52, 0.02) !important;
+}
+
+.nav-tabs .nav-link.active {
+  color: var(--ram-red) !important;
+  border-bottom-color: var(--ram-red) !important;
+  background: rgba(196, 4, 52, 0.04) !important;
+  font-weight: 600;
+}
+
+/* Tab Content */
+.tab-content {
+  background: transparent;
+  padding-top: 1rem;
+}
+
+/* ============ Statistics Cards - Premium Style ============ */
+.stats-card {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.95) 0%, 
+    rgba(248, 249, 250, 0.9) 100%
+  ) !important;
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  border: 1px solid var(--border-light) !important;
+  border-radius: 12px !important;
+  padding: 1.5rem !important;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.stats-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--ram-red) 0%, var(--ram-gold) 100%);
+}
+
+.stats-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg) !important;
+}
+
+/* ============ Scrollbar - Professional Style ============ */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+  background-clip: padding-box;
+}
+
+/* ============ About Cards - Professional ============ */
+.about-card {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.9) 0%, 
+    rgba(248, 249, 250, 0.85) 100%
+  ) !important;
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  border: 1px solid var(--border-light) !important;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.about-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    circle,
+    rgba(196, 4, 52, 0.05) 0%,
+    transparent 70%
+  );
+  transition: all 0.5s ease;
+}
+
+.about-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.about-card:hover::after {
+  top: -25%;
+  right: -25%;
+}
+
+.about-card .card-header {
+  background: var(--text-primary) !important;
+  color: var(--text-light) !important;
+  font-size: 0.9rem !important;
+  padding: 0.75rem 1rem !important;
+}
+
+/* ============ Loading Spinner - Professional ============ */
+.dash-spinner {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(var(--blur-lg));
+  -webkit-backdrop-filter: blur(var(--blur-lg));
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: var(--shadow-lg);
+}
+
+/* ============ Responsive Design ============ */
+@media (max-width: 992px) {
+  :root {
+    --navbar-offset: 65px;
+  }
+  
+  .navbar-title {
+    font-size: 1.15rem;
+  }
+  
+  #ram-logo {
+    height: 45px;
+  }
+}
+
+@media (max-width: 768px) {
+  .card, .graph {
+    border-radius: 8px !important;
+    margin-bottom: 1rem;
+  }
+  
+  .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
+  
+  #main_title {
+    font-size: 1.5rem !important;
+  }
+}
+
+/* ============ Print Styles ============ */
+@media print {
+  body {
+    background: white !important;
+  }
+  
+  .navbar {
+    display: none !important;
+  }
+  
+  .card, .graph, .dash-table-container {
+    background: white !important;
+    border: 1px solid #dee2e6 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    page-break-inside: avoid;
+  }
+  
+  .btn {
+    display: none !important;
+  }
+}
+
+/* ============ Animations ============ */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card, .graph, .dash-table-container, .alert {
+  animation: fadeInUp 0.5s ease-out;
+  animation-fill-mode: both;
+}
+
+/* Stagger animation for multiple elements */
+.card:nth-child(1), .graph:nth-child(1) { animation-delay: 0.05s; }
+.card:nth-child(2), .graph:nth-child(2) { animation-delay: 0.1s; }
+.card:nth-child(3), .graph:nth-child(3) { animation-delay: 0.15s; }
+.card:nth-child(4), .graph:nth-child(4) { animation-delay: 0.2s; }
+.card:nth-child(5), .graph:nth-child(5) { animation-delay: 0.25s; }
+
+/* ============ Utility Classes ============ */
+.glass-premium {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.95) 0%, 
+    rgba(248, 249, 250, 0.9) 100%
+  ) !important;
+  backdrop-filter: blur(var(--blur-md));
+  -webkit-backdrop-filter: blur(var(--blur-md));
+  border: 1px solid var(--border-light) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--ram-red) 0%, var(--ram-gold) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.border-gradient {
+  border: 2px solid transparent !important;
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(135deg, var(--ram-red), var(--ram-gold)) border-box !important;
+}
+
+/* Professional hover lift effect */
+.hover-lift {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl) !important;
 }
