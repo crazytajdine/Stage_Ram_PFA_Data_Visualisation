@@ -395,9 +395,9 @@ def build_outputs(n_clicks):
     # 1️⃣  Table de correspondance « famille → liste de codes »
     STATIC_FAM_CODES = {
         "Technique": list(range(41, 48)),  # 41-47 inclus
-        "Argo": [56],
+
         "Avarie": [51, 52],
-        "Tiers2": [55],
+
     }
 
     # 2️⃣  Courtes descriptions pour chaque code (complète / adapte si besoin)
@@ -411,9 +411,7 @@ def build_outputs(n_clicks):
         47: "STANDBY AIRCRAFT",
         51: "DAMAGE DURING FLIGHT OPERATIONS",
         52: "DAMAGE DURING GROUND OPERATIONS",
-        55: "DEPARTURE CONTROL",
-        56: "CARGO PREPARATION DOCUMENTATION",
-        # 57: "FLIGHT PLANS",              # ajoute-le si tu l’utilises
+
     }
 
     family_code_cards = []

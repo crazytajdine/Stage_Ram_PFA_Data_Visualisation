@@ -27,6 +27,7 @@ navbar = dbc.Navbar(
                         style={"height": "70px"},  # tweak as needed
                     ),
                     html.Span(["Delay", html.Br(), "Dashboard"], className="navbar-title"),
+                    
                 ],
                 className="d-flex align-items-center",
                 href="#",
@@ -116,3 +117,4 @@ def add_callback():
         show_filter = {} if show_filter else {"display": "none"}
         logging.info("Navbar updated with %d items", len(navbar))
         return navbar, show_filter, title
+    

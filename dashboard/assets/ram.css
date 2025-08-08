@@ -241,11 +241,11 @@ body::before {
 /* All dropdowns and inputs in filter container - Beige Theme */
 #filter-container .Select-control,
 #filter-container .dash-dropdown .Select-control,
-#filter-container .form-control,
-#filter-container .form-select,
+
+
 #filter-container input[type="text"],
 #filter-container input[type="number"],
-#filter-container select,
+
 #filter-container .dbc-input,
 #filter-container .DateInput_input {
   background: linear-gradient(135deg, 
@@ -256,15 +256,14 @@ body::before {
   border-radius: 8px !important;
   color: var(--text-beige-dark) !important;
   font-size: 0.9rem !important;
-  transition: all 0.25s ease;
+  transition: border-color .25s ease, box-shadow .25s ease, color .25s ease;
   box-shadow: inset 0 1px 3px rgba(212, 175, 55, 0.05);
 }
 
 #filter-container .Select-control:hover,
 #filter-container .dash-dropdown:hover .Select-control,
 #filter-container .form-control:hover,
-#filter-container input:hover,
-#filter-container select:hover {
+#filter-container input:hover {
   border-color: rgba(212, 175, 55, 0.35) !important;
   box-shadow: 
     inset 0 1px 3px rgba(212, 175, 55, 0.08),
@@ -278,8 +277,7 @@ body::before {
 #filter-container .Select-control:focus,
 #filter-container .dash-dropdown.is-focused .Select-control,
 #filter-container .form-control:focus,
-#filter-container input:focus,
-#filter-container select:focus {
+#filter-container input:focus {
   background: linear-gradient(135deg, 
     rgba(255, 253, 248, 1) 0%, 
     rgba(250, 245, 235, 0.95) 100%
@@ -335,12 +333,14 @@ body::before {
   overflow: visible !important;
 }
 
-#filter-container .input-group .form-control,
-#filter-container .input-group .form-select {
-  background: linear-gradient(135deg, 
-    rgba(255, 253, 248, 0.9) 0%, 
-    rgba(250, 245, 235, 0.85) 100%
-  ) !important;
+#filter-container .input-group .form-control{
+   /* two layers: caret, then gradient */
+   background-image: var(--bs-form-select-bg-img),
+                     linear-gradient(135deg, rgba(255,253,248,.9) 0%, rgba(250,245,235,.85) 100%);
+   background-position: right .85rem center, 0 0;
+   background-size: 16px 12px, 100% 100%;
+   background-repeat: no-repeat, no-repeat;
+   padding-right: 2.25rem !important;   /* room for caret */
 }
 
 /* ============ DROPDOWN MENUS - BEIGE THEMED ============ */
@@ -744,8 +744,7 @@ body::before {
 }
 
 /* Alert Messages */
-.alert-success, #result-message.alert-success {
-  background: linear-gradient(135deg, 
+#result-message.alert-success {  background: linear-gradient(135deg, 
     rgba(40, 167, 69, 0.08) 0%, 
     rgba(40, 167, 69, 0.05) 100%
   ) !important;
@@ -1008,3 +1007,301 @@ header, .navbar, .navbar .container-fluid { max-width:100%; min-width:0; }
     justify-self: start;             /* keep at left */
   }
 }
+
+/* ===== SEGMENTATION — FIX THE CARET ON .form-select ===== */
+/* SEGMENTATION select: re-add caret on top of your gradient */
+
+/* keep caret visible on hover/focus too */
+#filter-container select.form-select:hover,
+#filter-container select.form-select:focus{
+  background:
+    var(--bs-form-select-bg-img) no-repeat right .85rem center / 16px 12px,
+    linear-gradient(135deg, rgba(255,253,248,1) 0%, rgba(250,245,235,.95) 100%) !important;
+}
+
+/* Fallback if --bs-form-select-bg-img isn’t defined */
+:root{
+  --bs-form-select-bg-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%238b7355'%3E%3Cpath d='M3 6l5 5 5-5'/%3E%3C/svg%3E");
+}
+
+/* ===== NUMBER INPUT — MAKE SPINNERS ALWAYS VISIBLE ===== */
+#filter-container input[type="number"]{
+  padding-right: 2rem; /* so spinners aren’t clipped by styles */
+}
+#filter-container input[type="number"]::-webkit-inner-spin-button,
+#filter-container input[type="number"]::-webkit-outer-spin-button{
+  -webkit-appearance: inner-spin-button !important;
+  opacity: 1 !important;
+  margin: 0;
+}
+/* Firefox note: it doesn’t show spinners; this keeps appearance consistent */
+#filter-container input[type="number"]{ -moz-appearance: textfield; }
+
+/* (nice-to-have) match heights when they sit side-by-side */
+/* Bootstrap input-group is flex; lock the order explicitly */
+#filter-container .input-group{ display:flex; gap:.75rem; }
+#filter-container .input-group > .form-control{ order:1; }         /* number input first */
+#filter-container .input-group > select.form-select{ order:2; }     /* dropdown second */
+
+
+/* --- Segmentation select: base (with caret + gradient) --- */
+#filter-container select.form-select{
+  appearance:none; -webkit-appearance:none; -moz-appearance:none;
+
+  background-image: var(--bs-form-select-bg-img),
+                    linear-gradient(135deg, rgba(255,253,248,.9) 0%, rgba(250,245,235,.85) 100%);
+  background-position: right .85rem center, 0 0;
+  background-size: 16px 12px, 100% 100%;
+  background-repeat: no-repeat, no-repeat;
+
+  padding-right: 2.25rem !important; /* room for caret */
+}
+
+/* Hover: keep the caret + brighten the fill */
+#filter-container select.form-select:hover{
+  background-image: var(--bs-form-select-bg-img),
+                    linear-gradient(135deg, rgba(255,253,248,.95) 0%, rgba(250,245,235,.9) 100%);
+  border-color: rgba(212,175,55,.35) !important;
+}
+
+/* Focus: remove square grey outline, show gold glow */
+#filter-container select.form-select:focus{
+  outline: none !important;                         /* <-- kills the grey frame */
+  border-color: var(--ram-gold) !important;
+  box-shadow: 0 0 0 3px rgba(212,175,55,.15) !important;
+  background-image: var(--bs-form-select-bg-img),
+                    linear-gradient(135deg, rgba(255,253,248,1) 0%, rgba(250,245,235,.95) 100%);
+}
+/* --- SEGMENTATION: right-hand select (caret + theme + focus) --- */
+#filter-container select.form-select{
+  appearance:none; -webkit-appearance:none; -moz-appearance:none;
+  background-image: var(--bs-form-select-bg-img),
+                    linear-gradient(135deg, rgba(255,253,248,.9) 0%, rgba(250,245,235,.85) 100%);
+  background-position: right .85rem center, 0 0;
+  background-size: 16px 12px, 100% 100%;
+  background-repeat: no-repeat, no-repeat;
+  padding-right: 2.25rem !important;
+  border-radius: 8px !important;
+  transition: border-color .25s ease, box-shadow .25s ease, background .25s ease;
+}
+
+#filter-container select.form-select:hover{
+  background-image: var(--bs-form-select-bg-img),
+                    linear-gradient(135deg, rgba(255,253,248,.95) 0%, rgba(250,245,235,.9) 100%);
+  border-color: rgba(212,175,55,.35) !important;
+}
+
+/* kill the grey/blue focus ring and use the same soft glow as other inputs */
+#filter-container select.form-select:focus,
+#filter-container select.form-select:focus-visible,
+#filter-container select.form-select:-moz-focusring{
+  outline: none !important;
+  border-color: var(--ram-gold) !important;
+  box-shadow: 0 0 0 3px rgba(212,175,55,.15) !important;
+  background-image: var(--bs-form-select-bg-img),
+                    linear-gradient(135deg, rgba(255,253,248,1) 0%, rgba(250,245,235,.95) 100%);
+}
+
+/* keep it second in the pair */
+#filter-container .input-group{ display:flex; gap:.75rem; }
+#filter-container .input-group > input[type="number"]{ order:1; }
+#filter-container .input-group > select.form-select{ order:2; }
+/* SEGMENTATION (right) — match hover + focus visuals to other inputs */
+#filter-container select.form-select{
+  appearance:none; -webkit-appearance:none; -moz-appearance:none;
+  background-image: var(--bs-form-select-bg-img),
+                    linear-gradient(135deg, rgba(255,253,248,.9) 0%, rgba(250,245,235,.85) 100%);
+  background-position: right .85rem center, 0 0;
+  background-size: 16px 12px, 100% 100%;
+  background-repeat: no-repeat, no-repeat;
+  padding-right: 2.25rem !important;
+  border-radius: 8px !important;
+  transition: background .25s ease, border-color .25s ease, box-shadow .25s ease;
+}
+
+#filter-container select.form-select:hover{
+  /* same hover as others */
+  background-image: var(--bs-form-select-bg-img),
+                    linear-gradient(135deg, rgba(255,253,248,.95) 0%, rgba(250,245,235,.9) 100%);
+  border-color: rgba(212,175,55,.35) !important;
+  box-shadow:
+    inset 0 1px 3px rgba(212,175,55,.08),
+    0 2px 8px rgba(212,175,55,.10) !important;
+}
+
+#filter-container select.form-select:focus,
+#filter-container select.form-select:focus-visible{
+  outline: none !important;
+  border-color: var(--ram-gold) !important;
+  box-shadow:
+    0 0 0 3px rgba(212,175,55,.10),
+    inset 0 1px 3px rgba(212,175,55,.05) !important;
+  background-image: var(--bs-form-select-bg-img),
+                    linear-gradient(135deg, rgba(255,253,248,1) 0%, rgba(250,245,235,.95) 100%);
+}
+/* Give all selects the same base border as other inputs */
+#filter-container .form-select{
+  border: 1px solid rgba(212,175,55,.20) !important;
+  border-radius: 8px !important;
+}
+
+/* Restore the missing left border on the SECOND control in the input-group */
+#filter-container .input-group > .form-select:not(:first-child),
+#filter-container .input-group > .form-control:not(:first-child){
+  margin-left: 0 !important;                 /* undo Bootstrap's -1px collapse */
+  border-left-width: 1px !important;         /* bring back the left edge */
+  border-left-style: solid !important;
+  border-left-color: rgba(212,175,55,.20) !important;
+  border-top-left-radius: 8px !important;    /* rounded like the others */
+  border-bottom-left-radius: 8px !important;
+}
+
+/* Keep the same hover/focus treatment on that right dropdown */
+#filter-container .input-group > .form-select:not(:first-child):hover{
+  border-color: rgba(212,175,55,.35) !important;
+  box-shadow:
+    inset 0 1px 3px rgba(212,175,55,.08),
+    0 2px 8px rgba(212,175,55,.10) !important;
+}
+#filter-container .input-group > .form-select:not(:first-child):focus{
+  outline: none !important;
+  border-color: var(--ram-gold) !important;
+  box-shadow:
+    0 0 0 3px rgba(212,175,55,.10),
+    inset 0 1px 3px rgba(212,175,55,.05) !important;
+}
+/* Make the success banner look like the rest (outer only) */
+#result-message.alert-success{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  align-items:center;
+  gap:.75rem;
+  min-height:72px;
+  padding:1rem 1.25rem !important;
+
+  background: linear-gradient(135deg, rgba(40,167,69,.08) 0%, rgba(40,167,69,.05) 100%) !important;
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  border: 1px solid rgba(40,167,69,.25) !important;
+  border-left: 4px solid #28a745 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 12px rgba(40,167,69,.10) !important;
+}
+
+/* Flatten any nested Bootstrap alert so you don't see a second box */
+#result-message .alert,
+#result-message .alert-success,
+#result-message .alert-dismissible{
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Pill + text (keeps your previous look) */
+#result-message .count-pill{
+  display:inline-flex; align-items:center; gap:.5rem;
+  padding:.6rem .9rem;
+  background: rgba(40,167,69,.10);
+  border:1px solid rgba(40,167,69,.25);
+  border-radius:8px;
+  color:#155724; font-weight:600; white-space:nowrap;
+  flex:0 0 auto;
+}
+#result-message .message-text{
+  min-width:0; overflow:hidden; text-overflow:ellipsis;
+}
+
+/* Optional: tidy the close button */
+#result-message .btn-close{ opacity:.6 }
+#result-message .btn-close:hover{ opacity:.9 }
+
+/* ===== about-container section: make headers and numbers readable ===== */
+
+/* 1) Force family titles in card headers to use dark text */
+#about-container .card-header,
+#about-container .card-header *,
+#about-container .family-title {
+  color: var(--text-primary) !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+  mix-blend-mode: normal !important;
+}
+
+/* If any header was using Bootstrap .text-white, override it here */
+#about-container .text-white { color: var(--text-primary) !important; }
+
+/* 2) Numbers/badges in the list – readable + on-brand */
+#about-container .about-container-list li {
+  position: relative;
+  padding-left: 3rem;              /* room for the number chip */
+  color: var(--text-secondary);
+}
+
+/* If your list doesn’t have .about-container-list yet, add it to that UL/OL */
+#about-container .about-container-list { counter-reset: item; }
+#about-container .about-container-list li { counter-increment: item; }
+
+/* The number chip (left square) */
+#about-container .about-container-list li::before {
+  content: counter(item, decimal);
+  position: absolute;
+  left: .85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.1rem;
+  height: 1.6rem;
+  border-radius: 8px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  /* same beige glass vibe as your inputs */
+  background: linear-gradient(135deg, rgba(255,253,248,.95) 0%, rgba(250,245,235,.9) 100%);
+  color: var(--text-primary);                          /* ← no more white text */
+  border: 1px solid var(--border-beige);
+  box-shadow: var(--shadow-sm);
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
+/* 3) Extra safety: if numbers are real badges somewhere, flip them too */
+#about-container .badge,
+#about-container .count,
+#about-container .num,
+#about-container .number {
+  color: var(--text-primary) !important;
+  background: linear-gradient(135deg, rgba(255,253,248,.95) 0%, rgba(250,245,235,.9) 100%) !important;
+  border: 1px solid var(--border-beige) !important;
+}
+
+/* 1) Stop pinning things to the far right */
+.navbar .navbar-end,
+.navbar .btn-logout,
+.navbar .navbar-nav{
+  margin-left: 0 !important;
+}
+
+/* 2) Make the whole right side one wrapping flex row */
+.navbar .navbar-actions{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;   /* right align each line */
+  align-content: flex-start;   /* next lines stack under the first */
+}
+
+/* 3) Logout behaves like the other buttons, but stays last */
+.navbar .btn-logout{
+  order: 99;        /* visually last */
+  flex: 0 0 auto;   /* natural width */
+}
+
+/* 4) Small screens: nav can take a full line, logout drops under it */
+@media (max-width: 576px){
+  .navbar .navbar-actions .navbar-nav{ flex: 1 1 100%; }
+  .navbar .navbar-actions .navbar-end{ flex: 0 0 auto; }
+}
+
