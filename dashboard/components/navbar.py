@@ -1,7 +1,7 @@
 from dash import Input, Output, dcc, html
 from configurations.nav_config import build_nav_items_meta
 from components.title import ID_MAIN_TITLE
-from excel_manager import ID_PATH_STORE, add_watcher_for_data_status, path_exists
+from data_managers.excel_manager import ID_PATH_STORE, add_watcher_for_data_status, path_exists
 from server_instance import get_app
 
 from components.filter import ID_FILTER_CONTAINER
@@ -30,7 +30,7 @@ navbar = dbc.Navbar(
                     
                 ],
                 className="d-flex align-items-center",
-                href="#",
+                href="/",
             ),
             # ─── Right: Settings button + User dropdown ──────────
             html.Div(
@@ -52,13 +52,7 @@ navbar = dbc.Navbar(
     className="py-2",
 )
 # ---------- ROOT LAYOUT ----------
-layout = html.Div(
-    [
-        dbc.Container([navbar], class_name="p-0", fluid=True),
-        dcc.Location(id="url"),  # keeps multipage routing
-        html.Div(id="page-content"),  # where page callbacks inject content
-    ]
-)
+layout = dbc.Container([navbar], class_name="p-0", fluid=True)
 
 
 def add_callback():

@@ -1,4 +1,4 @@
-from dash import html, Output, Input, State
+from dash import html, Output, Input, State, dcc
 from dash.dependencies import Input, Output
 import logging
 import plotly.io as pio
@@ -11,7 +11,7 @@ from server_instance import get_app, get_server
 
 from utils_dashboard.utils_download import download_dash
 
-from excel_manager import (
+from data_managers.excel_manager import (
     ID_PATH_STORE,
     add_watcher_for_data_status,
     hookers as excel_hookers,
@@ -28,6 +28,8 @@ from components.navbar import (
 )
 
 from components.title import layout as tittle_layout
+
+print("Loading server instance...")
 
 app = get_app()
 server = get_server()
@@ -46,6 +48,7 @@ app.layout = html.Div(
         # Contenu principal
         html.Div(id="page-content"),
         # Stockage pour suivre l'état du menu
+        dcc.Location(id="url"),
     ]
 )
 

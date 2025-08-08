@@ -16,7 +16,7 @@ from utils_dashboard.utils_download import (
     add_export_callbacks,
 )
 from server_instance import get_app
-from excel_manager import (
+from data_managers.excel_manager import (
     get_df,
     add_watcher_for_data,
     # COL_NAME_TOTAL_COUNT  # only needed if you reuse it here

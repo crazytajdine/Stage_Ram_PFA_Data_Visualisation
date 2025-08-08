@@ -11,7 +11,7 @@ import dash.html as html
 import polars as pl
 from dash import dcc
 
-from excel_manager import (
+from data_managers.excel_manager import (
     COL_NAME_WINDOW_TIME_MAX,
     get_df,
     add_watcher_for_data,

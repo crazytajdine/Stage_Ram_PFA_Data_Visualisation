@@ -4,7 +4,7 @@ import polars as pl
 from datetime import date, datetime, timedelta
 from dash import Input, Output, State
 from utils_dashboard.utils_filter import set_name_from_filter
-from excel_manager import (
+from data_managers.excel_manager import (
     COL_NAME_DEPARTURE_DATETIME,
     COL_NAME_WINDOW_TIME,
     COL_NAME_WINDOW_TIME_MAX,
@@ -383,9 +383,9 @@ def add_callbacks():
         # )
 
         dt_min, dt_max = get_min_max_date_raw_df()
-
-        dt_min_iso = dt_min.strftime("%Y-%m-%d")
-        dt_max_iso = dt_max.strftime("%Y-%m-%d")
+        if dt_min or dt_max:
+            dt_min_iso = dt_min.strftime("%Y-%m-%d")
+            dt_max_iso = dt_max.strftime("%Y-%m-%d")
 
         def to_options(lst):
             logging.debug(
