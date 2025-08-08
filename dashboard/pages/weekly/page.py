@@ -121,6 +121,7 @@ layout = dbc.Container(
             dbc.CardBody(
                 dash_table.DataTable(
                     id=ID_WEEKLY_TABLE,
+                    style_table={"overflowX": "auto"},
                     style_data_conditional=[
                         {
                             "if": {"row_index": "odd"},

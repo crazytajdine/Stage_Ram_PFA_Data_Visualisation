@@ -11,14 +11,11 @@ import dash_bootstrap_components as dbc
 
 def init_server():
     global app, server
-    app = Dash(  # ✅ class constructor
+    app = Dash(
         __name__,
-        use_pages=False,
         suppress_callback_exceptions=True,
-        assets_folder="assets",
         external_stylesheets=[
             dbc.themes.LUX,
-            # (optional) Bootstrap-Icons CDN for the user icon
             "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css",
         ],
     )

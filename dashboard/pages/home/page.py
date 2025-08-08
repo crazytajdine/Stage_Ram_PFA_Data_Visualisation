@@ -173,6 +173,7 @@ layout = dbc.Container(
                 dash_table.DataTable(
                     id=ID_SUMMERY_TABLE,
                     columns=[],
+                    style_table={"overflowX": "auto"},
                     data=[],
                     page_size=10,
                     style_cell={"textAlign": "left"},
@@ -210,6 +211,7 @@ layout = dbc.Container(
                             id=ID_TABLE_SUBTYPE_PR_DELAY_MEAN,
                             columns=[],
                             data=[],
+                            style_table={"overflowX": "auto"},
                             page_size=10,
                             style_cell={"textAlign": "left"},
                             sort_action="native",
@@ -246,6 +248,7 @@ layout = dbc.Container(
                         dash_table.DataTable(
                             id=ID_TABLE_CATEGORY_DELAY_GT_15MIN,
                             columns=[],
+                            style_table={"overflowX": "auto"},
                             data=[],
                             page_size=10,
                             style_cell={"textAlign": "left"},
@@ -271,7 +274,6 @@ layout = dbc.Container(
                         style={"margin": "auto", "width": "100%"},
                     ),
                     className="graph mb-4 mx-auto",  # ← nouvelle classe CSS
-                    style={"width": "90%"},
                 ),
                 # Troisième bouton + tableau + export
                 html.Div(
@@ -287,6 +289,7 @@ layout = dbc.Container(
                             columns=[],
                             data=[],
                             page_size=10,
+                            style_table={"overflowX": "auto"},
                             style_cell={"textAlign": "left"},
                             sort_action="native",
                             style_data_conditional=[
