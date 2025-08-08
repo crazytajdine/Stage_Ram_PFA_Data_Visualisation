@@ -6,7 +6,7 @@ import dash_bootstrap_components as dbc
 import logging
 
 from server_instance import get_app
-from excel_manager import (
+from data_managers.excel_manager import (
     ID_INTERVAL_WATCHER,
     ID_PATH_STORE,
     get_path_to_excel,

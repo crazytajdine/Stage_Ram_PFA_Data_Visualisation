@@ -1,7 +1,7 @@
 from dash import Input, Output, dcc, html
 from configurations.nav_config import build_nav_items_meta
 from components.title import ID_MAIN_TITLE
-from excel_manager import ID_PATH_STORE, add_watcher_for_data_status, path_exists
+from data_managers.excel_manager import ID_PATH_STORE, add_watcher_for_data_status, path_exists
 from server_instance import get_app
 
 from components.filter import ID_FILTER_CONTAINER

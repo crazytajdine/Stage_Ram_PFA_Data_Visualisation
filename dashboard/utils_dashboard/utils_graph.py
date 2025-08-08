@@ -8,7 +8,7 @@ import plotly.express as px, plotly.graph_objs as go
 
 import polars as pl
 
-from excel_manager import COL_NAME_WINDOW_TIME
+from data_managers.excel_manager import COL_NAME_WINDOW_TIME
 
 import plotly.io as pio
 

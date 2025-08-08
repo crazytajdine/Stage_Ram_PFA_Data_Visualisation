@@ -11,7 +11,7 @@ from server_instance import get_app, get_server
 
 from utils_dashboard.utils_download import download_dash
 
-from excel_manager import (
+from data_managers.excel_manager import (
     ID_PATH_STORE,
     add_watcher_for_data_status,
     hookers as excel_hookers,

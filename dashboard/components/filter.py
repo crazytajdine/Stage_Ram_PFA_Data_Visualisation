@@ -4,7 +4,7 @@ import polars as pl
 from datetime import date, datetime, timedelta
 from dash import Input, Output, State
 from utils_dashboard.utils_filter import set_name_from_filter
-from excel_manager import (
+from data_managers.excel_manager import (
     COL_NAME_DEPARTURE_DATETIME,
     COL_NAME_WINDOW_TIME,
     COL_NAME_WINDOW_TIME_MAX,

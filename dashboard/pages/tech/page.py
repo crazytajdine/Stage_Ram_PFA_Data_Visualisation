@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 from utils_dashboard.utils_download import add_export_callbacks
 from server_instance import get_app
-import excel_manager
+import data_managers.excel_manager as excel_manager
 from utils_dashboard.utils_graph import (
     create_bar_figure,
     create_bar_horizontal_figure,
