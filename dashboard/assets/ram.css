@@ -1,76 +1,1010 @@
-/* ============ RAM navbar core styles ============ */
+/* ============ Professional Glass Effect Theme - Royal Air Maroc ============ */
+
+/* ============ Professional Color Palette ============ */
 :root {
-  /* RAM red accent */
+  /* Royal Air Maroc Brand Colors */
+  --ram-red: #C40434;
+  --ram-red-dark: #9a0225;
+  --ram-red-light: #e63946;
+  --ram-gold: #D4AF37;
+  
+  /* Professional Background Colors */
+  --bg-primary: #f8f9fa;
+  --bg-secondary: #ffffff;
+  --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  
+  /* Glass Effect Variables - Subtle & Professional */
+  --glass-white: rgba(255, 255, 255, 0.7);
+  --glass-white-heavy: rgba(255, 255, 255, 0.85);
+  --glass-grey: rgba(248, 249, 250, 0.8);
+  --glass-beige: rgba(245, 237, 220, 0.75);
+  --glass-beige-light: rgba(250, 243, 232, 0.85);
+  --glass-green: rgba(40, 167, 69, 0.08);
+  --glass-green-border: rgba(40, 167, 69, 0.2);
+  
+  /* Professional Shadows */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+  
+  /* Borders */
+  --border-light: rgba(0, 0, 0, 0.06);
+  --border-medium: rgba(0, 0, 0, 0.09);
+  --border-dark: rgba(0, 0, 0, 0.12);
+  --border-beige: rgba(212, 175, 55, 0.15);
+  
+  /* Text Colors */
+  --text-primary: #2c3e50;
+  --text-secondary: #5a6c7d;
+  --text-muted: #94a3b8;
+  --text-light: #ffffff;
+  --text-beige-dark: #8b7355;
+  
+  /* Blur Effects */
+  --blur-sm: 8px;
+  --blur-md: 12px;
+  --blur-lg: 20px;
+  
+  /* Bootstrap Overrides */
   --bs-primary: #C40434;
+  --bs-success: #28a745;
+  --bs-warning: #ffc107;
+  --bs-info: #17a2b8;
   --bs-link-color: #C40434;
   --bs-link-hover-color: #9a0225;
+  --gap: clamp(.6rem, 1.2vw, 1rem);
+  --pad: clamp(.6rem, 1.2vw, 1.25rem);
+}
+/* ============ Global Body - Professional Background ============ */
+body {
+  background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Dark navbar background, bottom border & shadow */
-.navbar.navbar-dark {
-  background: linear-gradient(145deg, #1a1a1a 0%, #000 50%, #1a1a1a 100%);
-  border-bottom: 1px solid rgba(255, 255, 255, .25);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
+/* Professional geometric pattern overlay */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 35px,
+      rgba(0, 0, 0, 0.01) 35px,
+      rgba(0, 0, 0, 0.01) 70px
+    );
+  pointer-events: none;
 }
 
-/* Center all navbar items vertically */
-.navbar .container,
-.navbar .navbar-nav {
-  display: flex;
-  align-items: center;
+/* ============ Container Adjustments ============ */
+.container-fluid {
+  position: relative;
 }
 
-/* RAM logo sizing */
+/* ============ Navbar - Premium Glass Effect ============ */
+.navbar {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 250, 0.95) 100%) !important;
+  backdrop-filter: blur(var(--blur-lg));
+  -webkit-backdrop-filter: blur(var(--blur-lg));
+  border-bottom: 1px solid var(--border-light);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+/* RAM Logo - Professional */
 #ram-logo {
-  height: 90px;
-  margin: -18px 0;
-  /* spill upward & downward */
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .35));
+  height: clamp(34px, 4.5vw, 56px);
+  margin: 0 1rem 0 0;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  transition: transform 0.3s ease;
 }
 
-/* Navbar title next to logo */
+#ram-logo:hover {
+  transform: scale(1.05);
+}
+
+/* Navbar Title - Elegant */
 .navbar-title {
-  font-size: 1.75rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin-left: 0.5rem;
+}
+
+/* Navbar Navigation - Professional Tabs */
+.navbar .nav-link {
+  color: var(--text-secondary) !important;
   font-weight: 500;
-  color: #ffffff;
-  margin-left: 1rem;
-  letter-spacing: .1em;
+  font-size: 0.95rem;
+  padding: 0.65rem 1.25rem !important;
+  margin: 0 0.15rem;
+  border-radius: 8px;
+  transition: all 0.25s ease;
+  position: relative;
+  letter-spacing: 0.01em;
 }
 
-/* Active tab / pill styling */
-.navbar .nav-tabs .nav-link.active,
-.navbar .nav-pills .nav-link.active {
-  background-color: var(--bs-primary);
-  color: #ffffff;
-  border: none;
+.navbar .nav-link:hover {
+  background: rgba(196, 4, 52, 0.05);
+  color: var(--ram-red) !important;
+  transform: translateY(-1px);
 }
 
-/* ===== Bouton Export – Glossy Black Rect ===== */
+.navbar .nav-link.active {
+  background: linear-gradient(135deg, var(--ram-red), var(--ram-red-dark));
+  color: var(--text-light) !important;
+  box-shadow: 0 4px 12px rgba(196, 4, 52, 0.25);
+  font-weight: 600;
+}
+
+/* User Icon - Professional */
+#user-icon {
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+  font-size: 1.5rem !important;
+}
+
+#user-icon:hover {
+  color: var(--ram-red);
+  transform: scale(1.1);
+}
+
+/* ============ Main Title - Professional Typography ============ */
+#main_title {
+  color: var(--text-primary);
+  font-weight: 700 !important;
+  font-size: clamp(1.3rem, 2.2vw + .5rem, 2.2rem) !important;
+  letter-spacing: -0.03em;
+  margin-bottom: 1.5rem !important;
+  position: relative;
+  padding-bottom: 0.75rem;
+}
+
+#main_title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 1.5rem;
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--ram-red), transparent);
+  border-radius: 2px;
+}
+
+/* ============ Filter Card - Beige Fumed Glass ============ */
+#filter-container {
+  position: relative;
+  z-index: 100;
+}
+
+#filter-container .card {
+  background: linear-gradient(135deg, 
+    rgba(245, 237, 220, 0.85) 0%, 
+    rgba(250, 243, 232, 0.75) 50%,
+    rgba(245, 237, 220, 0.85) 100%
+  ) !important;
+  backdrop-filter: blur(var(--blur-md));
+  -webkit-backdrop-filter: blur(var(--blur-md));
+  border: 1px solid var(--border-beige) !important;
+  box-shadow: 
+    0 8px 32px rgba(212, 175, 55, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+  transition: all 0.3s ease;
+  overflow: visible !important;
+}
+
+#filter-container .card-body {
+  overflow: visible !important;
+  position: relative;
+}
+
+#filter-container .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 40px rgba(212, 175, 55, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+}
+
+#filter-container h4 {
+  color: var(--text-beige-dark);
+  font-weight: 600;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 1.25rem !important;
+}
+
+#filter-container label {
+  color: var(--text-beige-dark);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.5rem;
+}
+
+/* ============ FILTER FORM CONTROLS - BEIGE THEMED ============ */
+
+/* All dropdowns and inputs in filter container - Beige Theme */
+#filter-container .Select-control,
+#filter-container .dash-dropdown .Select-control,
+#filter-container .form-control,
+#filter-container .form-select,
+#filter-container input[type="text"],
+#filter-container input[type="number"],
+#filter-container select,
+#filter-container .dbc-input,
+#filter-container .DateInput_input {
+  background: linear-gradient(135deg, 
+    rgba(255, 253, 248, 0.9) 0%, 
+    rgba(250, 245, 235, 0.85) 100%
+  ) !important;
+  border: 1px solid rgba(212, 175, 55, 0.2) !important;
+  border-radius: 8px !important;
+  color: var(--text-beige-dark) !important;
+  font-size: 0.9rem !important;
+  transition: all 0.25s ease;
+  box-shadow: inset 0 1px 3px rgba(212, 175, 55, 0.05);
+}
+
+#filter-container .Select-control:hover,
+#filter-container .dash-dropdown:hover .Select-control,
+#filter-container .form-control:hover,
+#filter-container input:hover,
+#filter-container select:hover {
+  border-color: rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 
+    inset 0 1px 3px rgba(212, 175, 55, 0.08),
+    0 2px 8px rgba(212, 175, 55, 0.1);
+  background: linear-gradient(135deg, 
+    rgba(255, 253, 248, 0.95) 0%, 
+    rgba(250, 245, 235, 0.9) 100%
+  ) !important;
+}
+
+#filter-container .Select-control:focus,
+#filter-container .dash-dropdown.is-focused .Select-control,
+#filter-container .form-control:focus,
+#filter-container input:focus,
+#filter-container select:focus {
+  background: linear-gradient(135deg, 
+    rgba(255, 253, 248, 1) 0%, 
+    rgba(250, 245, 235, 0.95) 100%
+  ) !important;
+  border-color: var(--ram-gold) !important;
+  box-shadow: 
+    0 0 0 3px rgba(212, 175, 55, 0.1),
+    inset 0 1px 3px rgba(212, 175, 55, 0.05) !important;
+  outline: none !important;
+}
+
+/* Dropdown placeholders in filter */
+#filter-container .Select-placeholder,
+#filter-container .Select--single > .Select-control .Select-value-label {
+  color: rgba(139, 115, 85, 0.6) !important;
+}
+
+/* Dropdown arrows in filter */
+#filter-container .Select-arrow-zone {
+  color: var(--text-beige-dark) !important;
+}
+
+/* Selected values in filter dropdowns */
+#filter-container .Select-value-label {
+  color: var(--text-beige-dark) !important;
+}
+
+/* Multi-select tags in filter */
+#filter-container .Select--multi .Select-value {
+  background: linear-gradient(135deg, 
+    rgba(212, 175, 55, 0.15) 0%, 
+    rgba(212, 175, 55, 0.1) 100%
+  ) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  border-radius: 6px !important;
+  color: var(--text-beige-dark) !important;
+  font-weight: 500;
+  font-size: 0.85rem !important;
+}
+
+#filter-container .Select--multi .Select-value-icon {
+  border-right: 1px solid rgba(212, 175, 55, 0.3) !important;
+}
+
+#filter-container .Select--multi .Select-value-icon:hover {
+  background: rgba(212, 175, 55, 0.1) !important;
+  color: var(--ram-red) !important;
+}
+
+/* Input groups in filter */
+#filter-container .input-group {
+  position: relative;
+  overflow: visible !important;
+}
+
+#filter-container .input-group .form-control,
+#filter-container .input-group .form-select {
+  background: linear-gradient(135deg, 
+    rgba(255, 253, 248, 0.9) 0%, 
+    rgba(250, 245, 235, 0.85) 100%
+  ) !important;
+}
+
+/* ============ DROPDOWN MENUS - BEIGE THEMED ============ */
+
+/* All dropdown menus - positioned absolutely with high z-index */
+#filter-container .Select-menu-outer,
+#filter-container .dash-dropdown .Select-menu-outer {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 10000 !important;
+  margin-top: 4px !important;
+  background: linear-gradient(135deg, 
+    rgba(255, 253, 248, 0.98) 0%, 
+    rgba(250, 245, 235, 0.95) 100%
+  ) !important;
+  backdrop-filter: blur(var(--blur-lg));
+  -webkit-backdrop-filter: blur(var(--blur-lg));
+  border: 1px solid rgba(212, 175, 55, 0.2) !important;
+  border-radius: 8px !important;
+  box-shadow: 
+    0 10px 40px rgba(212, 175, 55, 0.15),
+    0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}
+
+#filter-container .Select-menu {
+  max-height: none !important;
+}
+
+#filter-container .Select-option {
+  padding: 0.5rem 0.875rem !important;
+  font-size: 0.9rem !important;
+  color: var(--text-beige-dark) !important;
+  transition: all 0.15s ease;
+  background: transparent !important;
+}
+
+#filter-container .Select-option:hover,
+#filter-container .Select-option.is-focused {
+  background: linear-gradient(135deg, 
+    rgba(212, 175, 55, 0.12) 0%, 
+    rgba(212, 175, 55, 0.08) 100%
+  ) !important;
+  color: var(--text-beige-dark) !important;
+}
+
+#filter-container .Select-option.is-selected {
+  background: linear-gradient(135deg, 
+    rgba(212, 175, 55, 0.2) 0%, 
+    rgba(212, 175, 55, 0.15) 100%
+  ) !important;
+  color: var(--text-beige-dark) !important;
+  font-weight: 600;
+}
+
+/* ============ DATE PICKER - BEIGE THEMED & FIXED Z-INDEX ============ */
+
+/* Date picker input container */
+#filter-container .DateRangePickerInput,
+#filter-container .DateInput {
+  background: linear-gradient(135deg, 
+    rgba(255, 253, 248, 0.9) 0%, 
+    rgba(250, 245, 235, 0.85) 100%
+  ) !important;
+  border: 1px solid rgba(212, 175, 55, 0.2) !important;
+  border-radius: 8px !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+
+#filter-container .DateInput_input {
+  background: transparent !important;
+  color: var(--text-beige-dark) !important;
+  font-weight: 500;
+  font-size: 0.9rem !important;
+  padding: 0.625rem 0.875rem !important;
+  border: none !important;
+}
+
+#filter-container .DateInput_input::placeholder {
+  color: rgba(139, 115, 85, 0.6) !important;
+}
+
+#filter-container .DateRangePickerInput__arrow {
+  color: var(--text-beige-dark) !important;
+}
+
+
+
+
+
+/* Calendar month */
+.CalendarMonth_caption {
+  color: var(--text-beige-dark) !important;
+  font-weight: 600 !important;
+}
+
+
+
+.CalendarDay__selected,
+.CalendarDay__selected_span {
+  background: linear-gradient(135deg, 
+    rgba(212, 175, 55, 0.3) 0%, 
+    rgba(212, 175, 55, 0.25) 100%
+  ) !important;
+  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+  color: var(--text-beige-dark) !important;
+}
+
+.CalendarDay__hovered_span,
+.CalendarDay__hovered_span:hover {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  color: var(--text-beige-dark) !important;
+}
+/* Nudge the "X" clear button a bit to the right */
+#filter-container .DateRangePickerInput_clearDates,
+#filter-container .DateInput_clearDate {
+  right: -10px !important; /* adjust value as needed */
+}
+
+
+/* Date picker portal overlay - ensure it's on top */
+
+
+/* Clear all position restrictions from parent elements */
+#filter-container .row,
+#filter-container .col,
+#filter-container .col-md-6,
+#filter-container .form-group,
+#filter-container .mb-3 {
+  position: static !important;
+  overflow: visible !important;
+  z-index: auto !important;
+}
+
+/* ============ Buttons in Filter - Matching Theme ============ */
+
+/* Analyser Button */
+#filter-container .btn-primary,
+#filter-container .btn-glass-frame {
+  background: linear-gradient(135deg, var(--ram-red) 0%, var(--ram-red-dark) 100%) !important;
+  color: var(--text-light) !important;
+  border: 1px solid var(--ram-red-dark) !important;
+  box-shadow: 0 4px 14px rgba(196, 4, 52, 0.25) !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.25s ease;
+    border-radius: 8px !important;
+}
+
+#filter-container .btn-primary:hover,
+#filter-container .btn-glass-frame:hover {
+  background: linear-gradient(135deg, var(--ram-red-light) 0%, var(--ram-red) 100%) !important;
+  transform: scale(1.01);
+  box-shadow: 0 6px 20px rgba(196, 4, 52, 0.35) !important;
+}
+
+/* Warning state for Analyser button */
+#filter-container .btn-warning {
+  background: linear-gradient(135deg, 
+    rgba(212, 175, 55, 0.9) 0%, 
+    rgba(184, 149, 35, 0.9) 100%
+  ) !important;
+  color: var(--text-light) !important;
+  border: 1px solid rgba(184, 149, 35, 0.9) !important;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.3) !important;
+}
+
+#filter-container .btn-warning:hover {
+  background: linear-gradient(135deg, 
+    rgba(212, 175, 55, 1) 0%, 
+    rgba(184, 149, 35, 1) 100%
+  ) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4) !important;
+}
+
+/* ============ Ensure dropdown and date picker visibility ============ */
+
+/* Remove any clipping from containers */
+.card, .card-body {
+  overflow: visible !important;
+}
+
+/* Ensure dropdowns can overflow their containers */
+.dash-dropdown {
+  position: relative !important;
+}
+
+.Select-menu-outer {
+  position: absolute !important;
+  z-index: 10000 !important;
+}
+
+/* Portal-based date picker */
+.DateRangePicker_picker__portal,
+.SingleDatePicker_picker__portal {
+  z-index: 100000 !important;
+}
+
+/* ============ Scrollbar styling for dropdowns ============ */
+#filter-container .Select-menu-outer::-webkit-scrollbar {
+  width: 8px;
+}
+
+#filter-container .Select-menu-outer::-webkit-scrollbar-track {
+  background: rgba(212, 175, 55, 0.05);
+  border-radius: 4px;
+}
+
+#filter-container .Select-menu-outer::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.3);
+  border-radius: 4px;
+}
+
+#filter-container .Select-menu-outer::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.4);
+}
+
+/* ============ Rest of your existing styles (unchanged) ============ */
+
+/* Cards - Professional White Glass */
+.card {
+  background: var(--glass-white-heavy) !important;
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  border: 1px solid var(--border-light) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--shadow-md) !important;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg) !important;
+  border-color: var(--border-medium) !important;
+}
+
+.card-header {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.95), 
+    rgba(248, 249, 250, 0.95)
+  ) !important;
+  border-bottom: 1px solid var(--border-light) !important;
+  padding: 1rem 1.25rem !important;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.card-body {
+  padding: 1.25rem !important;
+  background: transparent !important;
+}
+
+/* Tables - Professional Grey Glass */
+.dash-table-container {
+  background: linear-gradient(135deg, 
+    rgba(248, 249, 250, 0.95) 0%, 
+    rgba(255, 255, 255, 0.9) 100%
+  ) !important;
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  border: 1px solid var(--border-light) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--shadow-md) !important;
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.dash-table-container table {
+  background: transparent !important;
+}
+
+.dash-table-container th {
+  background: linear-gradient(135deg, 
+    rgba(233, 236, 239, 0.95) 0%, 
+    rgba(241, 243, 245, 0.95) 100%
+  ) !important;
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+  font-size: 0.8rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  border-bottom: 2px solid var(--border-medium) !important;
+  padding: 0.875rem !important;
+  white-space: nowrap;
+}
+
+.dash-table-container td {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
+  padding: 0.75rem !important;
+  font-size: 0.9rem;
+}
+
+.dash-table-container tbody tr:nth-child(odd) td {
+  background: rgba(248, 249, 250, 0.3) !important;
+}
+
+.dash-table-container tbody tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.5) !important;
+}
+
+.dash-table-container tbody tr:hover td {
+  background: rgba(196, 4, 52, 0.02) !important;
+  transition: background 0.2s ease;
+}
+
+/* Graphs - Professional Glass Containers */
+.graph {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.9) 0%, 
+    rgba(248, 249, 250, 0.85) 100%
+  );
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s ease;
+  margin-bottom: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  margin-top: 1.5rem;
+}
+
+.graph::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    var(--ram-red) 0%, 
+    var(--ram-gold) 50%, 
+    var(--ram-red) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.graph:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-medium);
+}
+
+.graph .main-svg {
+  background: transparent !important;
+}
+
+.graph .bg {
+  fill: transparent !important;
+}
+
+/* Export Button */
 .btn-export {
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%) !important;
+  color: var(--text-light) !important;
+  border: 1px solid #2c3e50 !important;
+  box-shadow: 0 4px 14px rgba(44, 62, 80, 0.25) !important;
   display: inline-flex;
   align-items: center;
-  gap: .45rem;
+  gap: 0.5rem;
   margin-bottom: 1rem;
-  padding: .65rem 1.8rem;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, .35);
-  background: linear-gradient(145deg, #1a1a1a 0%, #000 50%, #1a1a1a 100%);
-  color: #ffffff;
-  font-weight: 700;
-  letter-spacing: .03em;
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, .25),
-    0 4px 12px rgba(0, 0, 0, .25);
-  transition: transform .18s ease, box-shadow .18s ease;
-}
-
-.btn-export i {
-  font-size: 1.1rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 8px;
+  padding: 0.625rem 1.25rem;
+  transition: all 0.25s ease;
 }
 
 .btn-export:hover {
-  transform: scale(1.06);
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, .25),
-    0 10px 28px rgba(0, 0, 0, .45);
+  background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(44, 62, 80, 0.35) !important;
+}
+
+.btn-export i {
+  font-size: 1rem;
+}
+
+/* Alert Messages */
+.alert-success, #result-message.alert-success {
+  background: linear-gradient(135deg, 
+    rgba(40, 167, 69, 0.08) 0%, 
+    rgba(40, 167, 69, 0.05) 100%
+  ) !important;
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  border: 1px solid rgba(40, 167, 69, 0.25) !important;
+  border-left: 4px solid #28a745 !important;
+  color: #155724 !important;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.1) !important;
+}
+
+.alert-warning {
+  background: linear-gradient(135deg, 
+    rgba(255, 193, 7, 0.08) 0%, 
+    rgba(255, 193, 7, 0.05) 100%
+  ) !important;
+  border: 1px solid rgba(255, 193, 7, 0.25) !important;
+  border-left: 4px solid #ffc107 !important;
+  color: #856404 !important;
+}
+
+.alert-danger {
+  background: linear-gradient(135deg, 
+    rgba(220, 53, 69, 0.08) 0%, 
+    rgba(220, 53, 69, 0.05) 100%
+  ) !important;
+  border: 1px solid rgba(220, 53, 69, 0.25) !important;
+  border-left: 4px solid #dc3545 !important;
+  color: #721c24 !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+  background-clip: padding-box;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card, .graph, .dash-table-container, .alert {
+  animation: fadeInUp 0.5s ease-out;
+  animation-fill-mode: both;
+}
+
+/* Fluid defaults (fewer hard breakpoints) */
+.navbar-title { font-size: clamp(1rem, 1.25vw + 0.6rem, 1.6rem); }
+#ram-logo     { height: clamp(34px, 4.5vw, 56px); }
+#main_title   { font-size: clamp(1.4rem, 2.2vw + 0.5rem, 2.2rem) !important; }
+.btn          { padding:.5rem 1.1rem; font-size: clamp(.85rem, .6vw + .7rem, 1rem); }
+
+html { -webkit-text-size-adjust: 100%; } /* Safari zoom consistency */
+
+
+
+
+/* Phones */
+
+/* NAVBAR — fluid + wraps on small widths */
+/* NAVBAR — fluid + wraps on small widths */
+header, .navbar, .navbar .container-fluid { max-width: 100%; min-width: 0; }
+.navbar, .navbar .container-fluid{ display:flex; align-items:center; flex-wrap:wrap; gap:.25rem .5rem; }
+.navbar .navbar-brand{ display:flex; align-items:center; gap:.5rem; flex:1 1 auto; min-width:0; }
+.navbar-title{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.navbar .navbar-nav{ display:flex; flex-wrap:wrap; gap:.25rem; flex:1 1 100%; min-width:0; }
+.navbar .navbar-end{ margin-left:auto; flex:0 0 auto; }
+.navbar .nav-link{ padding:.55rem .9rem !important; font-size:clamp(.85rem,.55vw + .7rem,.95rem); }
+
+
+/* ==== NAVBAR: two-column grid on narrow screens (brand left stacked, actions right stacked) ==== */
+
+/* --- NAVBAR: brand fixed left, actions wrap under first button --- */
+header, .navbar, .navbar .container-fluid { max-width:100%; min-width:0; }
+.navbar * { min-width:0; }
+
+/* Layout: two columns – brand (auto) + actions (flex-wrap) */
+.navbar .container-fluid{
+  display:grid;
+  grid-template-columns: auto 1fr;
+  align-items:center;
+  column-gap:.75rem;
+}
+
+/* LEFT: brand stays left, logo + title inline */
+.navbar .navbar-brand{
+  grid-column:1;
+  display:flex; align-items:center; gap:.5rem;
+}
+#ram-logo{ height: clamp(34px, 3.2vw, 48px); }
+.navbar-title{ font-size: clamp(1.05rem, 1.2vw + .4rem, 1.35rem); }
+
+/* RIGHT WRAPPER: wraps lines to the right */
+.navbar .navbar-actions{
+  grid-column:2;
+  display:flex;
+  flex-wrap:wrap;                 /* ← progressive wrap */
+  align-items:center;
+  justify-content:flex-end;       /* align each line to the right edge */
+  align-content:flex-start;       /* next lines stack UNDER the first */
+  gap:.25rem .5rem;
+}
+
+/* Buttons block participates in the wrap */
+.navbar .navbar-actions .navbar-nav{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.25rem .5rem;
+}
+
+/* Logout/user sits in the same wrapping flow */
+.navbar .navbar-actions .navbar-end{
+  display:flex; align-items:center; gap:.4rem;
+}
+
+/* Buttons sizing: don’t stretch, wrap instead */
+.navbar .nav-link{
+  flex:0 0 auto;                  /* keep natural width */
+  width:max-content;              /* avoid full row width */
+  padding:.55rem .9rem !important;
+  font-size: clamp(.88rem, .6vw + .66rem, .95rem);
+}
+
+/* Phones: force a clean one-column list on the right */
+@media (max-width: 576px){
+  .navbar .navbar-actions{
+    flex-direction:column;
+    align-items:flex-end;         /* keep right-aligned */
+  }
+  .navbar .navbar-actions .navbar-nav{
+    flex-direction:column;        /* one under the other */
+    align-items:flex-end;
+    gap:.25rem;
+  }
+  #ram-logo{ height:32px; }
+  .navbar-title{ font-size:.98rem; }
+}
+
+/* Push navbar buttons to the right (and keep wrapping nicely) */
+.navbar .navbar-nav{
+  flex: 0 1 auto !important;      /* don't occupy the whole row */
+  margin-left: auto !important;    /* slide the block to the right */
+  display: flex;                   /* ensure it's flex */
+  flex-wrap: wrap;                 /* allow wrapping */
+  justify-content: flex-end;       /* right-align each line */
+  align-content: flex-start;       /* next lines stack under the first */
+  gap: .25rem .5rem;
+}
+
+/* If you use the .navbar-actions wrapper from earlier, also add: */
+.navbar .navbar-actions{
+  justify-content: flex-end;       /* right-align content inside the wrapper */
+  justify-self: end;               /* if container-fluid is a grid */
+}
+/* Logout – distinct, on-brand */
+.navbar .btn-logout{
+  display:inline-flex; align-items:center; gap:.5rem;
+  padding:.55rem 1rem;
+  border-radius:0.5rem;                             /* a bit more pill-y */
+  background: rgba(255,255,255,.6) !important;     /* glass */
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  color: var(--ram-red) !important;                /* different from other tabs */
+  border: 1.25px solid var(--ram-red) !important;
+  font-weight: 700; letter-spacing:.02em;
+  box-shadow: var(--shadow-sm);
+  margin-left: auto;                                /* pin to right */
+  transition: background .2s ease, color .2s ease,
+              border-color .2s ease, box-shadow .2s ease, transform .12s ease;
+  cursor: pointer;
+}
+.navbar .btn-logout:hover,
+.navbar .btn-logout:active{
+  background: linear-gradient(135deg, var(--ram-red), var(--ram-red-dark)) !important;
+  color: var(--text-light) !important;
+  border-color: var(--ram-red-dark) !important;
+  box-shadow: 0 6px 18px rgba(196,4,52,.28);
+  transform: translateY(-1px);
+}
+.navbar .btn-logout:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(196,4,52,.18), 0 6px 18px rgba(196,4,52,.28);
+}
+.navbar .btn-logout .icon{ font-size:1rem; line-height:0; }
+
+/* Compact on phones: icon-only */
+@media (max-width:576px){
+  .navbar .btn-logout .label{ display:none; }
+  .navbar .btn-logout{ padding:.55rem .7rem; }
+}
+
+/* Results banner: stable layout and sizing */
+#result-message.alert-success{
+  display: grid;
+  grid-template-columns: auto 1fr;   /* icon/pill + free text area */
+  align-items: center;
+  gap: .75rem;
+  width: 100%;
+  max-width: none;
+  min-height: 72px;                  /* keeps height steady */
+  padding: 1rem 1.25rem !important;
+  animation: none !important;        /* stop re-animating on resize */
+}
+
+/* The green pill: don't let it resize/wrap */
+#result-message.alert-success .count-pill{
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .6rem .9rem;
+  background: rgba(40,167,69,.10);
+  border: 1px solid rgba(40,167,69,.25);
+  border-radius: 8px;
+  color: #155724;
+  font-weight: 600;
+  white-space: nowrap;               /* <-- no wrapping */
+  flex: 0 0 auto;                    /* <-- no stretching */
+}
+
+/* Make sure long text on the right can shrink gracefully */
+#result-message.alert-success .message-text{
+  min-width: 0;                      /* allow ellipsis */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Small screens: stack cleanly without jitter */
+@media (max-width: 576px){
+  #result-message.alert-success{
+    grid-template-columns: 1fr;      /* stack */
+    row-gap: .5rem;
+  }
+  #result-message.alert-success .count-pill{
+    justify-self: start;             /* keep at left */
+  }
 }

@@ -26,7 +26,7 @@ navbar = dbc.Navbar(
                         id="ram-logo",
                         style={"height": "70px"},  # tweak as needed
                     ),
-                    html.Span("Delay Dashboard", className="navbar-title"),
+                    html.Span(["Delay", html.Br(), "Dashboard"], className="navbar-title"),
                 ],
                 className="d-flex align-items-center",
                 href="/",
@@ -37,11 +37,11 @@ navbar = dbc.Navbar(
                     dbc.Nav(
                         id="navbar",  # your @app.callback writes into here
                         navbar=True,
-                        className="nav-tabs mx-auto",
+                        className="nav-tabs my-auto",
                     ),
-                    dbc.Button("Logout", color="secondary"),
+                    
                 ],
-                className="d-flex align-items-center",
+                className="d-flex align-items-center ",
             ),
         ],
         fluid=True,
@@ -97,6 +97,15 @@ def add_callback():
                     )
                 )
             )
+        navbar.append(dbc.Button(
+    [html.Span("Logout", className="label")],
+    id="logout-btn",
+    className="btn-logout",        # <- key
+    color="light",                 # lighter base; CSS will override anyway
+    outline=True,
+)
+# Put it inside a right-side container: html.Div(..., className="navbar-end")
+)
 
         show_filter = {} if show_filter else {"display": "none"}
         logging.info("Navbar updated with %d items", len(navbar))

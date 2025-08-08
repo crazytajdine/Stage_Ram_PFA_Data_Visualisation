@@ -3,7 +3,7 @@ import dash
 import dash_bootstrap_components as dbc
 from dash import Input, Output, State, dash_table
 from utils_dashboard.utils_graph import (
-    create_graph_bar_card,
+    create_bar_figure,
     generate_card_info_change,
 )
 from server_instance import get_app
@@ -331,19 +331,19 @@ def create_layout(
         "Percentage of On-Time or less than 15 Minutes, or Delays Not Due to Reasons 41/46",
     )  # example second card
 
-    fig1 = create_graph_bar_card(
+    fig1 = create_bar_figure(
         result,
         COL_NAME_WINDOW_TIME,
         COL_NAME_PER_FLIGHTS_NOT_DELAYED,
         "Percentage of On-Time Flights",
     )
-    fig2 = create_graph_bar_card(
+    fig2 = create_bar_figure(
         result,
         COL_NAME_WINDOW_TIME,
         COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN,
         "Percentage of On-Time or Delays Less Than 15 Minutes",
     )
-    fig3 = create_graph_bar_card(
+    fig3 = create_bar_figure(
         result,
         COL_NAME_WINDOW_TIME,
         COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46,
