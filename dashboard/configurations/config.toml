@@ -1,5 +1,5 @@
 
-dir_path = "D:\\shared\\data"
+dir_path = "/data"
 
 [app]
 app_name = "DashboardApp"

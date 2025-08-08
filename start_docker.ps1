@@ -1,0 +1,1 @@
+docker run --name dashboard-instance -v D:\shared\data:/data --rm -p 8000:8000 dashboard-app

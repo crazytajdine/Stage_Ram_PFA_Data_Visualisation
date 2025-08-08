@@ -29,7 +29,7 @@ navbar = dbc.Navbar(
                     html.Span("Delay Dashboard", className="navbar-title"),
                 ],
                 className="d-flex align-items-center",
-                href="#",
+                href="/",
             ),
             # ─── Right: Settings button + User dropdown ──────────
             html.Div(
@@ -51,13 +51,7 @@ navbar = dbc.Navbar(
     className="py-2",
 )
 # ---------- ROOT LAYOUT ----------
-layout = html.Div(
-    [
-        dbc.Container([navbar], class_name="p-0", fluid=True),
-        dcc.Location(id="url"),  # keeps multipage routing
-        html.Div(id="page-content"),  # where page callbacks inject content
-    ]
-)
+layout = dbc.Container([navbar], class_name="p-0", fluid=True)
 
 
 def add_callback():

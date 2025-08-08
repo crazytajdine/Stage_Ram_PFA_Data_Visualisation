@@ -2,6 +2,7 @@
 delay_codes_app.py  –  Dash + Polars  •  Darkly theme
 """
 
+import dash
 import polars as pl
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -357,8 +358,12 @@ plot_config = {
 def build_outputs(n_clicks):
     """Build all output components based on filtered data"""
 
-    df = excel_manager.get_df().collect()
+    df = excel_manager.get_df()
 
+    if df is None:
+        return dash.no_update
+
+    df = df.collect()
     # Get analysis
     summary = analyze_delay_codes_polars(df)
 
@@ -619,18 +624,16 @@ def build_outputs(n_clicks):
                 },
             ],
         )
-
-    for famille in famille_share_df["FAMILLE_DR"].unique().sort():
-        fig_familles = create_bar_horizontal_figure(
-            df=famille_share_df,
-            x=COL_NAME_PERCENTAGE_PER_CODE_DELAY_PER_FAMILY,
-            y=time_period,
-            title=f"Percentage of delays by family – by segmentation",
-            unit="%",
-            color="FAMILLE_DR",
-            barmode="stack",
-            legend_title="Family",
-        )
+    fig_familles = create_bar_horizontal_figure(
+        df=famille_share_df,
+        x=COL_NAME_PERCENTAGE_PER_CODE_DELAY_PER_FAMILY,
+        y=time_period,
+        title=f"Percentage of delays by family – by segmentation",
+        unit="%",
+        color="FAMILLE_DR",
+        barmode="stack",
+        legend_title="Family",
+    )
     # --- juste après avoir construit fig_familles ---------------------
     # ▸ juste après avoir créé fig_familles  ⬇️
     big_chart = html.Div(

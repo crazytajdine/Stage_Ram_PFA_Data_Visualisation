@@ -383,9 +383,9 @@ def add_callbacks():
         # )
 
         dt_min, dt_max = get_min_max_date_raw_df()
-
-        dt_min_iso = dt_min.strftime("%Y-%m-%d")
-        dt_max_iso = dt_max.strftime("%Y-%m-%d")
+        if dt_min or dt_max:
+            dt_min_iso = dt_min.strftime("%Y-%m-%d")
+            dt_max_iso = dt_max.strftime("%Y-%m-%d")
 
         def to_options(lst):
             logging.debug(

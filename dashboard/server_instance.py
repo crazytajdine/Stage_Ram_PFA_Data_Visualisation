@@ -5,7 +5,7 @@ app = None
 server = None
 
 
-from dash import Dash  # ⬅️ import the class
+from dash import Dash
 import dash_bootstrap_components as dbc
 
 
@@ -24,7 +24,7 @@ def init_server():
 
 def get_app() -> dash.Dash:
     global app, server
-    if app is None:
+    if server is None:
         print("Initializing server instance...")
         app, server = init_server()
     return app

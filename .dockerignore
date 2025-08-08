@@ -1,0 +1,7 @@
+poetry.lock
+main.spec
+*.ps1
+pyproject.toml
+logs/
+.vscode/
+.gitignore
