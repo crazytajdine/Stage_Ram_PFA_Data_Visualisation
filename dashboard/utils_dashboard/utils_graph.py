@@ -152,45 +152,6 @@ def create_bar_horizontal_figure(
     return fig
 
 
-def create_graph_bar_card(
-    df: pl.DataFrame,
-    x: str,
-    y: str,
-    title: str,
-    unit: str = "%",
-    color: str | None = None,
-    barmode: Literal["group", "stacked"] = "group",
-) -> dbc.Card | None:
-
-    fig = create_bar_figure(df, x, y, title, unit, color, barmode)
-    if fig is None:
-        return None
-
-    return dbc.Card(
-        dbc.CardBody([dcc.Graph(figure=fig)]),
-        className="mb-4",
-    )
-
-
-def create_graph_bar_horizontal_card(
-    df: pl.DataFrame,
-    x: str,
-    y: str,
-    title: str,
-    unit: str = "%",
-    color: str | None = None,
-    barmode: str = "group",
-) -> dbc.Card | None:
-
-    fig = create_bar_horizontal_figure(df, x, y, title, unit, color, barmode)
-    if fig is None:
-        return None
-
-    return dbc.Card(
-        dbc.CardBody([dcc.Graph(figure=fig)]),
-        className="mb-4",
-    )
-
 
 def generate_card_info_change(
     df: pl.DataFrame,

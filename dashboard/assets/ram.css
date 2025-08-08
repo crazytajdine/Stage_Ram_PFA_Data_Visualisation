@@ -32,12 +32,14 @@
   --border-light: rgba(0, 0, 0, 0.06);
   --border-medium: rgba(0, 0, 0, 0.09);
   --border-dark: rgba(0, 0, 0, 0.12);
+  --border-beige: rgba(212, 175, 55, 0.15);
   
   /* Text Colors */
   --text-primary: #2c3e50;
   --text-secondary: #5a6c7d;
   --text-muted: #94a3b8;
   --text-light: #ffffff;
+  --text-beige-dark: #8b7355;
   
   /* Blur Effects */
   --blur-sm: 8px;
@@ -51,17 +53,14 @@
   --bs-info: #17a2b8;
   --bs-link-color: #C40434;
   --bs-link-hover-color: #9a0225;
-  
-  /* Spacing */
-  --navbar-offset: 72px;
+  --gap: clamp(.6rem, 1.2vw, 1rem);
+  --pad: clamp(.6rem, 1.2vw, 1.25rem);
 }
-
 /* ============ Global Body - Professional Background ============ */
 body {
   background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
   background-attachment: fixed;
   min-height: 100vh;
-  padding-top: var(--navbar-offset);
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   color: var(--text-primary);
   font-size: 14px;
@@ -87,13 +86,11 @@ body::before {
       rgba(0, 0, 0, 0.01) 70px
     );
   pointer-events: none;
-  z-index: 1;
 }
 
 /* ============ Container Adjustments ============ */
 .container-fluid {
   position: relative;
-  z-index: 2;
 }
 
 /* ============ Navbar - Premium Glass Effect ============ */
@@ -108,7 +105,7 @@ body::before {
 
 /* RAM Logo - Professional */
 #ram-logo {
-  height: 52px;
+  height: clamp(34px, 4.5vw, 56px);
   margin: 0 1rem 0 0;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
   transition: transform 0.3s ease;
@@ -169,7 +166,7 @@ body::before {
 #main_title {
   color: var(--text-primary);
   font-weight: 700 !important;
-  font-size: 1.75rem !important;
+  font-size: clamp(1.3rem, 2.2vw + .5rem, 2.2rem) !important;
   letter-spacing: -0.03em;
   margin-bottom: 1.5rem !important;
   position: relative;
@@ -188,6 +185,11 @@ body::before {
 }
 
 /* ============ Filter Card - Beige Fumed Glass ============ */
+#filter-container {
+  position: relative;
+  z-index: 100;
+}
+
 #filter-container .card {
   background: linear-gradient(135deg, 
     rgba(245, 237, 220, 0.85) 0%, 
@@ -196,11 +198,17 @@ body::before {
   ) !important;
   backdrop-filter: blur(var(--blur-md));
   -webkit-backdrop-filter: blur(var(--blur-md));
-  border: 1px solid rgba(212, 175, 55, 0.15) !important;
+  border: 1px solid var(--border-beige) !important;
   box-shadow: 
     0 8px 32px rgba(212, 175, 55, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
   transition: all 0.3s ease;
+  overflow: visible !important;
+}
+
+#filter-container .card-body {
+  overflow: visible !important;
+  position: relative;
 }
 
 #filter-container .card:hover {
@@ -211,7 +219,7 @@ body::before {
 }
 
 #filter-container h4 {
-  color: var(--text-primary);
+  color: var(--text-beige-dark);
   font-weight: 600;
   font-size: 1.1rem;
   text-transform: uppercase;
@@ -220,7 +228,7 @@ body::before {
 }
 
 #filter-container label {
-  color: var(--text-secondary);
+  color: var(--text-beige-dark);
   font-weight: 600;
   font-size: 0.85rem;
   text-transform: uppercase;
@@ -228,7 +236,339 @@ body::before {
   margin-bottom: 0.5rem;
 }
 
-/* ============ Cards - Professional White Glass ============ */
+/* ============ FILTER FORM CONTROLS - BEIGE THEMED ============ */
+
+/* All dropdowns and inputs in filter container - Beige Theme */
+#filter-container .Select-control,
+#filter-container .dash-dropdown .Select-control,
+#filter-container .form-control,
+#filter-container .form-select,
+#filter-container input[type="text"],
+#filter-container input[type="number"],
+#filter-container select,
+#filter-container .dbc-input,
+#filter-container .DateInput_input {
+  background: linear-gradient(135deg, 
+    rgba(255, 253, 248, 0.9) 0%, 
+    rgba(250, 245, 235, 0.85) 100%
+  ) !important;
+  border: 1px solid rgba(212, 175, 55, 0.2) !important;
+  border-radius: 8px !important;
+  color: var(--text-beige-dark) !important;
+  font-size: 0.9rem !important;
+  transition: all 0.25s ease;
+  box-shadow: inset 0 1px 3px rgba(212, 175, 55, 0.05);
+}
+
+#filter-container .Select-control:hover,
+#filter-container .dash-dropdown:hover .Select-control,
+#filter-container .form-control:hover,
+#filter-container input:hover,
+#filter-container select:hover {
+  border-color: rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 
+    inset 0 1px 3px rgba(212, 175, 55, 0.08),
+    0 2px 8px rgba(212, 175, 55, 0.1);
+  background: linear-gradient(135deg, 
+    rgba(255, 253, 248, 0.95) 0%, 
+    rgba(250, 245, 235, 0.9) 100%
+  ) !important;
+}
+
+#filter-container .Select-control:focus,
+#filter-container .dash-dropdown.is-focused .Select-control,
+#filter-container .form-control:focus,
+#filter-container input:focus,
+#filter-container select:focus {
+  background: linear-gradient(135deg, 
+    rgba(255, 253, 248, 1) 0%, 
+    rgba(250, 245, 235, 0.95) 100%
+  ) !important;
+  border-color: var(--ram-gold) !important;
+  box-shadow: 
+    0 0 0 3px rgba(212, 175, 55, 0.1),
+    inset 0 1px 3px rgba(212, 175, 55, 0.05) !important;
+  outline: none !important;
+}
+
+/* Dropdown placeholders in filter */
+#filter-container .Select-placeholder,
+#filter-container .Select--single > .Select-control .Select-value-label {
+  color: rgba(139, 115, 85, 0.6) !important;
+}
+
+/* Dropdown arrows in filter */
+#filter-container .Select-arrow-zone {
+  color: var(--text-beige-dark) !important;
+}
+
+/* Selected values in filter dropdowns */
+#filter-container .Select-value-label {
+  color: var(--text-beige-dark) !important;
+}
+
+/* Multi-select tags in filter */
+#filter-container .Select--multi .Select-value {
+  background: linear-gradient(135deg, 
+    rgba(212, 175, 55, 0.15) 0%, 
+    rgba(212, 175, 55, 0.1) 100%
+  ) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  border-radius: 6px !important;
+  color: var(--text-beige-dark) !important;
+  font-weight: 500;
+  font-size: 0.85rem !important;
+}
+
+#filter-container .Select--multi .Select-value-icon {
+  border-right: 1px solid rgba(212, 175, 55, 0.3) !important;
+}
+
+#filter-container .Select--multi .Select-value-icon:hover {
+  background: rgba(212, 175, 55, 0.1) !important;
+  color: var(--ram-red) !important;
+}
+
+/* Input groups in filter */
+#filter-container .input-group {
+  position: relative;
+  overflow: visible !important;
+}
+
+#filter-container .input-group .form-control,
+#filter-container .input-group .form-select {
+  background: linear-gradient(135deg, 
+    rgba(255, 253, 248, 0.9) 0%, 
+    rgba(250, 245, 235, 0.85) 100%
+  ) !important;
+}
+
+/* ============ DROPDOWN MENUS - BEIGE THEMED ============ */
+
+/* All dropdown menus - positioned absolutely with high z-index */
+#filter-container .Select-menu-outer,
+#filter-container .dash-dropdown .Select-menu-outer {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 10000 !important;
+  margin-top: 4px !important;
+  background: linear-gradient(135deg, 
+    rgba(255, 253, 248, 0.98) 0%, 
+    rgba(250, 245, 235, 0.95) 100%
+  ) !important;
+  backdrop-filter: blur(var(--blur-lg));
+  -webkit-backdrop-filter: blur(var(--blur-lg));
+  border: 1px solid rgba(212, 175, 55, 0.2) !important;
+  border-radius: 8px !important;
+  box-shadow: 
+    0 10px 40px rgba(212, 175, 55, 0.15),
+    0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}
+
+#filter-container .Select-menu {
+  max-height: none !important;
+}
+
+#filter-container .Select-option {
+  padding: 0.5rem 0.875rem !important;
+  font-size: 0.9rem !important;
+  color: var(--text-beige-dark) !important;
+  transition: all 0.15s ease;
+  background: transparent !important;
+}
+
+#filter-container .Select-option:hover,
+#filter-container .Select-option.is-focused {
+  background: linear-gradient(135deg, 
+    rgba(212, 175, 55, 0.12) 0%, 
+    rgba(212, 175, 55, 0.08) 100%
+  ) !important;
+  color: var(--text-beige-dark) !important;
+}
+
+#filter-container .Select-option.is-selected {
+  background: linear-gradient(135deg, 
+    rgba(212, 175, 55, 0.2) 0%, 
+    rgba(212, 175, 55, 0.15) 100%
+  ) !important;
+  color: var(--text-beige-dark) !important;
+  font-weight: 600;
+}
+
+/* ============ DATE PICKER - BEIGE THEMED & FIXED Z-INDEX ============ */
+
+/* Date picker input container */
+#filter-container .DateRangePickerInput,
+#filter-container .DateInput {
+  background: linear-gradient(135deg, 
+    rgba(255, 253, 248, 0.9) 0%, 
+    rgba(250, 245, 235, 0.85) 100%
+  ) !important;
+  border: 1px solid rgba(212, 175, 55, 0.2) !important;
+  border-radius: 8px !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+
+#filter-container .DateInput_input {
+  background: transparent !important;
+  color: var(--text-beige-dark) !important;
+  font-weight: 500;
+  font-size: 0.9rem !important;
+  padding: 0.625rem 0.875rem !important;
+  border: none !important;
+}
+
+#filter-container .DateInput_input::placeholder {
+  color: rgba(139, 115, 85, 0.6) !important;
+}
+
+#filter-container .DateRangePickerInput__arrow {
+  color: var(--text-beige-dark) !important;
+}
+
+
+
+
+
+/* Calendar month */
+.CalendarMonth_caption {
+  color: var(--text-beige-dark) !important;
+  font-weight: 600 !important;
+}
+
+
+
+.CalendarDay__selected,
+.CalendarDay__selected_span {
+  background: linear-gradient(135deg, 
+    rgba(212, 175, 55, 0.3) 0%, 
+    rgba(212, 175, 55, 0.25) 100%
+  ) !important;
+  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+  color: var(--text-beige-dark) !important;
+}
+
+.CalendarDay__hovered_span,
+.CalendarDay__hovered_span:hover {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  color: var(--text-beige-dark) !important;
+}
+/* Nudge the "X" clear button a bit to the right */
+#filter-container .DateRangePickerInput_clearDates,
+#filter-container .DateInput_clearDate {
+  right: -10px !important; /* adjust value as needed */
+}
+
+
+/* Date picker portal overlay - ensure it's on top */
+
+
+/* Clear all position restrictions from parent elements */
+#filter-container .row,
+#filter-container .col,
+#filter-container .col-md-6,
+#filter-container .form-group,
+#filter-container .mb-3 {
+  position: static !important;
+  overflow: visible !important;
+  z-index: auto !important;
+}
+
+/* ============ Buttons in Filter - Matching Theme ============ */
+
+/* Analyser Button */
+#filter-container .btn-primary,
+#filter-container .btn-glass-frame {
+  background: linear-gradient(135deg, var(--ram-red) 0%, var(--ram-red-dark) 100%) !important;
+  color: var(--text-light) !important;
+  border: 1px solid var(--ram-red-dark) !important;
+  box-shadow: 0 4px 14px rgba(196, 4, 52, 0.25) !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.25s ease;
+    border-radius: 8px !important;
+}
+
+#filter-container .btn-primary:hover,
+#filter-container .btn-glass-frame:hover {
+  background: linear-gradient(135deg, var(--ram-red-light) 0%, var(--ram-red) 100%) !important;
+  transform: scale(1.01);
+  box-shadow: 0 6px 20px rgba(196, 4, 52, 0.35) !important;
+}
+
+/* Warning state for Analyser button */
+#filter-container .btn-warning {
+  background: linear-gradient(135deg, 
+    rgba(212, 175, 55, 0.9) 0%, 
+    rgba(184, 149, 35, 0.9) 100%
+  ) !important;
+  color: var(--text-light) !important;
+  border: 1px solid rgba(184, 149, 35, 0.9) !important;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.3) !important;
+}
+
+#filter-container .btn-warning:hover {
+  background: linear-gradient(135deg, 
+    rgba(212, 175, 55, 1) 0%, 
+    rgba(184, 149, 35, 1) 100%
+  ) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4) !important;
+}
+
+/* ============ Ensure dropdown and date picker visibility ============ */
+
+/* Remove any clipping from containers */
+.card, .card-body {
+  overflow: visible !important;
+}
+
+/* Ensure dropdowns can overflow their containers */
+.dash-dropdown {
+  position: relative !important;
+}
+
+.Select-menu-outer {
+  position: absolute !important;
+  z-index: 10000 !important;
+}
+
+/* Portal-based date picker */
+.DateRangePicker_picker__portal,
+.SingleDatePicker_picker__portal {
+  z-index: 100000 !important;
+}
+
+/* ============ Scrollbar styling for dropdowns ============ */
+#filter-container .Select-menu-outer::-webkit-scrollbar {
+  width: 8px;
+}
+
+#filter-container .Select-menu-outer::-webkit-scrollbar-track {
+  background: rgba(212, 175, 55, 0.05);
+  border-radius: 4px;
+}
+
+#filter-container .Select-menu-outer::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.3);
+  border-radius: 4px;
+}
+
+#filter-container .Select-menu-outer::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.4);
+}
+
+/* ============ Rest of your existing styles (unchanged) ============ */
+
+/* Cards - Professional White Glass */
 .card {
   background: var(--glass-white-heavy) !important;
   backdrop-filter: blur(var(--blur-sm));
@@ -265,7 +605,145 @@ body::before {
   background: transparent !important;
 }
 
-/* ============ Result Messages - Green Glass ============ */
+/* Tables - Professional Grey Glass */
+.dash-table-container {
+  background: linear-gradient(135deg, 
+    rgba(248, 249, 250, 0.95) 0%, 
+    rgba(255, 255, 255, 0.9) 100%
+  ) !important;
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  border: 1px solid var(--border-light) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--shadow-md) !important;
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.dash-table-container table {
+  background: transparent !important;
+}
+
+.dash-table-container th {
+  background: linear-gradient(135deg, 
+    rgba(233, 236, 239, 0.95) 0%, 
+    rgba(241, 243, 245, 0.95) 100%
+  ) !important;
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+  font-size: 0.8rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  border-bottom: 2px solid var(--border-medium) !important;
+  padding: 0.875rem !important;
+  white-space: nowrap;
+}
+
+.dash-table-container td {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
+  padding: 0.75rem !important;
+  font-size: 0.9rem;
+}
+
+.dash-table-container tbody tr:nth-child(odd) td {
+  background: rgba(248, 249, 250, 0.3) !important;
+}
+
+.dash-table-container tbody tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.5) !important;
+}
+
+.dash-table-container tbody tr:hover td {
+  background: rgba(196, 4, 52, 0.02) !important;
+  transition: background 0.2s ease;
+}
+
+/* Graphs - Professional Glass Containers */
+.graph {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.9) 0%, 
+    rgba(248, 249, 250, 0.85) 100%
+  );
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s ease;
+  margin-bottom: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  margin-top: 1.5rem;
+}
+
+.graph::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    var(--ram-red) 0%, 
+    var(--ram-gold) 50%, 
+    var(--ram-red) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.graph:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-medium);
+}
+
+.graph .main-svg {
+  background: transparent !important;
+}
+
+.graph .bg {
+  fill: transparent !important;
+}
+
+/* Export Button */
+.btn-export {
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%) !important;
+  color: var(--text-light) !important;
+  border: 1px solid #2c3e50 !important;
+  box-shadow: 0 4px 14px rgba(44, 62, 80, 0.25) !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 8px;
+  padding: 0.625rem 1.25rem;
+  transition: all 0.25s ease;
+}
+
+.btn-export:hover {
+  background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(44, 62, 80, 0.35) !important;
+}
+
+.btn-export i {
+  font-size: 1rem;
+}
+
+/* Alert Messages */
 .alert-success, #result-message.alert-success {
   background: linear-gradient(135deg, 
     rgba(40, 167, 69, 0.08) 0%, 
@@ -300,388 +778,7 @@ body::before {
   color: #721c24 !important;
 }
 
-/* ============ Tables - Professional Grey Glass ============ */
-.dash-table-container {
-  background: linear-gradient(135deg, 
-    rgba(248, 249, 250, 0.95) 0%, 
-    rgba(255, 255, 255, 0.9) 100%
-  ) !important;
-  backdrop-filter: blur(var(--blur-sm));
-  -webkit-backdrop-filter: blur(var(--blur-sm));
-  border: 1px solid var(--border-light) !important;
-  border-radius: 12px !important;
-  box-shadow: var(--shadow-md) !important;
-  overflow: hidden;
-  margin-top: 1rem;
-}
-
-.dash-table-container table {
-  background: transparent !important;
-}
-
-/* Table Headers - Premium Style */
-.dash-table-container th {
-  background: linear-gradient(135deg, 
-    rgba(233, 236, 239, 0.95) 0%, 
-    rgba(241, 243, 245, 0.95) 100%
-  ) !important;
-  color: var(--text-primary) !important;
-  font-weight: 600 !important;
-  font-size: 0.8rem !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.05em !important;
-  border-bottom: 2px solid var(--border-medium) !important;
-  padding: 0.875rem !important;
-  white-space: nowrap;
-}
-
-/* Table Cells */
-.dash-table-container td {
-  background: transparent !important;
-  color: var(--text-secondary) !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
-  padding: 0.75rem !important;
-  font-size: 0.9rem;
-}
-
-/* Alternating Rows - Subtle */
-.dash-table-container tbody tr:nth-child(odd) td {
-  background: rgba(248, 249, 250, 0.3) !important;
-}
-
-.dash-table-container tbody tr:nth-child(even) td {
-  background: rgba(255, 255, 255, 0.5) !important;
-}
-
-.dash-table-container tbody tr:hover td {
-  background: rgba(196, 4, 52, 0.02) !important;
-  transition: background 0.2s ease;
-}
-
-/* ============ Graphs - Professional Glass Containers ============ */
-.graph {
-  background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.9) 0%, 
-    rgba(248, 249, 250, 0.85) 100%
-  );
-  backdrop-filter: blur(var(--blur-sm));
-  -webkit-backdrop-filter: blur(var(--blur-sm));
-  border: 1px solid var(--border-light);
-  border-radius: 12px;
-  padding: 1.25rem;
-  box-shadow: var(--shadow-md);
-  transition: all 0.3s ease;
-  margin-bottom: 1.5rem;
-  position: relative;
-  overflow: hidden;
-}
-
-.graph::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, 
-    var(--ram-red) 0%, 
-    var(--ram-gold) 50%, 
-    var(--ram-red) 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 3s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-.graph:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--border-medium);
-}
-
-/* Graph SVG Styling */
-.graph .main-svg {
-  background: transparent !important;
-}
-
-.graph .bg {
-  fill: transparent !important;
-}
-
-/* ============ Buttons - Professional Styles ============ */
-
-/* Base Button Style */
-.btn, button {
-  border-radius: 8px;
-  padding: 0.625rem 1.25rem;
-  font-weight: 600;
-  font-size: 0.9rem;
-  letter-spacing: 0.01em;
-  transition: all 0.25s ease;
-  border: 1px solid transparent;
-  position: relative;
-  overflow: hidden;
-}
-
-/* Primary Button - Analyser */
-.btn-primary, .btn-glass-frame {
-  background: linear-gradient(135deg, var(--ram-red) 0%, var(--ram-red-dark) 100%) !important;
-  color: var(--text-light) !important;
-  border: 1px solid var(--ram-red-dark) !important;
-  box-shadow: 0 4px 14px rgba(196, 4, 52, 0.25) !important;
-}
-
-.btn-primary:hover, .btn-glass-frame:hover {
-  background: linear-gradient(135deg, var(--ram-red-light) 0%, var(--ram-red) 100%) !important;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(196, 4, 52, 0.35) !important;
-}
-
-.btn-primary:active, .btn-glass-frame:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(196, 4, 52, 0.25) !important;
-}
-
-/* Warning Button - Modified State */
-.btn-warning {
-  background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important;
-  color: var(--text-light) !important;
-  border: 1px solid #ff9800 !important;
-  box-shadow: 0 4px 14px rgba(255, 152, 0, 0.25) !important;
-}
-
-.btn-warning:hover {
-  background: linear-gradient(135deg, #ffca28 0%, #ffa726 100%) !important;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.35) !important;
-}
-
-/* Export Button - Professional Dark */
-.btn-export {
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%) !important;
-  color: var(--text-light) !important;
-  border: 1px solid #2c3e50 !important;
-  box-shadow: 0 4px 14px rgba(44, 62, 80, 0.25) !important;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.btn-export:hover {
-  background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%) !important;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(44, 62, 80, 0.35) !important;
-}
-
-.btn-export i {
-  font-size: 1rem;
-}
-
-/* Glossy Button - Settings */
-.btn-glossy {
-  background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.9) 0%, 
-    rgba(248, 249, 250, 0.85) 100%
-  ) !important;
-  color: var(--text-primary) !important;
-  border: 1px solid var(--border-medium) !important;
-  box-shadow: 
-    0 4px 14px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 1) !important;
-}
-
-.btn-glossy:hover {
-  background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 1) 0%, 
-    rgba(248, 249, 250, 0.95) 100%
-  ) !important;
-  transform: translateY(-2px);
-  box-shadow: 
-    0 6px 20px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 1) !important;
-}
-
-/* ============ Form Controls - Professional Glass ============ */
-
-/* Dropdowns & Inputs */
-.Select-control, .dash-dropdown, 
-.form-control, .form-select, 
-input[type="text"], input[type="number"], 
-select {
-  background: rgba(255, 255, 255, 0.8) !important;
-  backdrop-filter: blur(var(--blur-sm));
-  -webkit-backdrop-filter: blur(var(--blur-sm));
-  border: 1px solid var(--border-light) !important;
-  border-radius: 8px !important;
-  color: var(--text-primary) !important;
-  font-size: 0.9rem !important;
-  padding: 0.625rem 0.875rem !important;
-  transition: all 0.25s ease;
-  box-shadow: var(--shadow-sm);
-}
-
-.Select-control:hover, .dash-dropdown:hover,
-.form-control:hover, .form-select:hover,
-input:hover, select:hover {
-  border-color: var(--border-medium) !important;
-  box-shadow: var(--shadow-md);
-}
-
-.Select-control:focus, .dash-dropdown:focus,
-.form-control:focus, .form-select:focus,
-input:focus, select:focus {
-  background: rgba(255, 255, 255, 0.95) !important;
-  border-color: var(--ram-red) !important;
-  box-shadow: 0 0 0 3px rgba(196, 4, 52, 0.1) !important;
-  outline: none !important;
-}
-
-/* Dropdown Menu */
-.Select-menu-outer, .dash-dropdown .Select-menu-outer {
-  background: rgba(255, 255, 255, 0.98) !important;
-  backdrop-filter: blur(var(--blur-lg));
-  -webkit-backdrop-filter: blur(var(--blur-lg));
-  border: 1px solid var(--border-light) !important;
-  border-radius: 8px !important;
-  box-shadow: var(--shadow-xl) !important;
-  margin-top: 4px;
-}
-
-.Select-option {
-  padding: 0.5rem 0.875rem !important;
-  font-size: 0.9rem !important;
-  transition: all 0.15s ease;
-}
-
-.Select-option:hover {
-  background: rgba(196, 4, 52, 0.08) !important;
-}
-
-.Select-option.is-selected {
-  background: rgba(196, 4, 52, 0.12) !important;
-  color: var(--ram-red-dark) !important;
-  font-weight: 600;
-}
-
-/* Multi-select Tags */
-.Select--multi .Select-value {
-  background: linear-gradient(135deg, 
-    rgba(196, 4, 52, 0.1) 0%, 
-    rgba(196, 4, 52, 0.08) 100%
-  ) !important;
-  border: 1px solid rgba(196, 4, 52, 0.2) !important;
-  border-radius: 6px !important;
-  color: var(--ram-red-dark) !important;
-  font-weight: 500;
-  font-size: 0.85rem !important;
-}
-
-/* ============ Date Picker - Professional Style ============ */
-.DateRangePickerInput, .DateInput {
-  background: rgba(255, 255, 255, 0.8) !important;
-  backdrop-filter: blur(var(--blur-sm));
-  -webkit-backdrop-filter: blur(var(--blur-sm));
-  border: 1px solid var(--border-light) !important;
-  border-radius: 8px !important;
-  overflow: hidden;
-}
-
-.DateInput_input {
-  background: transparent !important;
-  color: var(--text-primary) !important;
-  font-weight: 500;
-  font-size: 0.9rem !important;
-  padding: 0.625rem 0.875rem !important;
-}
-
-.DateRangePicker_picker {
-  background: rgba(255, 255, 255, 0.98) !important;
-  backdrop-filter: blur(var(--blur-lg));
-  -webkit-backdrop-filter: blur(var(--blur-lg));
-  border: 1px solid var(--border-light) !important;
-  border-radius: 12px !important;
-  box-shadow: var(--shadow-xl) !important;
-}
-
-/* ============ Tabs - Professional Design ============ */
-.nav-tabs {
-  border-bottom: 2px solid var(--border-light) !important;
-  margin-bottom: 1.5rem;
-}
-
-.nav-tabs .nav-link {
-  background: transparent !important;
-  border: none !important;
-  border-bottom: 3px solid transparent !important;
-  border-radius: 0 !important;
-  color: var(--text-secondary) !important;
-  font-weight: 500;
-  font-size: 0.95rem;
-  padding: 0.75rem 1.25rem !important;
-  margin-right: 0.5rem;
-  transition: all 0.25s ease;
-}
-
-.nav-tabs .nav-link:hover {
-  color: var(--ram-red) !important;
-  border-bottom-color: rgba(196, 4, 52, 0.3) !important;
-  background: rgba(196, 4, 52, 0.02) !important;
-}
-
-.nav-tabs .nav-link.active {
-  color: var(--ram-red) !important;
-  border-bottom-color: var(--ram-red) !important;
-  background: rgba(196, 4, 52, 0.04) !important;
-  font-weight: 600;
-}
-
-/* Tab Content */
-.tab-content {
-  background: transparent;
-  padding-top: 1rem;
-}
-
-/* ============ Statistics Cards - Premium Style ============ */
-.stats-card {
-  background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.95) 0%, 
-    rgba(248, 249, 250, 0.9) 100%
-  ) !important;
-  backdrop-filter: blur(var(--blur-sm));
-  -webkit-backdrop-filter: blur(var(--blur-sm));
-  border: 1px solid var(--border-light) !important;
-  border-radius: 12px !important;
-  padding: 1.5rem !important;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.stats-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: linear-gradient(180deg, var(--ram-red) 0%, var(--ram-gold) 100%);
-}
-
-.stats-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-lg) !important;
-}
-
-/* ============ Scrollbar - Professional Style ============ */
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -704,118 +801,7 @@ input:focus, select:focus {
   background-clip: padding-box;
 }
 
-/* ============ About Cards - Professional ============ */
-.about-card {
-  background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.9) 0%, 
-    rgba(248, 249, 250, 0.85) 100%
-  ) !important;
-  backdrop-filter: blur(var(--blur-sm));
-  -webkit-backdrop-filter: blur(var(--blur-sm));
-  border: 1px solid var(--border-light) !important;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.about-card::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -50%;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(
-    circle,
-    rgba(196, 4, 52, 0.05) 0%,
-    transparent 70%
-  );
-  transition: all 0.5s ease;
-}
-
-.about-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-lg) !important;
-}
-
-.about-card:hover::after {
-  top: -25%;
-  right: -25%;
-}
-
-.about-card .card-header {
-  background: var(--text-primary) !important;
-  color: var(--text-light) !important;
-  font-size: 0.9rem !important;
-  padding: 0.75rem 1rem !important;
-}
-
-/* ============ Loading Spinner - Professional ============ */
-.dash-spinner {
-  background: rgba(255, 255, 255, 0.95) !important;
-  backdrop-filter: blur(var(--blur-lg));
-  -webkit-backdrop-filter: blur(var(--blur-lg));
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: var(--shadow-lg);
-}
-
-/* ============ Responsive Design ============ */
-@media (max-width: 992px) {
-  :root {
-    --navbar-offset: 65px;
-  }
-  
-  .navbar-title {
-    font-size: 1.15rem;
-  }
-  
-  #ram-logo {
-    height: 45px;
-  }
-}
-
-@media (max-width: 768px) {
-  .card, .graph {
-    border-radius: 8px !important;
-    margin-bottom: 1rem;
-  }
-  
-  .btn {
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
-  }
-  
-  #main_title {
-    font-size: 1.5rem !important;
-  }
-}
-
-/* ============ Print Styles ============ */
-@media print {
-  body {
-    background: white !important;
-  }
-  
-  .navbar {
-    display: none !important;
-  }
-  
-  .card, .graph, .dash-table-container {
-    background: white !important;
-    border: 1px solid #dee2e6 !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    page-break-inside: avoid;
-  }
-  
-  .btn {
-    display: none !important;
-  }
-}
-
-/* ============ Animations ============ */
+/* Animations */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -832,45 +818,193 @@ input:focus, select:focus {
   animation-fill-mode: both;
 }
 
-/* Stagger animation for multiple elements */
-.card:nth-child(1), .graph:nth-child(1) { animation-delay: 0.05s; }
-.card:nth-child(2), .graph:nth-child(2) { animation-delay: 0.1s; }
-.card:nth-child(3), .graph:nth-child(3) { animation-delay: 0.15s; }
-.card:nth-child(4), .graph:nth-child(4) { animation-delay: 0.2s; }
-.card:nth-child(5), .graph:nth-child(5) { animation-delay: 0.25s; }
+/* Fluid defaults (fewer hard breakpoints) */
+.navbar-title { font-size: clamp(1rem, 1.25vw + 0.6rem, 1.6rem); }
+#ram-logo     { height: clamp(34px, 4.5vw, 56px); }
+#main_title   { font-size: clamp(1.4rem, 2.2vw + 0.5rem, 2.2rem) !important; }
+.btn          { padding:.5rem 1.1rem; font-size: clamp(.85rem, .6vw + .7rem, 1rem); }
 
-/* ============ Utility Classes ============ */
-.glass-premium {
-  background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.95) 0%, 
-    rgba(248, 249, 250, 0.9) 100%
-  ) !important;
-  backdrop-filter: blur(var(--blur-md));
-  -webkit-backdrop-filter: blur(var(--blur-md));
-  border: 1px solid var(--border-light) !important;
-  border-radius: 12px !important;
-  box-shadow: var(--shadow-md) !important;
+html { -webkit-text-size-adjust: 100%; } /* Safari zoom consistency */
+
+
+
+
+/* Phones */
+
+/* NAVBAR — fluid + wraps on small widths */
+/* NAVBAR — fluid + wraps on small widths */
+header, .navbar, .navbar .container-fluid { max-width: 100%; min-width: 0; }
+.navbar, .navbar .container-fluid{ display:flex; align-items:center; flex-wrap:wrap; gap:.25rem .5rem; }
+.navbar .navbar-brand{ display:flex; align-items:center; gap:.5rem; flex:1 1 auto; min-width:0; }
+.navbar-title{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.navbar .navbar-nav{ display:flex; flex-wrap:wrap; gap:.25rem; flex:1 1 100%; min-width:0; }
+.navbar .navbar-end{ margin-left:auto; flex:0 0 auto; }
+.navbar .nav-link{ padding:.55rem .9rem !important; font-size:clamp(.85rem,.55vw + .7rem,.95rem); }
+
+
+/* ==== NAVBAR: two-column grid on narrow screens (brand left stacked, actions right stacked) ==== */
+
+/* --- NAVBAR: brand fixed left, actions wrap under first button --- */
+header, .navbar, .navbar .container-fluid { max-width:100%; min-width:0; }
+.navbar * { min-width:0; }
+
+/* Layout: two columns – brand (auto) + actions (flex-wrap) */
+.navbar .container-fluid{
+  display:grid;
+  grid-template-columns: auto 1fr;
+  align-items:center;
+  column-gap:.75rem;
 }
 
-.text-gradient {
-  background: linear-gradient(135deg, var(--ram-red) 0%, var(--ram-gold) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+/* LEFT: brand stays left, logo + title inline */
+.navbar .navbar-brand{
+  grid-column:1;
+  display:flex; align-items:center; gap:.5rem;
+}
+#ram-logo{ height: clamp(34px, 3.2vw, 48px); }
+.navbar-title{ font-size: clamp(1.05rem, 1.2vw + .4rem, 1.35rem); }
+
+/* RIGHT WRAPPER: wraps lines to the right */
+.navbar .navbar-actions{
+  grid-column:2;
+  display:flex;
+  flex-wrap:wrap;                 /* ← progressive wrap */
+  align-items:center;
+  justify-content:flex-end;       /* align each line to the right edge */
+  align-content:flex-start;       /* next lines stack UNDER the first */
+  gap:.25rem .5rem;
 }
 
-.border-gradient {
-  border: 2px solid transparent !important;
-  background: linear-gradient(white, white) padding-box,
-              linear-gradient(135deg, var(--ram-red), var(--ram-gold)) border-box !important;
+/* Buttons block participates in the wrap */
+.navbar .navbar-actions .navbar-nav{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.25rem .5rem;
 }
 
-/* Professional hover lift effect */
-.hover-lift {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* Logout/user sits in the same wrapping flow */
+.navbar .navbar-actions .navbar-end{
+  display:flex; align-items:center; gap:.4rem;
 }
 
-.hover-lift:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-xl) !important;
+/* Buttons sizing: don’t stretch, wrap instead */
+.navbar .nav-link{
+  flex:0 0 auto;                  /* keep natural width */
+  width:max-content;              /* avoid full row width */
+  padding:.55rem .9rem !important;
+  font-size: clamp(.88rem, .6vw + .66rem, .95rem);
+}
+
+/* Phones: force a clean one-column list on the right */
+@media (max-width: 576px){
+  .navbar .navbar-actions{
+    flex-direction:column;
+    align-items:flex-end;         /* keep right-aligned */
+  }
+  .navbar .navbar-actions .navbar-nav{
+    flex-direction:column;        /* one under the other */
+    align-items:flex-end;
+    gap:.25rem;
+  }
+  #ram-logo{ height:32px; }
+  .navbar-title{ font-size:.98rem; }
+}
+
+/* Push navbar buttons to the right (and keep wrapping nicely) */
+.navbar .navbar-nav{
+  flex: 0 1 auto !important;      /* don't occupy the whole row */
+  margin-left: auto !important;    /* slide the block to the right */
+  display: flex;                   /* ensure it's flex */
+  flex-wrap: wrap;                 /* allow wrapping */
+  justify-content: flex-end;       /* right-align each line */
+  align-content: flex-start;       /* next lines stack under the first */
+  gap: .25rem .5rem;
+}
+
+/* If you use the .navbar-actions wrapper from earlier, also add: */
+.navbar .navbar-actions{
+  justify-content: flex-end;       /* right-align content inside the wrapper */
+  justify-self: end;               /* if container-fluid is a grid */
+}
+/* Logout – distinct, on-brand */
+.navbar .btn-logout{
+  display:inline-flex; align-items:center; gap:.5rem;
+  padding:.55rem 1rem;
+  border-radius:0.5rem;                             /* a bit more pill-y */
+  background: rgba(255,255,255,.6) !important;     /* glass */
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  color: var(--ram-red) !important;                /* different from other tabs */
+  border: 1.25px solid var(--ram-red) !important;
+  font-weight: 700; letter-spacing:.02em;
+  box-shadow: var(--shadow-sm);
+  margin-left: auto;                                /* pin to right */
+  transition: background .2s ease, color .2s ease,
+              border-color .2s ease, box-shadow .2s ease, transform .12s ease;
+  cursor: pointer;
+}
+.navbar .btn-logout:hover,
+.navbar .btn-logout:active{
+  background: linear-gradient(135deg, var(--ram-red), var(--ram-red-dark)) !important;
+  color: var(--text-light) !important;
+  border-color: var(--ram-red-dark) !important;
+  box-shadow: 0 6px 18px rgba(196,4,52,.28);
+  transform: translateY(-1px);
+}
+.navbar .btn-logout:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(196,4,52,.18), 0 6px 18px rgba(196,4,52,.28);
+}
+.navbar .btn-logout .icon{ font-size:1rem; line-height:0; }
+
+/* Compact on phones: icon-only */
+@media (max-width:576px){
+  .navbar .btn-logout .label{ display:none; }
+  .navbar .btn-logout{ padding:.55rem .7rem; }
+}
+
+/* Results banner: stable layout and sizing */
+#result-message.alert-success{
+  display: grid;
+  grid-template-columns: auto 1fr;   /* icon/pill + free text area */
+  align-items: center;
+  gap: .75rem;
+  width: 100%;
+  max-width: none;
+  min-height: 72px;                  /* keeps height steady */
+  padding: 1rem 1.25rem !important;
+  animation: none !important;        /* stop re-animating on resize */
+}
+
+/* The green pill: don't let it resize/wrap */
+#result-message.alert-success .count-pill{
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .6rem .9rem;
+  background: rgba(40,167,69,.10);
+  border: 1px solid rgba(40,167,69,.25);
+  border-radius: 8px;
+  color: #155724;
+  font-weight: 600;
+  white-space: nowrap;               /* <-- no wrapping */
+  flex: 0 0 auto;                    /* <-- no stretching */
+}
+
+/* Make sure long text on the right can shrink gracefully */
+#result-message.alert-success .message-text{
+  min-width: 0;                      /* allow ellipsis */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Small screens: stack cleanly without jitter */
+@media (max-width: 576px){
+  #result-message.alert-success{
+    grid-template-columns: 1fr;      /* stack */
+    row-gap: .5rem;
+  }
+  #result-message.alert-success .count-pill{
+    justify-self: start;             /* keep at left */
+  }
 }
