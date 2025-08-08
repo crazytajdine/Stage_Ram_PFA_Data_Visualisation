@@ -70,12 +70,9 @@ def add_export_callbacks(
         allow_duplicate=True,
     )
     def export_to_excel(n_clicks, table_data, table_columns):
-        print(table_columns)
-        print(bool(table_data))
-        print(n_clicks)
+
         if (not n_clicks) or (not table_data) or (not table_columns):
             raise dash.exceptions.PreventUpdate
-        print("ff")
         rename_map = {col["id"]: col["name"] for col in table_columns}
 
         df = pl.DataFrame(table_data).rename(rename_map)
@@ -83,5 +80,5 @@ def add_export_callbacks(
         if df.is_empty():
             raise dash.exceptions.PreventUpdate
 
-        print(f"Exporting {name} to Excel")
+        logging.info(f"Exporting {name} to Excel")
         return export_excel(df, name, with_filter)
