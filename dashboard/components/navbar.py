@@ -42,7 +42,7 @@ navbar = dbc.Navbar(
                     ),
                     
                 ],
-                className="d-flex align-items-center ",
+                className="d-flex align-items-center ms-auto",
             ),
         ],
         fluid=True,
