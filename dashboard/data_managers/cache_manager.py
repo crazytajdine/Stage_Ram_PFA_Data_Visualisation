@@ -1,8 +1,8 @@
 import json
-from typing import Any
+from typing import Any, Optional
 import redis
 import logging
-
+import functools
 
 redis_server: redis.Redis = None
 NAME_TABLE = "calculations"
@@ -96,12 +96,14 @@ def delete_old_keys() -> bool:
     return deleted_all
 
 
-def add_calculation_to_cache(key, value) -> bool:
+def set_calculation_to_cache(
+    key: str, value: Any, expire_seconds: Optional[int] = None
+) -> bool:
     r = get_redis_server()
 
     try:
         json_value = json.dumps(value)
-        result = r.set(key, json_value)
+        result = r.set(key, json_value, ex=expire_seconds)
         logging.info(f"Set cache key='{key}' with value={value}, success={result}")
         return bool(result)
     except Exception as e:
@@ -124,3 +126,26 @@ def get_calculation_from_cache(key) -> Any:
     except Exception as e:
         logging.error(f"Failed to get cache for key '{key}': {e}")
         return None
+
+
+def cache_result(redis_key_prefix: str, expire_seconds: int = 3600):
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            key = join_key(redis_key_prefix)
+            cached = get_calculation_from_cache(key)
+            if cached:
+                logging.debug(f"Cache hit for key {key}")
+                return json.loads(cached)
+            logging.debug(f"Cache miss for key {key}, running function.")
+            result = func(*args, **kwargs)
+            try:
+                set_calculation_to_cache(key, result, expire_seconds)
+            except Exception as e:
+                logging.warning(f"Failed to cache result for key {key}: {e}")
+            return result
+
+        return wrapper
+
+    return decorator
