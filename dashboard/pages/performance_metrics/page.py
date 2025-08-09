@@ -1,3 +1,4 @@
+import time
 import dash
 import dash_bootstrap_components as dbc
 from dash import Output, dash_table, dcc
@@ -157,14 +158,11 @@ def create_layout(
     _,
 ):
 
-    df = get_df()
-    if df is None:
-        return dash.no_update
-
     result = calculate_result()
 
     if result is None:
         return dash.no_update
+
     card1 = generate_card_info_change(
         result,
         COL_NAME_PER_FLIGHTS_NOT_DELAYED,

@@ -10,6 +10,7 @@ from data_managers.excel_manager import (
     get_total_df,
 )
 
+from data_managers.cache_manager import cache_result
 
 COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY = "flight_with_delay"
 COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_GTE_15MIN = "flight_with_delay_gte_15min"
@@ -83,6 +84,7 @@ def calculate_graph_info_with_period(df: pl.LazyFrame) -> pl.LazyFrame:
                 / (pl.col(COL_NAME_TOTAL_COUNT))
             )
             .mul(100)
+            .round(2)
             .alias(COL_NAME_PER_FLIGHTS_NOT_DELAYED),
             ## delay > 15
             pl.lit(1)
@@ -91,6 +93,7 @@ def calculate_graph_info_with_period(df: pl.LazyFrame) -> pl.LazyFrame:
                 / (pl.col(COL_NAME_TOTAL_COUNT))
             )
             .mul(100)
+            .round(2)
             .alias(COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN),
             ## delay > 15 min for 41 42
             pl.lit(1)
@@ -101,6 +104,7 @@ def calculate_graph_info_with_period(df: pl.LazyFrame) -> pl.LazyFrame:
                 )
             )
             .mul(100)
+            .round(2)
             .alias(COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46),
         ]
     )
@@ -108,7 +112,9 @@ def calculate_graph_info_with_period(df: pl.LazyFrame) -> pl.LazyFrame:
     return joined_df
 
 
+@cache_result("preformance_metrics")
 def calculate_result() -> Optional[pl.DataFrame]:
+
     df = get_df()
 
     if df is None:

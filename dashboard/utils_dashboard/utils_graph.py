@@ -28,8 +28,6 @@ def create_bar_figure(
 
     if x not in df.columns or y not in df.columns:
         return None
-    print(f"Creating bar figure with x: {x}, y: {y}, title: {title}")
-    print(f"DataFrame columns: {df.columns}")
     # Create a new column for text display
     df = df.with_columns(
         pl.col(y)
