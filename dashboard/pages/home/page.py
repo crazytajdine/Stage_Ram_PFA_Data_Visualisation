@@ -116,9 +116,9 @@ def calculate_period_distribution(df: pl.DataFrame) -> pl.DataFrame:
 def calculate_delay_pct(df: pl.LazyFrame) -> pl.LazyFrame:
     # 1) Categorize delays
     df = df.with_columns(
-        pl.when(pl.col("DELAY_TIME") >= 15)
-        .then(pl.lit("flights with delay ≥ 15 min"))
-        .otherwise(pl.lit("flights with delay < 15 min"))
+        pl.when(pl.col("DELAY_TIME") > 15)
+        .then(pl.lit("flights with delay > 15 min"))
+        .otherwise(pl.lit("flights with delay ≤ 15 min"))
         .alias(COL_NAME_CATEGORY_GT_15MIN)
     )
 
@@ -141,19 +141,21 @@ def calculate_delay_pct(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
     return res
+
+
 # utils.py (ou en haut de ton fichier)
 GLASS_STYLE = {
-    "background": "rgba(255,255,255,0.15)",     # voile translucide
-    "backdropFilter": "blur(12px)",             # flou derrière
-    "WebkitBackdropFilter": "blur(12px)",       # Safari
+    "background": "rgba(255,255,255,0.15)",  # voile translucide
+    "backdropFilter": "blur(12px)",  # flou derrière
+    "WebkitBackdropFilter": "blur(12px)",  # Safari
     "border": "1px solid rgba(255,255,255,0.40)",
     "borderRadius": "12px",
     "boxShadow": "0 6px 24px rgba(0,0,0,0.12)",
-    "overflowX": "auto",                        # ce que tu avais déjà
+    "overflowX": "auto",  # ce que tu avais déjà
     "marginTop": "10px",
     "marginBottom": "40px",
 }
-style_table=GLASS_STYLE,
+style_table = (GLASS_STYLE,)
 
 
 layout = dbc.Container(
@@ -162,8 +164,12 @@ layout = dbc.Container(
             [
                 dbc.Alert(
                     [
-                        html.I(className="bi bi-check-circle me-2"),   # icône Bootstrap Icons
-                        html.Span(id="result-message-text"),           # ↔ « 268 result(s) found »
+                        html.I(
+                            className="bi bi-check-circle me-2"
+                        ),  # icône Bootstrap Icons
+                        html.Span(
+                            id="result-message-text"
+                        ),  # ↔ « 268 result(s) found »
                     ],
                     id="result-message",
                     color="success",
@@ -173,11 +179,11 @@ layout = dbc.Container(
                 ),
                 # Premier bouton + tableau + export
                 dbc.Button(
-                            [html.I(className="bi bi-download me-2"), "Exporter Excel"],
-                            id="result-export-btn",
-                            className="btn-export mt-2",
-                            n_clicks=0,
-                        ),
+                    [html.I(className="bi bi-download me-2"), "Exporter Excel"],
+                    id="result-export-btn",
+                    className="btn-export mt-2",
+                    n_clicks=0,
+                ),
                 dash_table.DataTable(
                     id=ID_SUMMERY_TABLE,
                     columns=[],
@@ -199,9 +205,11 @@ layout = dbc.Container(
                 ),
                 # Graphique subtype pct
                 html.Div(
-                dcc.Graph(id=ID_FIGURE_SUBTYPE_PR_DELAY_MEAN, style={"height": "400px"}),
-                className="graph mb-4 mx-auto",          # ← nouvelle classe CSS
-                style={"width": "90%"},
+                    dcc.Graph(
+                        id=ID_FIGURE_SUBTYPE_PR_DELAY_MEAN, style={"height": "400px"}
+                    ),
+                    className="graph mb-4 mx-auto",  # ← nouvelle classe CSS
+                    style={"width": "90%"},
                 ),
                 # Tableau des subtypes
                 # Deuxième bouton + tableau + export
@@ -240,7 +248,7 @@ layout = dbc.Container(
                         id=ID_FIGURE_CATEGORY_DELAY_GT_15MIN,
                         style={"margin": "auto", "height": "400px", "width": "90%"},
                     ),
-                    className="graph mb-4 mx-auto",          # ← nouvelle classe CSS
+                    className="graph mb-4 mx-auto",  # ← nouvelle classe CSS
                     style={"width": "90%"},
                 ),
                 html.Div(
@@ -279,7 +287,7 @@ layout = dbc.Container(
                         id=ID_FIGURE_FLIGHT_DELAY,
                         style={"margin": "auto", "width": "100%"},
                     ),
-                    className="graph mb-4 mx-auto",          # ← nouvelle classe CSS
+                    className="graph mb-4 mx-auto",  # ← nouvelle classe CSS
                     style={"width": "90%"},
                 ),
                 # Troisième bouton + tableau + export

@@ -24,6 +24,8 @@ from utils_dashboard.utils_download import (
     add_export_callbacks,
 )
 
+import plotly.graph_objects as go
+
 
 COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY = "flight_with_delay"
 COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_GTE_15MIN = "flight_with_delay_gte_15min"
@@ -61,8 +63,6 @@ app = get_app()
 
 # ---------- shared glass wrappers ---------------------------------
 GRAPH_CARD_CSS = "graph"  # obsidian pane (defined in assets/ram.css)
-
-import plotly.graph_objects as go  # en haut du fichier
 
 
 def wrap_graph(obj):
@@ -122,7 +122,7 @@ def calculate_graph_info_with_period(df: pl.LazyFrame) -> pl.LazyFrame:
         pl.len().alias(COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY)
     )
 
-    delayed_15min_df = df.filter((pl.col("DELAY_TIME") >= 15))
+    delayed_15min_df = df.filter((pl.col("DELAY_TIME") > 15))
 
     ##
     delayed_15min_count_df = delayed_15min_df.group_by(COL_NAME_WINDOW_TIME).agg(
@@ -367,7 +367,6 @@ def create_layout(
     )
 
     table = []
-    # ---- wrap graphs -------------------------------------------------
     # builds
     fig1_div = wrap_graph(fig1)
     fig2_div = wrap_graph(fig2)

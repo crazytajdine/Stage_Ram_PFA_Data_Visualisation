@@ -152,13 +152,11 @@ def create_bar_horizontal_figure(
     return fig
 
 
-
 def generate_card_info_change(
     df: pl.DataFrame,
     col_name: str,
     title: str,
     include_footer: bool = True,
-    extra_class="",
 ) -> dbc.Card:
 
     logging.info(
@@ -194,7 +192,7 @@ def generate_card_info_change(
 
     if change is None:
         change_div = html.Span("N/A", className="text-secondary")
-        stripe_color = "secondary"
+        stripe_color = "transparent"
     else:
         if change >= 0:
             icon_cls, color_cls, stripe_color = (
@@ -221,12 +219,17 @@ def generate_card_info_change(
         dbc.CardHeader(
             [
                 html.Div(
-                    className=f"bg-{stripe_color} rounded-top mb-1",
-                    style={"height": "4px"},
+                    className=f"bg-{stripe_color}  ",
+                    style={"height": "6px"},
                 ),
                 html.H5(title, className="text-muted px-4 mb-0"),
             ],
-            className="p-0 border-0 text-center bg-transparent",
+            className="p-0 border-0 text-center bg-transparent  ",
+            style={
+                "border-top-left-radius": "0.5rem",
+                "border-top-right-radius": "0.5rem",
+                "overflow": "hidden",
+            },
         ),
         dbc.CardBody(
             [
@@ -244,6 +247,7 @@ def generate_card_info_change(
             dbc.CardFooter(
                 change_div,
                 className="text-center bg-transparent border-0",
+                style={"fontWeight": "300"},
             )
         )
 

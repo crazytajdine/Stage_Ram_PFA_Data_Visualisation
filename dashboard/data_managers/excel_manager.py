@@ -121,7 +121,7 @@ def filter_tec(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
     logging.info("Filtering technical delay codes from dataframe")
     try:
         filtered_df = df_lazy.filter(
-            pl.col("DELAY_CODE").is_in([41, 42, 43, 44, 45, 46, 47, 51, 52, 55, 56, 57])
+            pl.col("DELAY_CODE").is_in([41, 42, 43, 44, 45, 46, 47, 51, 52])
         )
         logging.debug("Filter applied on CODE_DR for technical delays")
         return filtered_df
