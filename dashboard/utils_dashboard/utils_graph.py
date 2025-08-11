@@ -73,6 +73,7 @@ def create_bar_figure(
 
     fig.update_traces(
         textposition="outside" if len_date <= threshold_show_y else "none",
+        marker=dict(cornerradius="10%"),
         textangle=0,
         hovertemplate=hover_template_base,
         textfont_size=16,
@@ -138,6 +139,7 @@ def create_bar_horizontal_figure(
         textangle=0,
         hovertemplate="%{y}<br>Percentage : %{text}<br>Detailed : %{x} <extra></extra>",
         textfont_size=16,
+        marker=dict(cornerradius="20%"),
     )
     if legend_title is not None:
         fig.update_layout(legend_title_text=legend_title)
