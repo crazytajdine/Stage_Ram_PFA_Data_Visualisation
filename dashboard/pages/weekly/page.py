@@ -12,6 +12,7 @@ from dash import html, dash_table, Output
 import dash_bootstrap_components as dbc
 
 # ─────────────── Application modules ───────────────
+from calculations.weekly import analyze_weekly_codes
 from utils_dashboard.utils_download import (
     add_export_callbacks,
 )
@@ -23,73 +24,7 @@ from data_managers.excel_manager import (
 )
 
 
-DAYS_EN = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
-
-DAY_NAME_MAP = {i: d for i, d in enumerate(DAYS_EN)}
-
 app = get_app()
-
-CELL_STYLE = {
-    "backgroundColor": "white",
-    "border": "1px solid #dee2e6",
-    "textAlign": "center",
-    "padding": "8px",
-    "fontSize": "11px",
-}
-HEADER_STYLE = CELL_STYLE | {
-    "backgroundColor": "#f8f9fa",
-    "fontWeight": "bold",
-    "color": "#495057",
-}
-
-# ------------------------------------------------------------------ #
-# 2 ▸  Helper functions                                              #
-# ------------------------------------------------------------------ #
-
-
-def analyze_weekly_codes() -> tuple[list[dict], list[dict]]:
-    df_lazy = get_df()
-    if df_lazy is None:
-        return [], []
-
-    df = (
-        df_lazy.sort("DEP_DAY_SCHED")
-        .with_columns(
-            pl.col("DEP_DAY_SCHED").dt.strftime("%A").alias("DAY_OF_WEEK_DEP")
-        )
-        .collect()
-    )
-
-    if df.is_empty():
-        return [], []
-
-    # Group and pivot
-    pivot = (
-        df.group_by(["DELAY_CODE", "DAY_OF_WEEK_DEP"])
-        .agg(pl.len().alias("n"))
-        .pivot(values="n", index="DELAY_CODE", columns="DAY_OF_WEEK_DEP")
-        .fill_null(0)
-    )
-
-    # Preserve day order based on first appearance
-    days_ordered = list(dict.fromkeys(df["DAY_OF_WEEK_DEP"].to_list()))
-    if not days_ordered:
-        return [], []
-
-    # Reorder and add Total
-    pivot = (
-        pivot.select("DELAY_CODE", *days_ordered)
-        .with_columns(pl.sum_horizontal(days_ordered).alias("Total"))
-        .sort("Total", descending=True)
-    )
-
-    columns = (
-        [{"id": "DELAY_CODE", "name": "Code"}]
-        + [{"id": d, "name": d} for d in days_ordered]
-        + [{"id": "Total", "name": "Total"}]
-    )
-
-    return pivot.to_dicts(), columns
 
 
 # ------------------------------------------------------------------ #
@@ -151,9 +86,21 @@ layout = dbc.Container(
     add_watcher_for_data(),
 )
 def refresh_weekly_table(_):
-    data, columns = analyze_weekly_codes()
-    if not data:
+    df = analyze_weekly_codes()
+
+    if df is None:
         return [], []
+
+    data = df.to_dicts()
+
+    # preserve the pivot's column order:
+    days = [c for c in df.columns if c not in ("DELAY_CODE", "Total")]
+
+    columns = (
+        [{"id": "DELAY_CODE", "name": "Code"}]
+        + [{"id": d, "name": d} for d in days]
+        + [{"id": "Total", "name": "Total"}]
+    )
 
     return data, columns
 

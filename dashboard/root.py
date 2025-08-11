@@ -30,7 +30,6 @@ from components.navbar import (
 
 from components.title import layout as tittle_layout
 
-print("Loading server instance...")
 
 app = get_app()
 server = get_server()
@@ -87,7 +86,6 @@ def update_content_page(pathname, _):
         is_selected = pathname == nav_item.href
 
         if is_selected:
-            print("loading page")
             return nav_item.page
 
     return html.Div("404 Page Not Found")
@@ -101,7 +99,7 @@ add_navbar_callback()
 
 def start_server(start_dev=True):
 
-    print("🔁 Starting Dash server…")
+    logging.info("🔁 Starting Dash server…")
     app.run(debug=True, use_reloader=start_dev, port=8050)
 
 

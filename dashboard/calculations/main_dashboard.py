@@ -10,7 +10,7 @@ from data_managers.cache_manager import cache_result
 from data_managers.excel_manager import COL_NAME_WINDOW_TIME, COL_NAME_WINDOW_TIME_MAX
 
 
-@cache_result("subtype_pct")
+@cache_result("main_subtype_pct")
 def process_subtype_pct_data(df: pl.LazyFrame) -> pl.LazyFrame:
     counts = df.group_by("AC_SUBTYPE").agg(pl.count().alias(COL_NAME_COUNT_FLIGHTS))
 
@@ -25,7 +25,7 @@ def process_subtype_pct_data(df: pl.LazyFrame) -> pl.LazyFrame:
     return result.sort(COL_NAME_PERCENTAGE_DELAY, descending=False)
 
 
-@cache_result("period_distribution")
+@cache_result("main_period_distribution")
 def calculate_period_distribution(df: pl.DataFrame) -> pl.DataFrame:
     counts_df = (
         df.group_by([COL_NAME_WINDOW_TIME, COL_NAME_WINDOW_TIME_MAX])
@@ -46,7 +46,7 @@ def calculate_period_distribution(df: pl.DataFrame) -> pl.DataFrame:
     )
 
 
-@cache_result("delay_pct")
+@cache_result("main_delay_pct")
 def calculate_delay_pct(df: pl.LazyFrame) -> pl.LazyFrame:
     # 1) Categorize delays
     df = df.with_columns(

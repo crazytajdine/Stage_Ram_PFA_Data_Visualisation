@@ -9,7 +9,7 @@ from configurations.nav_config import (
 
 from schemas.navbarItem import NavItem, NavItemMeta
 from pages.home import page as home
-from pages.tech import page as tech
+from pages.analytics import page as tech
 from pages.weekly import page as weekly
 from pages.performance_metrics import page as performance_metrics
 from pages.settings import page as settings
@@ -17,7 +17,7 @@ from pages.undefined import page as undefined
 
 
 from pages.home.metadata import metadata as home_metadata
-from pages.tech.metadata import metadata as tech_metadata
+from pages.analytics.metadata import metadata as tech_metadata
 from pages.weekly.metadata import metadata as weekly_metadata
 from pages.performance_metrics.metadata import metadata as perf_metrics_metadata
 from pages.settings.metadata import metadata as settings_metadata

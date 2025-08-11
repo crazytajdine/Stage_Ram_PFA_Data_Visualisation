@@ -46,10 +46,6 @@ path_to_excel_cashed = config.get("path_to_excel", "")
 # func
 
 
-def get_path_to_excel():
-    return path_to_excel
-
-
 def path_exits():
     if not path_to_excel:
         logging.debug("No path to Excel file configured.")
@@ -98,7 +94,8 @@ def get_path_to_excel() -> str:
     list_name_excels = [
         name
         for name in list_name_excels
-        if name.endswith(".xlsx") or name.endswith(".xls")
+        if (name.endswith(".xlsx") or name.endswith(".xls"))
+        and (not name.startswith("~$"))
     ]
 
     logging.info(f"Filtered Excel files: {list_name_excels}")
@@ -342,6 +339,7 @@ if path_to_excel and path_to_excel.strip() != "":
         logging.info(f"Excel file loaded successfully from: {path_to_excel}")
     except Exception as e:
         logging.info(f"Warning: Could not load Excel file at startup: {e}")
+        path_to_excel_cashed = ""
         df_unfiltered = None
         df_raw = None
         df = None
@@ -385,9 +383,13 @@ def add_watcher_for_data():
 
 
 def update_df_unfiltered():
+    global path_to_excel_cashed
     logging.info("Updating unfiltered dataframe by reloading Excel file")
-
-    load_excel_lazy(get_path_to_excel())
+    try:
+        load_excel_lazy(get_path_to_excel())
+    except Exception:
+        path_to_excel_cashed = ""
+        logging.info(f"Warning: Could not load Excel file at startup: {e}")
 
 
 def modify_modification_date(new_modification_date: float):

@@ -1,4 +1,3 @@
-from typing import Literal
 from dash import (
     html,
     dcc,
@@ -98,7 +97,6 @@ layout = dbc.Container(
                     id="result-message",
                     color="success",
                     is_open=False,
-                    dismissable=True,
                     className="result-alert glass-success mt-4 mb-3",
                 ),
                 # Premier bouton + tableau + export
