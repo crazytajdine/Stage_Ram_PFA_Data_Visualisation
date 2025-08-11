@@ -59,28 +59,6 @@ TABLE_NAMES_RENAME = {
 app = get_app()
 
 
-# def process_subtype_pct_data(df: pl.LazyFrame) -> pl.LazyFrame:
-#     # Step 1: group by window and subtype
-#     grouped = df.group_by(
-#         [COL_NAME_WINDOW_TIME_MAX, COL_NAME_WINDOW_TIME, "AC_SUBTYPE"]
-#     ).agg(pl.count().alias(COL_NAME_COUNT_FLIGHTS))
-
-#     # Step 2: calculate the percentage by window
-#     result = grouped.with_columns(
-#         (
-#             pl.col(COL_NAME_COUNT_FLIGHTS)
-#             * 100
-#             / pl.col(COL_NAME_COUNT_FLIGHTS)
-#             .sum()
-#             .over([COL_NAME_WINDOW_TIME_MAX, COL_NAME_WINDOW_TIME])
-#         )
-#         .round(2)
-#         .alias(COL_NAME_PERCENTAGE_DELAY)
-#     )
-
-#     return result.sort(COL_NAME_WINDOW_TIME)
-
-
 layout = dbc.Container(
     [
         html.Div(
@@ -305,22 +283,23 @@ def update_subtype(_):
         return go.Figure(), [], []
     df_sub = process_subtype_pct_data(df_lazy).collect()
     # figure
-    fig = create_bar_horizontal_figure(
-        df_sub,
-        x=COL_NAME_PERCENTAGE_DELAY,
-        y=COL_NAME_SUBTYPE,
-        title="Delayed flights by SUBTYPE (%)",
-    )
-
     # fig = create_bar_horizontal_figure(
     #     df_sub,
     #     x=COL_NAME_PERCENTAGE_DELAY,
-    #     y=COL_NAME_WINDOW_TIME,
-    #     title="Delayed flights by SUBTYPE (%) per time window",
-    #     color="AC_SUBTYPE",
-    #     legend_title="Subtype",
-    #     barmode="stack",
+    #     y=COL_NAME_SUBTYPE,
+    #     title="Delayed flights by SUBTYPE (%)",
     # )
+
+    fig = create_bar_horizontal_figure(
+        df_sub,
+        x=COL_NAME_PERCENTAGE_DELAY,
+        y=COL_NAME_WINDOW_TIME,
+        y_max=COL_NAME_WINDOW_TIME_MAX,
+        title="Delayed flights by SUBTYPE (%) per time window",
+        color="AC_SUBTYPE",
+        legend_title="Subtype",
+        barmode="stack",
+    )
 
     # table
     cols = [{"name": TABLE_NAMES_RENAME.get(c, c), "id": c} for c in df_sub.columns]
@@ -344,6 +323,7 @@ def update_category(_):
     fig = create_bar_figure(
         df_cat,
         x=COL_NAME_WINDOW_TIME,
+        x_max=COL_NAME_WINDOW_TIME_MAX,
         y=COL_NAME_CATEGORY_GT_15MIN_MEAN,
         color=COL_NAME_CATEGORY_GT_15MIN,
         legend_title="Category of delay",
@@ -383,6 +363,7 @@ def update_interval(_):
         df_period,
         x=COL_NAME_PERCENTAGE_DELAY,
         y=COL_NAME_WINDOW_TIME,
+        y_max=COL_NAME_WINDOW_TIME_MAX,
         title="Distribution of flights by time intervals",
     )
     # table

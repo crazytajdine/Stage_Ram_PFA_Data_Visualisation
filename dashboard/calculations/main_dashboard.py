@@ -10,19 +10,41 @@ from data_managers.cache_manager import cache_result
 from data_managers.excel_manager import COL_NAME_WINDOW_TIME, COL_NAME_WINDOW_TIME_MAX
 
 
-@cache_result("main_subtype_pct")
-def process_subtype_pct_data(df: pl.LazyFrame) -> pl.LazyFrame:
-    counts = df.group_by("AC_SUBTYPE").agg(pl.count().alias(COL_NAME_COUNT_FLIGHTS))
+# @cache_result("main_subtype_pct")
+# def process_subtype_pct_data(df: pl.LazyFrame) -> pl.LazyFrame:
+#     counts = df.group_by("AC_SUBTYPE").agg(pl.count().alias(COL_NAME_COUNT_FLIGHTS))
 
-    result = counts.with_columns(
-        [
-            (pl.col(COL_NAME_COUNT_FLIGHTS) * 100 / pl.sum(COL_NAME_COUNT_FLIGHTS))
-            .round(2)
-            .alias(COL_NAME_PERCENTAGE_DELAY)
-        ]
+#     result = counts.with_columns(
+#         [
+#             (pl.col(COL_NAME_COUNT_FLIGHTS) * 100 / pl.sum(COL_NAME_COUNT_FLIGHTS))
+#             .round(2)
+#             .alias(COL_NAME_PERCENTAGE_DELAY)
+#         ]
+#     )
+
+#     return result.sort(COL_NAME_PERCENTAGE_DELAY, descending=False)
+
+
+def process_subtype_pct_data(df: pl.LazyFrame) -> pl.LazyFrame:
+    # Step 1: group by window and subtype
+    grouped = df.group_by(
+        [COL_NAME_WINDOW_TIME, COL_NAME_WINDOW_TIME_MAX, "AC_SUBTYPE"]
+    ).agg(pl.count().alias(COL_NAME_COUNT_FLIGHTS))
+
+    # Step 2: calculate the percentage by window
+    result = grouped.with_columns(
+        (
+            pl.col(COL_NAME_COUNT_FLIGHTS)
+            * 100
+            / pl.col(COL_NAME_COUNT_FLIGHTS)
+            .sum()
+            .over([COL_NAME_WINDOW_TIME, COL_NAME_WINDOW_TIME_MAX])
+        )
+        .round(2)
+        .alias(COL_NAME_PERCENTAGE_DELAY)
     )
 
-    return result.sort(COL_NAME_PERCENTAGE_DELAY, descending=False)
+    return result.sort(COL_NAME_WINDOW_TIME)
 
 
 @cache_result("main_period_distribution")
@@ -58,7 +80,7 @@ def calculate_delay_pct(df: pl.LazyFrame) -> pl.LazyFrame:
 
     # 2) Group by time window and delay category
     res = df.group_by(
-        [COL_NAME_WINDOW_TIME_MAX, COL_NAME_WINDOW_TIME, COL_NAME_CATEGORY_GT_15MIN]
+        [COL_NAME_WINDOW_TIME, COL_NAME_WINDOW_TIME_MAX, COL_NAME_CATEGORY_GT_15MIN]
     ).agg(pl.count().alias(COL_NAME_CATEGORY_GT_15MIN_COUNT))
 
     # 3) Compute percentage per time window
@@ -68,7 +90,7 @@ def calculate_delay_pct(df: pl.LazyFrame) -> pl.LazyFrame:
             * 100
             / pl.col(COL_NAME_CATEGORY_GT_15MIN_COUNT)
             .sum()
-            .over([COL_NAME_WINDOW_TIME_MAX, COL_NAME_WINDOW_TIME])
+            .over([COL_NAME_WINDOW_TIME, COL_NAME_WINDOW_TIME_MAX])
         )
         .round(2)
         .alias(COL_NAME_CATEGORY_GT_15MIN_MEAN)

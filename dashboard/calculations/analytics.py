@@ -80,7 +80,6 @@ def analyze_delay_codes_polars(frame: pl.DataFrame) -> pl.DataFrame:
     return agg
 
 
-@cache_result("delay_data")
 def prepare_delay_data():
     df = get_df()
     if df is None:
@@ -99,14 +98,15 @@ def prepare_delay_data():
     period_totals = temporal_all.group_by(COL_NAME_WINDOW_TIME).agg(
         pl.col(COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY)
         .sum()
-        .alias("period_total")
+        .alias("period_total"),
     )
 
     # Total per family (per period)
     family_totals = temporal_all.group_by([COL_NAME_WINDOW_TIME, "FAMILLE_DR"]).agg(
         pl.col(COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY)
         .sum()
-        .alias("family_total")
+        .alias("family_total"),
+        pl.col(COL_NAME_WINDOW_TIME_MAX).first().alias(COL_NAME_WINDOW_TIME_MAX),
     )
 
     # Join totals

@@ -1,7 +1,3 @@
-"""
-delay_codes_app.py  –  Dash + Polars  •  Darkly theme
-"""
-
 import dash
 import polars as pl
 from dash import html, dcc, dash_table, Output
@@ -19,7 +15,6 @@ from server_instance import get_app
 import data_managers.excel_manager as excel_manager
 from utils_dashboard.utils_graph import (
     create_bar_figure,
-    create_bar_horizontal_figure,
 )
 
 app = get_app()
@@ -55,7 +50,7 @@ CODE_DESCRIPTIONS = {
 }
 
 STATIC_FAM_CODES = {
-    "Technique": list(range(41, 48)),  # 41-47 inclus
+    "Technie": list(range(41, 48)),  # 41-47 inclus
     "Avarie": [51, 52],
 }
 
@@ -209,14 +204,14 @@ def update_plots_tables(n_clicks):
     )
 
     # --- Charts ---
-    fig_familles = create_bar_horizontal_figure(
+    fig_familles = create_bar_figure(
         df=famille_share_df,
-        x=COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD,
-        y=time_period,
-        title="Percentage of delays by family – by segmentation",
+        x=time_period,
+        x_max=time_period_max,
+        y=COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD,
+        title="Percentage of delays by family by segmentation",
         unit="%",
         color="FAMILLE_DR",
-        barmode="stack",
         legend_title="Family",
     )
     big_chart = html.Div(
@@ -229,11 +224,12 @@ def update_plots_tables(n_clicks):
         style={"width": "90%", "gridColumn": "1 / -1"},
     )
     tab_children = []
-    for fam in temporal_all["FAMILLE_DR"].unique().sort():
+    for fam in temporal_all["FAMILLE_DR"].unique():
         fam_data = temporal_all.filter(pl.col("FAMILLE_DR") == fam)
         dts = (
             fam_data.group_by(time_period, "DELAY_CODE")
             .agg(
+                pl.col(time_period_max).first().alias(time_period_max),
                 pl.col(COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY)
                 .sum()
                 .alias("all_counts"),
@@ -246,9 +242,10 @@ def update_plots_tables(n_clicks):
         fig = create_bar_figure(
             df=dts,
             x=time_period,
+            x_max=time_period_max,
             y="y_vals",
             unit="%",
-            title=f"{fam} – Delay codes distribution over time",
+            title=f"{fam} Delay codes distribution over time",
             color="DELAY_CODE",
             barmode="group",
             legend_title=fam,
