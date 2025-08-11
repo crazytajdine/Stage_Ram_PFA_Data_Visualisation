@@ -1,11 +1,11 @@
 import pickle
 import threading
 import time
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 import redis
 import logging
 import functools
-from utils_dashboard.utils_filter import get_filter_list, get_filter_name
+from utils_dashboard.utils_filter import get_filter_list
 
 NAME_TABLE = "calculations"
 
@@ -16,10 +16,8 @@ _reconnect_lock = threading.Lock()
 
 def get_redis_server() -> Optional[redis.Redis]:
     global redis_server, redis_reconnect_thread
-
-    if redis_server is not None:
+    if redis_server is None and redis_reconnect_thread is None:
         start_redis_reconnect_thread()
-
     return redis_server
 
 
@@ -63,7 +61,6 @@ def init_server() -> Optional[redis.Redis]:
     logging.info(
         f"Initializing Redis server with host={config_host}, port={config_port}, db={config_db}"
     )
-
     r = redis.Redis(host=config_host, port=config_port, db=config_db)
 
     try:
@@ -159,23 +156,24 @@ def cache_result(redis_key_prefix: str, expire_seconds: int = 3600):
 
 def background_redis_reconnector(interval_seconds=10):
     global redis_server
-    while redis_server is None:
-
-        logging.info("Background: Redis is None, trying to reconnect...")
-        init_server()
-
+    while True:
+        if redis_server is None:
+            logging.info("Background: Redis is None, trying to reconnect...")
+            init_server()
         time.sleep(interval_seconds)
 
 
 def start_redis_reconnect_thread():
     global redis_reconnect_thread
     with _reconnect_lock:
-        if redis_reconnect_thread is None or not redis_reconnect_thread.is_alive():
-            logging.info("Starting background Redis reconnect thread (startup)")
+        if redis_reconnect_thread is None:
+            logging.info(f"Starting background Redis reconnect thread (startup)")
             redis_reconnect_thread = threading.Thread(
                 target=background_redis_reconnector, daemon=True
             )
             redis_reconnect_thread.start()
 
 
-start_redis_reconnect_thread()
+if redis_reconnect_thread is None and redis_server is None:
+
+    start_redis_reconnect_thread()

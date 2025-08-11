@@ -14,10 +14,11 @@ from utils_dashboard.utils_download import download_dash
 from data_managers.excel_manager import (
     ID_PATH_STORE,
     add_watcher_for_data_status,
+    add_callbacks as add_excel_manager_callbacks,
     hookers as excel_hookers,
-    add_callbacks as add_excel_manager_callback,
     path_exists,
 )
+from data_managers.watcher_excel_dir import add_callbacks as add_watcher_excel
 from components.filter import (
     layout as filter_layout,
     add_callbacks as add_filter_callbacks,
@@ -92,7 +93,8 @@ def update_content_page(pathname, _):
     return html.Div("404 Page Not Found")
 
 
-add_excel_manager_callback()
+add_watcher_excel()
+add_excel_manager_callbacks()
 add_filter_callbacks()
 add_navbar_callback()
 

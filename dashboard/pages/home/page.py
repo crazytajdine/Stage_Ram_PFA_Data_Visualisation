@@ -5,10 +5,20 @@ from dash import (
     Output,
     dash_table,
 )
-import polars as pl
 import dash_bootstrap_components as dbc
 import plotly.graph_objs as go
 
+from calculations.main_dashboard import (
+    COL_NAME_CATEGORY_GT_15MIN,
+    COL_NAME_CATEGORY_GT_15MIN_COUNT,
+    COL_NAME_CATEGORY_GT_15MIN_MEAN,
+    COL_NAME_COUNT_FLIGHTS,
+    COL_NAME_PERCENTAGE_DELAY,
+    COL_NAME_SUBTYPE,
+    calculate_delay_pct,
+    calculate_period_distribution,
+    process_subtype_pct_data,
+)
 from utils_dashboard.utils_download import add_export_callbacks
 from server_instance import get_app
 from data_managers.excel_manager import (
@@ -19,13 +29,6 @@ from data_managers.excel_manager import (
 )
 
 from utils_dashboard.utils_graph import create_bar_figure, create_bar_horizontal_figure
-
-COL_NAME_COUNT_FLIGHTS = "count of flights"
-COL_NAME_SUBTYPE = "AC_SUBTYPE"
-COL_NAME_PERCENTAGE_DELAY = "pct"
-COL_NAME_CATEGORY_GT_15MIN = "delay_category_gt_15min"
-COL_NAME_CATEGORY_GT_15MIN_COUNT = "delay_cat_count"
-COL_NAME_CATEGORY_GT_15MIN_MEAN = "delay_cat_mean"
 
 
 ID_SUMMERY_TABLE = "summary-table"
@@ -79,85 +82,6 @@ app = get_app()
 #     return result.sort(COL_NAME_WINDOW_TIME)
 
 
-def process_subtype_pct_data(df: pl.LazyFrame) -> pl.LazyFrame:
-    counts = df.group_by("AC_SUBTYPE").agg(pl.count().alias(COL_NAME_COUNT_FLIGHTS))
-
-    result = counts.with_columns(
-        [
-            (pl.col(COL_NAME_COUNT_FLIGHTS) * 100 / pl.sum(COL_NAME_COUNT_FLIGHTS))
-            .round(2)
-            .alias(COL_NAME_PERCENTAGE_DELAY)
-        ]
-    )
-
-    return result.sort(COL_NAME_PERCENTAGE_DELAY, descending=False)
-
-
-def calculate_period_distribution(df: pl.DataFrame) -> pl.DataFrame:
-    counts_df = (
-        df.group_by([COL_NAME_WINDOW_TIME, COL_NAME_WINDOW_TIME_MAX])
-        .agg(pl.len().alias("count"))
-        .sort(COL_NAME_WINDOW_TIME)
-    )
-    total = counts_df["count"].sum()
-    if total == 0:
-        return pl.DataFrame(
-            {
-                COL_NAME_WINDOW_TIME: [],
-                "count": [],
-                COL_NAME_PERCENTAGE_DELAY: [],
-            }
-        )
-    return counts_df.with_columns(
-        (pl.col("count") * 100 / total).round(2).alias(COL_NAME_PERCENTAGE_DELAY)
-    )
-
-
-def calculate_delay_pct(df: pl.LazyFrame) -> pl.LazyFrame:
-    # 1) Categorize delays
-    df = df.with_columns(
-        pl.when(pl.col("DELAY_TIME") > 15)
-        .then(pl.lit("flights with delay > 15 min"))
-        .otherwise(pl.lit("flights with delay ≤ 15 min"))
-        .alias(COL_NAME_CATEGORY_GT_15MIN)
-    )
-
-    # 2) Group by time window and delay category
-    res = df.group_by(
-        [COL_NAME_WINDOW_TIME_MAX, COL_NAME_WINDOW_TIME, COL_NAME_CATEGORY_GT_15MIN]
-    ).agg(pl.count().alias(COL_NAME_CATEGORY_GT_15MIN_COUNT))
-
-    # 3) Compute percentage per time window
-    res = res.with_columns(
-        (
-            pl.col(COL_NAME_CATEGORY_GT_15MIN_COUNT)
-            * 100
-            / pl.col(COL_NAME_CATEGORY_GT_15MIN_COUNT)
-            .sum()
-            .over([COL_NAME_WINDOW_TIME_MAX, COL_NAME_WINDOW_TIME])
-        )
-        .round(2)
-        .alias(COL_NAME_CATEGORY_GT_15MIN_MEAN)
-    )
-
-    return res
-
-
-# utils.py (ou en haut de ton fichier)
-GLASS_STYLE = {
-    "background": "rgba(255,255,255,0.15)",  # voile translucide
-    "backdropFilter": "blur(12px)",  # flou derrière
-    "WebkitBackdropFilter": "blur(12px)",  # Safari
-    "border": "1px solid rgba(255,255,255,0.40)",
-    "borderRadius": "12px",
-    "boxShadow": "0 6px 24px rgba(0,0,0,0.12)",
-    "overflowX": "auto",  # ce que tu avais déjà
-    "marginTop": "10px",
-    "marginBottom": "40px",
-}
-style_table = (GLASS_STYLE,)
-
-
 layout = dbc.Container(
     [
         html.Div(
@@ -189,7 +113,6 @@ layout = dbc.Container(
                     columns=[],
                     data=[],
                     page_size=10,
-                    style_table=GLASS_STYLE,
                     style_cell={"textAlign": "left"},
                     sort_action="native",
                     style_data_conditional=[
@@ -226,7 +149,6 @@ layout = dbc.Container(
                             columns=[],
                             data=[],
                             page_size=10,
-                            style_table=GLASS_STYLE,
                             style_cell={"textAlign": "left"},
                             sort_action="native",
                             style_data_conditional=[
@@ -264,7 +186,6 @@ layout = dbc.Container(
                             columns=[],
                             data=[],
                             page_size=10,
-                            style_table=GLASS_STYLE,
                             style_cell={"textAlign": "left"},
                             sort_action="native",
                             style_data_conditional=[
@@ -304,7 +225,6 @@ layout = dbc.Container(
                             columns=[],
                             data=[],
                             page_size=10,
-                            style_table=GLASS_STYLE,
                             style_cell={"textAlign": "left"},
                             sort_action="native",
                             style_data_conditional=[
