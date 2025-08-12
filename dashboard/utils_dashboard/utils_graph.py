@@ -3,8 +3,9 @@
 import logging
 from typing import Literal, Optional
 import dash_bootstrap_components as dbc
-from dash import html, dcc
-import plotly.express as px, plotly.graph_objs as go
+from dash import html
+import plotly.express as px
+import plotly.graph_objs as go
 
 import polars as pl
 

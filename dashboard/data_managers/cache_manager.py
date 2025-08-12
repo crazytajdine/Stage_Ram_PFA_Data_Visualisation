@@ -1,7 +1,7 @@
 import pickle
 import threading
 import time
-from typing import Any, Literal, Optional
+from typing import Any, Optional
 import redis
 import logging
 import functools
@@ -28,7 +28,6 @@ def join_key(*args: str) -> str:
 
 
 def does_key_exist(key: str) -> Optional[bool]:
-
     r = get_redis_server()
     if r is None:
         return None
@@ -38,7 +37,6 @@ def does_key_exist(key: str) -> Optional[bool]:
 
 
 def does_table_exist() -> Optional[bool]:
-
     r = get_redis_server()
 
     if r is None:
@@ -74,7 +72,6 @@ def init_server() -> Optional[redis.Redis]:
 
 
 def delete_old_keys() -> Optional[bool]:
-
     r = get_redis_server()
 
     if r is None:
@@ -132,7 +129,6 @@ def get_calculation_from_cache(key) -> Any:
 
 
 def cache_result(redis_key_prefix: str, expire_seconds: int = 3600):
-
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -167,7 +163,7 @@ def start_redis_reconnect_thread():
     global redis_reconnect_thread
     with _reconnect_lock:
         if redis_reconnect_thread is None:
-            logging.info(f"Starting background Redis reconnect thread (startup)")
+            logging.info("Starting background Redis reconnect thread (startup)")
             redis_reconnect_thread = threading.Thread(
                 target=background_redis_reconnector, daemon=True
             )
@@ -175,5 +171,4 @@ def start_redis_reconnect_thread():
 
 
 if redis_reconnect_thread is None and redis_server is None:
-
     start_redis_reconnect_thread()

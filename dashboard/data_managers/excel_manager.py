@@ -5,7 +5,7 @@ import dash
 import polars as pl
 import logging
 
-from dash import Input, Output, State, dcc
+from dash import Input, Output, dcc
 
 from configurations.config import get_base_config, get_user_config, save_config_sys
 from schemas.data_status import StatusData
@@ -387,7 +387,7 @@ def update_df_unfiltered():
     logging.info("Updating unfiltered dataframe by reloading Excel file")
     try:
         load_excel_lazy(get_path_to_excel())
-    except Exception:
+    except Exception as e:
         path_to_excel_cashed = ""
         logging.info(f"Warning: Could not load Excel file at startup: {e}")
 

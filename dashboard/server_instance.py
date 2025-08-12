@@ -1,12 +1,9 @@
 import dash
 import dash_bootstrap_components as dbc
+from dash import Dash
 
 app = None
 server = None
-
-
-from dash import Dash
-import dash_bootstrap_components as dbc
 
 
 def init_server():

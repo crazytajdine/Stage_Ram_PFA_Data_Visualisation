@@ -1,13 +1,11 @@
 # dashboard/utils_dashboard/utils_navs.py
 import logging
-
-logging.info("Loading nav file...")
 from typing import Any
 from configurations.nav_config import (
     build_nav_items_meta,
 )
 
-from schemas.navbarItem import NavItem, NavItemMeta
+from schemas.navbarItem import NavItem
 from pages.home import page as home
 from pages.analytics import page as tech
 from pages.weekly import page as weekly
