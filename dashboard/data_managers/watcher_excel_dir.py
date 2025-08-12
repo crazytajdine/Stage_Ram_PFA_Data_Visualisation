@@ -1,29 +1,21 @@
-from datetime import datetime, date
 import os
-from typing import Optional
 import dash
-import polars as pl
 import logging
 
 from dash import Input, Output, State
 
 from data_managers.cache_manager import delete_old_keys
 from data_managers.excel_manager import (
-    ID_DATA_STATUS_CHANGE_TRIGGER,
-    ID_DATA_STORE_TRIGGER,
     ID_INTERVAL_WATCHER,
     ID_PATH_STORE,
     ID_STORE_DATE_WATCHER,
     get_latest_modification_time,
     get_path_to_excel,
     modify_modification_date,
-    path_exists,
     update_df_unfiltered,
 )
-from schemas.data_status import StatusData
 from server_instance import get_app
 
-from status.data_status_manager import compare_status, set_status
 
 app = get_app()
 
