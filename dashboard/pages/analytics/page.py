@@ -50,7 +50,7 @@ CODE_DESCRIPTIONS = {
 }
 
 STATIC_FAM_CODES = {
-    "Technie": list(range(41, 48)),  # 41-47 inclus
+    "Technique": list(range(41, 48)),  # 41-47 inclus
     "Avarie": [51, 52],
 }
 
@@ -183,7 +183,8 @@ def update_plots_tables(n_clicks):
 
     # --- Stats ---
     unique_codes = summary.height if not summary.is_empty() else 0
-    total_delays = summary["Occurrences"].sum() if not summary.is_empty() else 0
+    total_delays = summary["Occurrences"].sum(
+    ) if not summary.is_empty() else 0
     stats = dbc.Row(
         [
             dbc.Col(
@@ -223,31 +224,81 @@ def update_plots_tables(n_clicks):
         className="graph mb-4 mx-auto",
         style={"width": "90%", "gridColumn": "1 / -1"},
     )
-    tab_children = []
-    for fam in temporal_all["FAMILLE_DR"].unique():
-        fam_data = temporal_all.filter(pl.col("FAMILLE_DR") == fam)
-        dts = (
-            fam_data.group_by(time_period, "DELAY_CODE")
-            .agg(
-                pl.col(time_period_max).first().alias(time_period_max),
-                pl.col(COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY)
-                .sum()
-                .alias("all_counts"),
-                pl.col(COL_NAME_PERCENTAGE_DELAY_CODE_PER_FAMILY_PER_PERIOD_TOTAL)
-                .sum()
-                .alias("y_vals"),
-            )
-            .with_columns(pl.col("DELAY_CODE").cast(pl.Utf8))
+    # --- Family % table (under the first chart) ---
+    if (famille_share_df is None) or famille_share_df.is_empty():
+        family_summary_block = dbc.Alert(
+            "Aucune donnée famille/segmentation trouvée pour cette sélection.",
+            color="warning",
+            className="text-center mb-4 mx-auto",
+            style={"width": "90%", "gridColumn": "1 / -1"},
         )
+    else:
+        fam_table_df = (
+            famille_share_df.select(
+                [
+                    pl.col(time_period),
+                    pl.col(time_period_max),
+                    pl.col("FAMILLE_DR"),
+                    pl.col(COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD),
+                ]
+            )
+            .sort([time_period, "FAMILLE_DR"])
+            .with_columns(pl.col(COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD).round(2))
+        )
+
+        family_summary_table = dash_table.DataTable(
+            id="family-summary-table",
+            data=fam_table_df.to_dicts(),
+            columns=[
+                {"name": TABLE_NAMES_RENAME.get(c, c), "id": c}
+                for c in fam_table_df.columns
+            ],
+            page_size=10,
+            sort_action="native",
+            style_cell={"textAlign": "left", "padding": "8px"},
+            style_table={"overflowX": "auto"},
+            style_header={"fontWeight": "600"},
+        )
+
+        family_summary_block = html.Div(
+            [
+                html.Div(
+                    dbc.Button(
+                        [html.I(className="bi bi-download me-2"),
+                         "Exporter Excel"],
+                        id="export-family-btn",
+                        className="btn-export mb-2",
+                        n_clicks=0,
+                    ),
+                    className="d-flex mb-2",
+                ),
+                family_summary_table,
+            ],
+            className="mb-4 mx-auto",
+            style={"width": "90%", "gridColumn": "1 / -1"},
+        )
+
+    temporal_all = temporal_all.with_columns(
+        [
+            pl.col("DELAY_CODE").cast(pl.Utf8),  # make color discrete once
+        ]
+    )
+
+    # 2) Split the dataframe once by family, then iterate
+    by_fam = temporal_all.partition_by(
+        "FAMILLE_DR", as_dict=True, maintain_order=True)
+
+    tab_children = []
+    for fam, fam_data in by_fam.items():
+        fam = fam[0]
         fig = create_bar_figure(
-            df=dts,
+            df=fam_data,
             x=time_period,
             x_max=time_period_max,
-            y="y_vals",
+            y=COL_NAME_PERCENTAGE_DELAY_CODE_PER_FAMILY_PER_PERIOD,
             unit="%",
             title=f"{fam} Delay codes distribution over time",
             color="DELAY_CODE",
-            barmode="group",
             legend_title=fam,
         )
         tab_children.append(
@@ -314,7 +365,7 @@ def update_plots_tables(n_clicks):
             style_table={"overflowX": "auto"},
         )
 
-    return stats, [big_chart, family_tabs], table
+    return stats, [big_chart, family_summary_block, family_tabs], table
 
 
 add_export_callbacks(

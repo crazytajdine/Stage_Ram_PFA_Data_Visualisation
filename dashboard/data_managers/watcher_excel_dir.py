@@ -29,7 +29,6 @@ app = get_app()
 
 
 def add_callbacks():
-
     @app.callback(
         Output(ID_PATH_STORE, "data"),
         Output(ID_STORE_DATE_WATCHER, "data", allow_duplicate=True),
