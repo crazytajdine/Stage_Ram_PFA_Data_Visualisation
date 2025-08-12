@@ -9,6 +9,7 @@ from pages.weekly.metadata import metadata as weekly_metadata
 from pages.performance_metrics.metadata import metadata as perf_metrics_metadata
 from pages.settings.metadata import metadata as settings_metadata
 from pages.undefined.metadata import metadata as undefined_metadata
+from pages.admin.metadata import metadata as admin_metadata
 
 NAV_CONFIG = [
     home_metadata,
@@ -16,6 +17,7 @@ NAV_CONFIG = [
     weekly_metadata,
     perf_metrics_metadata,
     settings_metadata,
+    admin_metadata,
 ]
 
 NAV_CONFIG_UNDEFINED = [undefined_metadata]
