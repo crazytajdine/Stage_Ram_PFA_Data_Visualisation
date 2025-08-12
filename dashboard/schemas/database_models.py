@@ -71,7 +71,7 @@ class Session(Base):
     user = relationship("User", back_populates="session")
 
 
-class Options(Base):
+class Option(Base):
     __tablename__ = "options"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
