@@ -1034,8 +1034,6 @@ header, .navbar, .navbar .container-fluid { max-width:100%; min-width:0; }
   opacity: 1 !important;
   margin: 0;
 }
-/* Firefox note: it doesn’t show spinners; this keeps appearance consistent */
-#filter-container input[type="number"]{ -moz-appearance: textfield; }
 
 /* (nice-to-have) match heights when they sit side-by-side */
 /* Bootstrap input-group is flex; lock the order explicitly */
