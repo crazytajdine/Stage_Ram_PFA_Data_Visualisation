@@ -215,93 +215,60 @@ layout = dbc.Container(
             ],
             className="mb-4",
         ),
-        # Roles & Permissions
+        # Roles & Permissions — one-click create (role + permissions)
         dbc.Card(
             [
-                dbc.CardHeader(html.H4("Roles & Page Permissions", className="mb-0")),
+                dbc.CardHeader(
+                    html.H4("Create Role with Permissions", className="mb-0")
+                ),
                 dbc.CardBody(
                     [
+                        # Role name
                         dbc.Row(
                             [
                                 dbc.Col(
                                     [
-                                        dbc.Label("Create New Role"),
+                                        dbc.Label("Role name"),
                                         dbc.Input(
                                             id="new-role-name",
                                             placeholder="e.g., perf, ops, finance",
                                         ),
                                     ],
-                                    md=4,
-                                ),
-                                dbc.Col(
-                                    [
-                                        dbc.Button(
-                                            [
-                                                html.I(
-                                                    className="bi bi-plus-square me-2"
-                                                ),
-                                                "Create Role",
-                                            ],
-                                            id="create-role-btn",
-                                            color="secondary",
-                                            className="mt-4 w-100",
-                                        ),
-                                    ],
-                                    md=2,
-                                ),
-                                dbc.Col(
-                                    [
-                                        dbc.Label("Select Role"),
-                                        dbc.Select(
-                                            id="perm-role-select",
-                                            options=[],
-                                            placeholder="Choose a role",
-                                        ),
-                                    ],
-                                    md=3,
-                                ),
-                                dbc.Col(
-                                    [
-                                        dbc.Button(
-                                            [
-                                                html.I(className="bi bi-trash me-2"),
-                                                "Delete Role",
-                                            ],
-                                            id="delete-role-btn",
-                                            color="danger",
-                                            className="mt-4 w-100",
-                                        ),
-                                    ],
-                                    md=3,
+                                    md=6,
                                 ),
                             ],
-                            className="mb-3",
+                            className="g-3 mb-3",
                         ),
+                        # Permissions (all pages from navbar)
                         dbc.Row(
                             [
                                 dbc.Col(
                                     [
-                                        dbc.Label("Allowed Pages for Selected Role"),
+                                        dbc.Label("Allowed pages"),
                                         dcc.Checklist(
                                             id="perm-pages-checklist",
-                                            options=[],
-                                            value=[],
+                                            options=_all_page_options(),  # ← pull from navbar
+                                            value=[],  # nothing preselected
                                             labelStyle={"display": "block"},
-                                        ),
-                                        dbc.Button(
-                                            [
-                                                html.I(className="bi bi-save2 me-2"),
-                                                "Save Permissions",
-                                            ],
-                                            id="save-perms-btn",
-                                            color="primary",
-                                            className="mt-3",
+                                            inputStyle={"marginRight": "8px"},
                                         ),
                                     ],
-                                    md=6,
+                                    md=8,
                                 ),
-                            ]
+                            ],
+                            className="g-3",
                         ),
+                        # Bottom actions
+                        html.Div(
+                            dbc.Button(
+                                [html.I(className="bi bi-shield-plus me-2"), "Create Role"],
+                                id="create-role-btn",
+                                color="primary",
+                                className="w-100 mt-3",
+                            ),
+                            className="d-flex justify-content-end",
+                        ),
+                        # Feedback
                         dbc.Alert(
                             id="roles-alert",
                             is_open=False,
@@ -313,6 +280,102 @@ layout = dbc.Container(
             ],
             className="mb-4",
         ),
+        # ─────────────────────────────────────────────
+        # ✏️ Edit Role & Permissions — dropdown + pages list + footer actions
+        dbc.Card(
+            [
+                dbc.CardHeader(html.H4("Edit Role & Permissions", className="mb-0")),
+
+                dbc.CardBody(
+                    [
+                        # Pick the role to edit
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        dbc.Label("Select role"),
+                                        dbc.Select(
+                                            id="edit-role-select",
+                                            options=[],              # ← fill from your roles source/callback
+                                            placeholder="Choose a role",
+                                        ),
+                                        dbc.FormText("Pick a role to view and modify its allowed pages."),
+                                    ],
+                                    md=6,
+                                ),
+                            ],
+                            className="g-3 mb-3",
+                        ),
+
+                        # Pages checklist (from navbar)
+                        dbc.Label("Allowed pages"),
+                        html.Div(
+                            dcc.Checklist(
+                                id="edit-perm-pages-checklist",
+                                options=_all_page_options(),   # ← uses your navbar helper
+                                value=[],                      # ← fill with current role's pages
+                                labelStyle={"display": "block"},
+                                inputStyle={"marginRight": "8px"},
+                            ),
+                            style={
+                                "maxHeight": "320px",
+                                "overflowY": "auto",
+                                "border": "1px solid #e9ecef",
+                                "borderRadius": "0.5rem",
+                                "padding": "12px",
+                                "background": "#fff",
+                            },
+                            className="mb-2",
+                        ),
+
+                        # Tiny status line
+                        html.Small(
+                            ["Selected ", html.Span("0", id="edit-pages-count"), " page(s)"],
+                            className="text-muted",
+                        ),
+
+                        # Feedback
+                        dbc.Alert(
+                            id="edit-roles-alert",
+                            is_open=False,
+                            dismissable=True,
+                            className="mt-3",
+                        ),
+                    ]
+                ),
+
+                # Edge-to-edge footer with Update & Delete
+                dbc.CardFooter(
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                dbc.Button(
+                                    [html.I(className="bi bi-save2 me-2"), "Update Permissions"],
+                                    id="update-perms-btn",
+                                    color="dark",
+                                    className="w-100 rounded-0 py-3 text-uppercase fw-semibold",
+                                ),
+                                className="p-0",
+                            ),
+                            dbc.Col(
+                                dbc.Button(
+                                    [html.I(className="bi bi-trash me-2"), "Delete Role"],
+                                    id="edit-delete-role-btn",
+                                    color="danger",
+                                    className="w-100 rounded-0 py-3 text-uppercase fw-semibold",
+                                ),
+                                className="p-0",
+                            ),
+                        ],
+                        className="g-0",
+                    ),
+                    className="p-0",
+                ),
+            ],
+            className="mb-4",
+        ),
+
+
         # Users table + actions + assign role
         dbc.Card(
             [
