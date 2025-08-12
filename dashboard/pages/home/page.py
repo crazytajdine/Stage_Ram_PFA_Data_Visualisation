@@ -1,14 +1,23 @@
-from typing import Literal
 from dash import (
     html,
     dcc,
     Output,
     dash_table,
 )
-import polars as pl
 import dash_bootstrap_components as dbc
 import plotly.graph_objs as go
 
+from calculations.main_dashboard import (
+    COL_NAME_CATEGORY_GT_15MIN,
+    COL_NAME_CATEGORY_GT_15MIN_COUNT,
+    COL_NAME_CATEGORY_GT_15MIN_MEAN,
+    COL_NAME_COUNT_FLIGHTS,
+    COL_NAME_PERCENTAGE_DELAY,
+    COL_NAME_SUBTYPE,
+    calculate_delay_pct,
+    calculate_period_distribution,
+    process_subtype_pct_data,
+)
 from utils_dashboard.utils_download import add_export_callbacks
 from server_instance import get_app
 from data_managers.excel_manager import (
@@ -19,13 +28,6 @@ from data_managers.excel_manager import (
 )
 
 from utils_dashboard.utils_graph import create_bar_figure, create_bar_horizontal_figure
-
-COL_NAME_COUNT_FLIGHTS = "count of flights"
-COL_NAME_SUBTYPE = "AC_SUBTYPE"
-COL_NAME_PERCENTAGE_DELAY = "pct"
-COL_NAME_CATEGORY_GT_15MIN = "delay_category_gt_15min"
-COL_NAME_CATEGORY_GT_15MIN_COUNT = "delay_cat_count"
-COL_NAME_CATEGORY_GT_15MIN_MEAN = "delay_cat_mean"
 
 
 ID_SUMMERY_TABLE = "summary-table"
@@ -57,133 +59,36 @@ TABLE_NAMES_RENAME = {
 app = get_app()
 
 
-# def process_subtype_pct_data(df: pl.LazyFrame) -> pl.LazyFrame:
-#     # Step 1: group by window and subtype
-#     grouped = df.group_by(
-#         [COL_NAME_WINDOW_TIME_MAX, COL_NAME_WINDOW_TIME, "AC_SUBTYPE"]
-#     ).agg(pl.count().alias(COL_NAME_COUNT_FLIGHTS))
-
-#     # Step 2: calculate the percentage by window
-#     result = grouped.with_columns(
-#         (
-#             pl.col(COL_NAME_COUNT_FLIGHTS)
-#             * 100
-#             / pl.col(COL_NAME_COUNT_FLIGHTS)
-#             .sum()
-#             .over([COL_NAME_WINDOW_TIME_MAX, COL_NAME_WINDOW_TIME])
-#         )
-#         .round(2)
-#         .alias(COL_NAME_PERCENTAGE_DELAY)
-#     )
-
-#     return result.sort(COL_NAME_WINDOW_TIME)
-
-
-def process_subtype_pct_data(df: pl.LazyFrame) -> pl.LazyFrame:
-    counts = df.group_by("AC_SUBTYPE").agg(pl.count().alias(COL_NAME_COUNT_FLIGHTS))
-
-    result = counts.with_columns(
-        [
-            (pl.col(COL_NAME_COUNT_FLIGHTS) * 100 / pl.sum(COL_NAME_COUNT_FLIGHTS))
-            .round(2)
-            .alias(COL_NAME_PERCENTAGE_DELAY)
-        ]
-    )
-
-    return result.sort(COL_NAME_PERCENTAGE_DELAY, descending=False)
-
-
-def calculate_period_distribution(df: pl.DataFrame) -> pl.DataFrame:
-    counts_df = (
-        df.group_by([COL_NAME_WINDOW_TIME, COL_NAME_WINDOW_TIME_MAX])
-        .agg(pl.len().alias("count"))
-        .sort(COL_NAME_WINDOW_TIME)
-    )
-    total = counts_df["count"].sum()
-    if total == 0:
-        return pl.DataFrame(
-            {
-                COL_NAME_WINDOW_TIME: [],
-                "count": [],
-                COL_NAME_PERCENTAGE_DELAY: [],
-            }
-        )
-    return counts_df.with_columns(
-        (pl.col("count") * 100 / total).round(2).alias(COL_NAME_PERCENTAGE_DELAY)
-    )
-
-
-def calculate_delay_pct(df: pl.LazyFrame) -> pl.LazyFrame:
-    # 1) Categorize delays
-    df = df.with_columns(
-        pl.when(pl.col("DELAY_TIME") >= 15)
-        .then(pl.lit("flights with delay ≥ 15 min"))
-        .otherwise(pl.lit("flights with delay < 15 min"))
-        .alias(COL_NAME_CATEGORY_GT_15MIN)
-    )
-
-    # 2) Group by time window and delay category
-    res = df.group_by(
-        [COL_NAME_WINDOW_TIME_MAX, COL_NAME_WINDOW_TIME, COL_NAME_CATEGORY_GT_15MIN]
-    ).agg(pl.count().alias(COL_NAME_CATEGORY_GT_15MIN_COUNT))
-
-    # 3) Compute percentage per time window
-    res = res.with_columns(
-        (
-            pl.col(COL_NAME_CATEGORY_GT_15MIN_COUNT)
-            * 100
-            / pl.col(COL_NAME_CATEGORY_GT_15MIN_COUNT)
-            .sum()
-            .over([COL_NAME_WINDOW_TIME_MAX, COL_NAME_WINDOW_TIME])
-        )
-        .round(2)
-        .alias(COL_NAME_CATEGORY_GT_15MIN_MEAN)
-    )
-
-    return res
-# utils.py (ou en haut de ton fichier)
-GLASS_STYLE = {
-    "background": "rgba(255,255,255,0.15)",     # voile translucide
-    "backdropFilter": "blur(12px)",             # flou derrière
-    "WebkitBackdropFilter": "blur(12px)",       # Safari
-    "border": "1px solid rgba(255,255,255,0.40)",
-    "borderRadius": "12px",
-    "boxShadow": "0 6px 24px rgba(0,0,0,0.12)",
-    "overflowX": "auto",                        # ce que tu avais déjà
-    "marginTop": "10px",
-    "marginBottom": "40px",
-}
-style_table=GLASS_STYLE,
-
-
 layout = dbc.Container(
     [
         html.Div(
             [
                 dbc.Alert(
                     [
-                        html.I(className="bi bi-check-circle me-2"),   # icône Bootstrap Icons
-                        html.Span(id="result-message-text"),           # ↔ « 268 result(s) found »
+                        html.I(
+                            className="bi bi-check-circle me-2"
+                        ),  # icône Bootstrap Icons
+                        html.Span(
+                            id="result-message-text"
+                        ),  # ↔ « 268 result(s) found »
                     ],
                     id="result-message",
                     color="success",
                     is_open=False,
-                    dismissable=True,
                     className="result-alert glass-success mt-4 mb-3",
                 ),
                 # Premier bouton + tableau + export
                 dbc.Button(
-                            [html.I(className="bi bi-download me-2"), "Exporter Excel"],
-                            id="result-export-btn",
-                            className="btn-export mt-2",
-                            n_clicks=0,
-                        ),
+                    [html.I(className="bi bi-download me-2"), "Exporter Excel"],
+                    id="result-export-btn",
+                    className="btn-export mt-2",
+                    n_clicks=0,
+                ),
                 dash_table.DataTable(
                     id=ID_SUMMERY_TABLE,
                     columns=[],
                     data=[],
                     page_size=10,
-                    style_table=GLASS_STYLE,
                     style_cell={"textAlign": "left"},
                     sort_action="native",
                     style_data_conditional=[
@@ -199,9 +104,11 @@ layout = dbc.Container(
                 ),
                 # Graphique subtype pct
                 html.Div(
-                dcc.Graph(id=ID_FIGURE_SUBTYPE_PR_DELAY_MEAN, style={"height": "400px"}),
-                className="graph mb-4 mx-auto",          # ← nouvelle classe CSS
-                style={"width": "90%"},
+                    dcc.Graph(
+                        id=ID_FIGURE_SUBTYPE_PR_DELAY_MEAN, style={"height": "400px"}
+                    ),
+                    className="graph mb-4 mx-auto",  # ← nouvelle classe CSS
+                    style={"width": "90%"},
                 ),
                 # Tableau des subtypes
                 # Deuxième bouton + tableau + export
@@ -218,7 +125,6 @@ layout = dbc.Container(
                             columns=[],
                             data=[],
                             page_size=10,
-                            style_table=GLASS_STYLE,
                             style_cell={"textAlign": "left"},
                             sort_action="native",
                             style_data_conditional=[
@@ -240,7 +146,7 @@ layout = dbc.Container(
                         id=ID_FIGURE_CATEGORY_DELAY_GT_15MIN,
                         style={"margin": "auto", "height": "400px", "width": "90%"},
                     ),
-                    className="graph mb-4 mx-auto",          # ← nouvelle classe CSS
+                    className="graph mb-4 mx-auto",  # ← nouvelle classe CSS
                     style={"width": "90%"},
                 ),
                 html.Div(
@@ -256,7 +162,6 @@ layout = dbc.Container(
                             columns=[],
                             data=[],
                             page_size=10,
-                            style_table=GLASS_STYLE,
                             style_cell={"textAlign": "left"},
                             sort_action="native",
                             style_data_conditional=[
@@ -279,7 +184,7 @@ layout = dbc.Container(
                         id=ID_FIGURE_FLIGHT_DELAY,
                         style={"margin": "auto", "width": "100%"},
                     ),
-                    className="graph mb-4 mx-auto",          # ← nouvelle classe CSS
+                    className="graph mb-4 mx-auto",  # ← nouvelle classe CSS
                     style={"width": "90%"},
                 ),
                 # Troisième bouton + tableau + export
@@ -296,7 +201,6 @@ layout = dbc.Container(
                             columns=[],
                             data=[],
                             page_size=10,
-                            style_table=GLASS_STYLE,
                             style_cell={"textAlign": "left"},
                             sort_action="native",
                             style_data_conditional=[
@@ -379,22 +283,23 @@ def update_subtype(_):
         return go.Figure(), [], []
     df_sub = process_subtype_pct_data(df_lazy).collect()
     # figure
-    fig = create_bar_horizontal_figure(
-        df_sub,
-        x=COL_NAME_PERCENTAGE_DELAY,
-        y=COL_NAME_SUBTYPE,
-        title="Delayed flights by SUBTYPE (%)",
-    )
-
     # fig = create_bar_horizontal_figure(
     #     df_sub,
     #     x=COL_NAME_PERCENTAGE_DELAY,
-    #     y=COL_NAME_WINDOW_TIME,
-    #     title="Delayed flights by SUBTYPE (%) per time window",
-    #     color="AC_SUBTYPE",
-    #     legend_title="Subtype",
-    #     barmode="stack",
+    #     y=COL_NAME_SUBTYPE,
+    #     title="Delayed flights by SUBTYPE (%)",
     # )
+
+    fig = create_bar_horizontal_figure(
+        df_sub,
+        x=COL_NAME_PERCENTAGE_DELAY,
+        y=COL_NAME_WINDOW_TIME,
+        y_max=COL_NAME_WINDOW_TIME_MAX,
+        title="Delayed flights by SUBTYPE (%) per time window",
+        color="AC_SUBTYPE",
+        legend_title="Subtype",
+        barmode="stack",
+    )
 
     # table
     cols = [{"name": TABLE_NAMES_RENAME.get(c, c), "id": c} for c in df_sub.columns]
@@ -418,6 +323,7 @@ def update_category(_):
     fig = create_bar_figure(
         df_cat,
         x=COL_NAME_WINDOW_TIME,
+        x_max=COL_NAME_WINDOW_TIME_MAX,
         y=COL_NAME_CATEGORY_GT_15MIN_MEAN,
         color=COL_NAME_CATEGORY_GT_15MIN,
         legend_title="Category of delay",
@@ -457,6 +363,7 @@ def update_interval(_):
         df_period,
         x=COL_NAME_PERCENTAGE_DELAY,
         y=COL_NAME_WINDOW_TIME,
+        y_max=COL_NAME_WINDOW_TIME_MAX,
         title="Distribution of flights by time intervals",
     )
     # table

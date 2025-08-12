@@ -1,7 +1,12 @@
 from dash import Input, Output, dcc, html
 from configurations.nav_config import build_nav_items_meta
 from components.title import ID_MAIN_TITLE
-from data_managers.excel_manager import ID_PATH_STORE, add_watcher_for_data_status, path_exists
+from pages.settings.page import add_watcher_params_preferences
+from data_managers.excel_manager import (
+    ID_PATH_STORE,
+    add_watcher_for_data_status,
+    path_exists,
+)
 from server_instance import get_app
 
 from components.filter import ID_FILTER_CONTAINER
@@ -26,8 +31,9 @@ navbar = dbc.Navbar(
                         id="ram-logo",
                         style={"height": "70px"},  # tweak as needed
                     ),
-                    html.Span(["Delay", html.Br(), "Dashboard"], className="navbar-title"),
-                    
+                    html.Span(
+                        ["Delay", html.Br(), "Dashboard"], className="navbar-title"
+                    ),
                 ],
                 className="d-flex align-items-center",
                 href="/",
@@ -40,7 +46,6 @@ navbar = dbc.Navbar(
                         navbar=True,
                         className="nav-tabs my-auto",
                     ),
-                    
                 ],
                 className="d-flex align-items-center ms-auto",
             ),
@@ -64,8 +69,9 @@ def add_callback():
         # inputs
         Input("url", "pathname"),
         add_watcher_for_data_status(),
+        add_watcher_params_preferences(),
     )
-    def update_layout(pathname, _):
+    def update_layout(pathname, _, pref):
         does_path_exists = path_exists()
         nav_items = build_nav_items_meta(does_path_exists)
 
@@ -98,17 +104,17 @@ def add_callback():
                     )
                 )
             )
-        navbar.append(dbc.Button(
-    [html.Span("Logout", className="label")],
-    id="logout-btn",
-    className="btn-logout",        # <- key
-    color="light",                 # lighter base; CSS will override anyway
-    outline=True,
-)
-# Put it inside a right-side container: html.Div(..., className="navbar-end")
-)
+        navbar.append(
+            dbc.Button(
+                [html.Span("Logout", className="label")],
+                id="logout-btn",
+                className="btn-logout",  # <- key
+                color="light",  # lighter base; CSS will override anyway
+                outline=True,
+            )
+            # Put it inside a right-side container: html.Div(..., className="navbar-end")
+        )
 
         show_filter = {} if show_filter else {"display": "none"}
         logging.info("Navbar updated with %d items", len(navbar))
         return navbar, show_filter, title
-    

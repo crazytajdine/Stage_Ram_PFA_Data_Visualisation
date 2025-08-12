@@ -14,10 +14,11 @@ from utils_dashboard.utils_download import download_dash
 from data_managers.excel_manager import (
     ID_PATH_STORE,
     add_watcher_for_data_status,
+    add_callbacks as add_excel_manager_callbacks,
     hookers as excel_hookers,
-    add_callbacks as add_excel_manager_callback,
     path_exists,
 )
+from data_managers.watcher_excel_dir import add_callbacks as add_watcher_excel
 from components.filter import (
     layout as filter_layout,
     add_callbacks as add_filter_callbacks,
@@ -29,7 +30,6 @@ from components.navbar import (
 
 from components.title import layout as tittle_layout
 
-print("Loading server instance...")
 
 app = get_app()
 server = get_server()
@@ -86,20 +86,20 @@ def update_content_page(pathname, _):
         is_selected = pathname == nav_item.href
 
         if is_selected:
-            print("loading page")
             return nav_item.page
 
     return html.Div("404 Page Not Found")
 
 
-add_excel_manager_callback()
+add_watcher_excel()
+add_excel_manager_callbacks()
 add_filter_callbacks()
 add_navbar_callback()
 
 
 def start_server(start_dev=True):
 
-    print("🔁 Starting Dash server…")
+    logging.info("🔁 Starting Dash server…")
     app.run(debug=True, use_reloader=start_dev, port=8050)
 
 

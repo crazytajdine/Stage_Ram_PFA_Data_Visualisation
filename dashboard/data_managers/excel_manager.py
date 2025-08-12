@@ -46,10 +46,6 @@ path_to_excel_cashed = config.get("path_to_excel", "")
 # func
 
 
-def get_path_to_excel():
-    return path_to_excel
-
-
 def path_exits():
     if not path_to_excel:
         logging.debug("No path to Excel file configured.")
@@ -98,7 +94,8 @@ def get_path_to_excel() -> str:
     list_name_excels = [
         name
         for name in list_name_excels
-        if name.endswith(".xlsx") or name.endswith(".xls")
+        if (name.endswith(".xlsx") or name.endswith(".xls"))
+        and (not name.startswith("~$"))
     ]
 
     logging.info(f"Filtered Excel files: {list_name_excels}")
@@ -121,7 +118,7 @@ def filter_tec(df_lazy: pl.LazyFrame) -> pl.LazyFrame:
     logging.info("Filtering technical delay codes from dataframe")
     try:
         filtered_df = df_lazy.filter(
-            pl.col("DELAY_CODE").is_in([41, 42, 43, 44, 45, 46, 47, 51, 52, 55, 56, 57])
+            pl.col("DELAY_CODE").is_in([41, 42, 43, 44, 45, 46, 47, 51, 52])
         )
         logging.debug("Filter applied on CODE_DR for technical delays")
         return filtered_df
@@ -342,6 +339,7 @@ if path_to_excel and path_to_excel.strip() != "":
         logging.info(f"Excel file loaded successfully from: {path_to_excel}")
     except Exception as e:
         logging.info(f"Warning: Could not load Excel file at startup: {e}")
+        path_to_excel_cashed = ""
         df_unfiltered = None
         df_raw = None
         df = None
@@ -385,9 +383,13 @@ def add_watcher_for_data():
 
 
 def update_df_unfiltered():
+    global path_to_excel_cashed
     logging.info("Updating unfiltered dataframe by reloading Excel file")
-
-    load_excel_lazy(get_path_to_excel())
+    try:
+        load_excel_lazy(get_path_to_excel())
+    except Exception:
+        path_to_excel_cashed = ""
+        logging.info(f"Warning: Could not load Excel file at startup: {e}")
 
 
 def modify_modification_date(new_modification_date: float):
@@ -417,44 +419,6 @@ def add_callbacks():
     )
     def trigger_data_path_change(_):
         return None, None
-
-    @app.callback(
-        Output(ID_PATH_STORE, "data"),
-        Output(ID_STORE_DATE_WATCHER, "data", allow_duplicate=True),
-        State(ID_PATH_STORE, "data"),
-        State(ID_STORE_DATE_WATCHER, "data"),
-        Input(ID_INTERVAL_WATCHER, "n_intervals"),
-        prevent_initial_call=True,
-    )
-    def watch_file(current_path, date_latest_fetch, _):
-        logging.debug("Watching file every second...")
-
-        try:
-            # Check if file path exists
-            if (not current_path) or (not os.path.exists(current_path)):
-                logging.warning("Excel file path no longer exists.")
-                return get_path_to_excel(), get_latest_modification_time()
-
-            # Check for modification time
-            latest_modification_time = get_latest_modification_time()
-            logging.debug(
-                f"watching file: {latest_modification_time} new: {date_latest_fetch}"
-            )
-
-            if latest_modification_time != date_latest_fetch:
-                logging.info("File changed, updating DataFrame...")
-
-                update_df_unfiltered()
-                modify_modification_date(latest_modification_time)
-                return dash.no_update, latest_modification_time
-
-        except FileNotFoundError:
-            logging.warning("Excel file not found during watch.")
-
-        except Exception as e:
-            logging.error(f"Error watching file: {e}", exc_info=True)
-
-        return dash.no_update, dash.no_update
 
     @app.callback(
         Output(ID_DATA_STATUS_CHANGE_TRIGGER, "data"),

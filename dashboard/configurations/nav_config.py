@@ -4,7 +4,7 @@ from schemas.navbarItem import NavItemMeta
 
 
 from pages.home.metadata import metadata as home_metadata
-from pages.tech.metadata import metadata as tech_metadata
+from pages.analytics.metadata import metadata as tech_metadata
 from pages.weekly.metadata import metadata as weekly_metadata
 from pages.performance_metrics.metadata import metadata as perf_metrics_metadata
 from pages.settings.metadata import metadata as settings_metadata

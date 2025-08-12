@@ -1,7 +1,7 @@
 # utils_graph.py
 
 import logging
-from typing import Literal
+from typing import Literal, Optional
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 import plotly.express as px, plotly.graph_objs as go
@@ -20,15 +20,15 @@ def create_bar_figure(
     x: str,
     y: str,
     title: str,
+    x_max: Optional[str] = None,
     unit: str = "%",
-    color: str | None = None,
+    color: Optional[str] = None,
     barmode: Literal["group", "stack"] = "group",
-    legend_title: str | None = None,
-) -> go.Figure | None:
+    legend_title: Optional[str] = None,
+) -> Optional[go.Figure]:
 
     if x not in df.columns or y not in df.columns:
         return None
-
     # Create a new column for text display
     df = df.with_columns(
         pl.col(y)
@@ -40,6 +40,18 @@ def create_bar_figure(
     len_date = df.select(pl.col(x).len()).item()
     logging.debug("Number of rows in x-axis: %d", len_date)
 
+    custom_data_cols = []
+    index_map = {}
+
+    x_max_valid = x_max and x_max in df.columns
+    if x_max_valid:
+        index_map["x_max"] = len(custom_data_cols)
+        custom_data_cols.append(x_max)
+    color_valid = color and color in df.columns
+    if color_valid:
+        index_map["color"] = len(custom_data_cols)
+        custom_data_cols.append(color)
+
     fig = px.bar(
         df,
         x=x,
@@ -48,6 +60,7 @@ def create_bar_figure(
         text="text_label",
         barmode=barmode,
         color=color,
+        custom_data=custom_data_cols if custom_data_cols else None,
     )
 
     threshold_sep_x = 12
@@ -68,14 +81,28 @@ def create_bar_figure(
     if legend_title is not None:
         fig.update_layout(legend_title_text=legend_title)
 
-    hover_template_base = (
-        "%{x}<br>Percentage : %{text}<br>Detailed : %{y}<extra></extra>"
+    x_label_template = (
+        f"From %{{x}} to %{{customdata[{index_map['x_max']}]}}<br>"
+        if "x_max" in index_map
+        else "%{x}<br>"
+    )
+
+    color_template = (
+        f"{legend_title} : %{{customdata[{index_map['color']}]}}<br>"
+        if "color" in index_map
+        else ""
     )
 
     fig.update_traces(
-        textposition="outside" if len_date <= threshold_show_y else "none",
+        textposition="auto" if len_date <= threshold_show_y else "none",
+        marker=dict(cornerradius=4),
         textangle=0,
-        hovertemplate=hover_template_base,
+        hovertemplate=(
+            x_label_template
+            + color_template
+            + "value : %{text}<br>"
+            + "<extra></extra>"
+        ),
         textfont_size=16,
     )
 
@@ -93,16 +120,17 @@ def create_bar_horizontal_figure(
     x: str,
     y: str,
     title: str,
+    y_max: Optional[str] = None,
     unit: str = "%",
-    color: str | None = None,
+    color: Optional[str] = None,
     barmode: Literal["group", "stack"] = "group",
-    legend_title: str | None = None,
-) -> go.Figure | None:
+    legend_title: Optional[str] = None,
+) -> Optional[go.Figure]:
 
     if x not in df.columns or y not in df.columns:
         return None
 
-    # Create text label column
+    # Text label for bar display
     df = df.with_columns((pl.col(x).round(2).cast(str) + unit).alias("text_label"))
 
     len_date = df.select(pl.col(x).len()).item()
@@ -110,6 +138,17 @@ def create_bar_horizontal_figure(
 
     threshold_sep_y = 20
     threshold_show_x = 20
+
+    custom_data_cols = []
+    index_map = {}
+
+    if y_max and y_max in df.columns:
+        index_map["y_max"] = len(custom_data_cols)
+        custom_data_cols.append(y_max)
+
+    if color and color in df.columns:
+        index_map["color"] = len(custom_data_cols)
+        custom_data_cols.append(color)
 
     fig = px.bar(
         df,
@@ -120,6 +159,7 @@ def create_bar_horizontal_figure(
         orientation="h",
         barmode=barmode,
         color=color,
+        custom_data=custom_data_cols,
     )
 
     fig.update_yaxes(tickformat="%y-%m-%d")
@@ -134,12 +174,30 @@ def create_bar_horizontal_figure(
         xaxis_title="",
     )
 
+    y_label_template = (
+        f"From %{{y}} to %{{customdata[{index_map['y_max']}]}}<br>"
+        if "y_max" in index_map
+        else "%{y}<br>"
+    )
+
+    color_template = (
+        f"{legend_title} : %{{customdata[{index_map['color']}]}}<br>"
+        if "color" in index_map
+        else ""
+    )
     fig.update_traces(
         textposition=("auto" if len_date <= threshold_show_x else "none"),
         textangle=0,
-        hovertemplate="%{y}<br>Percentage : %{text}<br>Detailed : %{x} <extra></extra>",
+        hovertemplate=(
+            y_label_template
+            + color_template
+            + "value : %{text}<br>"
+            + "<extra></extra>"
+        ),
         textfont_size=16,
+        marker=dict(cornerradius=4),
     )
+
     if legend_title is not None:
         fig.update_layout(legend_title_text=legend_title)
 
@@ -152,13 +210,11 @@ def create_bar_horizontal_figure(
     return fig
 
 
-
 def generate_card_info_change(
     df: pl.DataFrame,
     col_name: str,
     title: str,
     include_footer: bool = True,
-    extra_class="",
 ) -> dbc.Card:
 
     logging.info(
@@ -194,7 +250,7 @@ def generate_card_info_change(
 
     if change is None:
         change_div = html.Span("N/A", className="text-secondary")
-        stripe_color = "secondary"
+        stripe_color = "transparent"
     else:
         if change >= 0:
             icon_cls, color_cls, stripe_color = (
@@ -221,12 +277,17 @@ def generate_card_info_change(
         dbc.CardHeader(
             [
                 html.Div(
-                    className=f"bg-{stripe_color} rounded-top mb-1",
-                    style={"height": "4px"},
+                    className=f"bg-{stripe_color}  ",
+                    style={"height": "6px"},
                 ),
                 html.H5(title, className="text-muted px-4 mb-0"),
             ],
-            className="p-0 border-0 text-center bg-transparent",
+            className="p-0 border-0 text-center bg-transparent  ",
+            style={
+                "border-top-left-radius": "0.5rem",
+                "border-top-right-radius": "0.5rem",
+                "overflow": "hidden",
+            },
         ),
         dbc.CardBody(
             [
@@ -244,6 +305,7 @@ def generate_card_info_change(
             dbc.CardFooter(
                 change_div,
                 className="text-center bg-transparent border-0",
+                style={"fontWeight": "300"},
             )
         )
 

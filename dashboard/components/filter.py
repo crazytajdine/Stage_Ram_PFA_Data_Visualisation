@@ -294,8 +294,14 @@ def check_segmentation(filter1: FilterType, filter2: FilterType) -> bool:
     unit1 = filter1.get("fl_unit_segmentation")
     unit2 = filter2.get("fl_unit_segmentation")
 
-    segment1 = filter1.get("fl_segmentation")
-    segment2 = filter2.get("fl_segmentation")
+    segment1 = filter1.get("fl_segmentation", 0)
+    segment2 = filter2.get("fl_segmentation", 0)
+
+    if segment1 is None:
+        segment1 = 0
+    if segment2 is None:
+        segment2 = 0
+
     if segment1 == segment2:
 
         if segment1 and segment2 and (unit1 != unit2):

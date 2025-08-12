@@ -30,5 +30,5 @@ def init_log(log_file_template: str):
 
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
-    console_handler.setLevel(logging.INFO)
+    console_handler.setLevel(logging.ERROR)
     root_logger.addHandler(console_handler)

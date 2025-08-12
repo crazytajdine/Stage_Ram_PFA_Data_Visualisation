@@ -67,26 +67,15 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-/* Professional geometric pattern overlay */
-body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: 
-    repeating-linear-gradient(
-      45deg,
+  background-image: repeating-linear-gradient(45deg,
       transparent,
       transparent 35px,
-      rgba(0, 0, 0, 0.01) 35px,
-      rgba(0, 0, 0, 0.01) 70px
-    );
-  pointer-events: none;
+      rgba(0, 0, 0, 0.009) 35px,
+      rgba(0, 0, 0, 0.009) 70px);
+  background-repeat: repeat;
+  background-attachment: scroll;
 }
+
 
 /* ============ Container Adjustments ============ */
 .container-fluid {
@@ -96,8 +85,8 @@ body::before {
 /* ============ Navbar - Premium Glass Effect ============ */
 .navbar {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 250, 0.95) 100%) !important;
-  backdrop-filter: blur(var(--blur-lg));
   -webkit-backdrop-filter: blur(var(--blur-lg));
+  backdrop-filter: blur(var(--blur-lg));
   border-bottom: 1px solid var(--border-light);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
@@ -196,8 +185,8 @@ body::before {
     rgba(250, 243, 232, 0.75) 50%,
     rgba(245, 237, 220, 0.85) 100%
   ) !important;
-  backdrop-filter: blur(var(--blur-md));
   -webkit-backdrop-filter: blur(var(--blur-md));
+  backdrop-filter: blur(var(--blur-md));
   border: 1px solid var(--border-beige) !important;
   box-shadow: 
     0 8px 32px rgba(212, 175, 55, 0.08),
@@ -358,8 +347,8 @@ body::before {
     rgba(255, 253, 248, 0.98) 0%, 
     rgba(250, 245, 235, 0.95) 100%
   ) !important;
-  backdrop-filter: blur(var(--blur-lg));
   -webkit-backdrop-filter: blur(var(--blur-lg));
+  backdrop-filter: blur(var(--blur-lg));
   border: 1px solid rgba(212, 175, 55, 0.2) !important;
   border-radius: 8px !important;
   box-shadow: 
@@ -571,8 +560,8 @@ body::before {
 /* Cards - Professional White Glass */
 .card {
   background: var(--glass-white-heavy) !important;
-  backdrop-filter: blur(var(--blur-sm));
   -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
   border: 1px solid var(--border-light) !important;
   border-radius: 12px !important;
   box-shadow: var(--shadow-md) !important;
@@ -591,8 +580,6 @@ body::before {
     rgba(255, 255, 255, 0.95), 
     rgba(248, 249, 250, 0.95)
   ) !important;
-  border-bottom: 1px solid var(--border-light) !important;
-  padding: 1rem 1.25rem !important;
   font-weight: 600;
   font-size: 0.95rem;
   color: var(--text-primary);
@@ -605,47 +592,10 @@ body::before {
   background: transparent !important;
 }
 
-/* Tables - Professional Grey Glass */
-.dash-table-container {
-  background: linear-gradient(135deg, 
-    rgba(248, 249, 250, 0.95) 0%, 
-    rgba(255, 255, 255, 0.9) 100%
-  ) !important;
-  backdrop-filter: blur(var(--blur-sm));
-  -webkit-backdrop-filter: blur(var(--blur-sm));
-  border: 1px solid var(--border-light) !important;
-  border-radius: 12px !important;
-  box-shadow: var(--shadow-md) !important;
-  overflow: hidden;
-  margin-top: 1rem;
-}
 
-.dash-table-container table {
-  background: transparent !important;
-}
 
-.dash-table-container th {
-  background: linear-gradient(135deg, 
-    rgba(233, 236, 239, 0.95) 0%, 
-    rgba(241, 243, 245, 0.95) 100%
-  ) !important;
-  color: var(--text-primary) !important;
-  font-weight: 600 !important;
-  font-size: 0.8rem !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.05em !important;
-  border-bottom: 2px solid var(--border-medium) !important;
-  padding: 0.875rem !important;
-  white-space: nowrap;
-}
 
-.dash-table-container td {
-  background: transparent !important;
-  color: var(--text-secondary) !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
-  padding: 0.75rem !important;
-  font-size: 0.9rem;
-}
+
 
 .dash-table-container tbody tr:nth-child(odd) td {
   background: rgba(248, 249, 250, 0.3) !important;
@@ -666,17 +616,17 @@ body::before {
     rgba(255, 255, 255, 0.9) 0%, 
     rgba(248, 249, 250, 0.85) 100%
   );
-  backdrop-filter: blur(var(--blur-sm));
   -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
   border: 1px solid var(--border-light);
   border-radius: 12px;
   padding: 1.25rem;
   box-shadow: var(--shadow-md);
   transition: all 0.3s ease;
-  margin-bottom: 1.5rem;
+  margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
   position: relative;
   overflow: hidden;
-  margin-top: 1.5rem;
 }
 
 .graph::before {
@@ -748,8 +698,8 @@ body::before {
     rgba(40, 167, 69, 0.08) 0%, 
     rgba(40, 167, 69, 0.05) 100%
   ) !important;
-  backdrop-filter: blur(var(--blur-sm));
   -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
   border: 1px solid rgba(40, 167, 69, 0.25) !important;
   border-left: 4px solid #28a745 !important;
   color: #155724 !important;
@@ -766,6 +716,19 @@ body::before {
   border-left: 4px solid #ffc107 !important;
   color: #856404 !important;
 }
+
+
+select.form-select,
+select.form-control {
+  color: #333 !important;   /* readable on white background */
+}
+
+/* If you use a placeholder option in select */
+select option[disabled] {
+  color: #888 !important;
+}
+
+
 
 .alert-danger {
   background: linear-gradient(135deg, 
@@ -823,7 +786,6 @@ body::before {
 #main_title   { font-size: clamp(1.4rem, 2.2vw + 0.5rem, 2.2rem) !important; }
 .btn          { padding:.5rem 1.1rem; font-size: clamp(.85rem, .6vw + .7rem, 1rem); }
 
-html { -webkit-text-size-adjust: 100%; } /* Safari zoom consistency */
 
 
 
@@ -931,8 +893,8 @@ header, .navbar, .navbar .container-fluid { max-width:100%; min-width:0; }
   padding:.55rem 1rem;
   border-radius:0.5rem;                             /* a bit more pill-y */
   background: rgba(255,255,255,.6) !important;     /* glass */
-  backdrop-filter: blur(var(--blur-sm));
   -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
   color: var(--ram-red) !important;                /* different from other tabs */
   border: 1.25px solid var(--ram-red) !important;
   font-weight: 700; letter-spacing:.02em;
@@ -1034,7 +996,6 @@ header, .navbar, .navbar .container-fluid { max-width:100%; min-width:0; }
   opacity: 1 !important;
   margin: 0;
 }
-
 /* (nice-to-have) match heights when they sit side-by-side */
 /* Bootstrap input-group is flex; lock the order explicitly */
 #filter-container .input-group{ display:flex; gap:.75rem; }
@@ -1044,7 +1005,8 @@ header, .navbar, .navbar .container-fluid { max-width:100%; min-width:0; }
 
 /* --- Segmentation select: base (with caret + gradient) --- */
 #filter-container select.form-select{
-  appearance:none; -webkit-appearance:none; -moz-appearance:none;
+  -webkit-appearance:none; -moz-appearance:none;
+  appearance:none; 
 
   background-image: var(--bs-form-select-bg-img),
                     linear-gradient(135deg, rgba(255,253,248,.9) 0%, rgba(250,245,235,.85) 100%);
@@ -1072,7 +1034,9 @@ header, .navbar, .navbar .container-fluid { max-width:100%; min-width:0; }
 }
 /* --- SEGMENTATION: right-hand select (caret + theme + focus) --- */
 #filter-container select.form-select{
-  appearance:none; -webkit-appearance:none; -moz-appearance:none;
+  -moz-appearance:none;
+  -webkit-appearance:none; 
+  appearance:none; 
   background-image: var(--bs-form-select-bg-img),
                     linear-gradient(135deg, rgba(255,253,248,.9) 0%, rgba(250,245,235,.85) 100%);
   background-position: right .85rem center, 0 0;
@@ -1106,7 +1070,8 @@ header, .navbar, .navbar .container-fluid { max-width:100%; min-width:0; }
 #filter-container .input-group > select.form-select{ order:2; }
 /* SEGMENTATION (right) — match hover + focus visuals to other inputs */
 #filter-container select.form-select{
-  appearance:none; -webkit-appearance:none; -moz-appearance:none;
+  -webkit-appearance:none; -moz-appearance:none;
+  appearance:none;
   background-image: var(--bs-form-select-bg-img),
                     linear-gradient(135deg, rgba(255,253,248,.9) 0%, rgba(250,245,235,.85) 100%);
   background-position: right .85rem center, 0 0;
@@ -1178,8 +1143,8 @@ header, .navbar, .navbar .container-fluid { max-width:100%; min-width:0; }
   padding:1rem 1.25rem !important;
 
   background: linear-gradient(135deg, rgba(40,167,69,.08) 0%, rgba(40,167,69,.05) 100%) !important;
-  backdrop-filter: blur(var(--blur-sm));
   -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
   border: 1px solid rgba(40,167,69,.25) !important;
   border-left: 4px solid #28a745 !important;
   border-radius: 12px !important;
