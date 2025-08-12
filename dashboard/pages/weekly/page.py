@@ -3,20 +3,21 @@ weekly_analysis_page.py – Weekly Analysis of Delay Codes
 """
 
 # ─────────────── Standard library ───────────────
-from datetime import datetime, date
+from datetime import date, datetime
+
+import dash
+import dash_bootstrap_components as dbc
+import plotly.graph_objects as go
 
 # ─────────────── Third-party ───────────────
 import polars as pl
-import dash
-import dash_bootstrap_components as dbc
-from dash import html, dash_table, Output, dcc
-import plotly.graph_objects as go
 
 # ─────────────── Application modules ───────────────
 from calculations.weekly import analyze_weekly_codes
-from utils_dashboard.utils_download import add_export_callbacks
+from dash import Output, dash_table, dcc, html
+from data_managers.excel_manager import add_watcher_for_data, get_df
 from server_instance import get_app
-from data_managers.excel_manager import get_df, add_watcher_for_data
+from utils_dashboard.utils_download import add_export_callbacks
 
 app = get_app()
 
