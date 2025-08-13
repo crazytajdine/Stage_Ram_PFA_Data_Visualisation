@@ -3,10 +3,6 @@ import logging
 from sqlalchemy.orm import Session
 from schemas.database_models import Page
 
-# -------------------
-# Page CRUD functions
-# -------------------
-
 
 def create_page(
     page_name: str, session: Session, created_by: Optional[int] = None
