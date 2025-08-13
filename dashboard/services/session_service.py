@@ -1,14 +1,23 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, List
 import uuid
 import logging
 import sqlalchemy.orm as sa_orm
 from schemas.database_models import Session
+from configurations.config import get_base_config
 
 
-def create_session(
-    user_id: int, expires_at: datetime, session: sa_orm.Session
-) -> Session:
+config = get_base_config()
+
+session_expiration_offset_in_hours = config.get("session", {}).get(
+    "session_expiration_offset_in_hours", 24
+)
+
+
+def create_session(user_id: int, session: sa_orm.Session) -> Session:
+
+    expires_at = datetime.now() + timedelta(hours=session_expiration_offset_in_hours)
+
     new_session = Session(
         id=str(uuid.uuid4()),
         user_id=user_id,
@@ -22,7 +31,11 @@ def create_session(
 
 
 def get_session_by_id(session_id: str, session: sa_orm.Session) -> Optional[Session]:
-    return session.query(Session).filter(Session.id == session_id).one_or_none()
+    return (
+        session.query(Session)
+        .filter(Session.id == session_id, Session.expires_at < datetime.now())
+        .one_or_none()
+    )
 
 
 def get_sessions_by_user(user_id: int, session: sa_orm.Session) -> List[Session]:
@@ -46,3 +59,10 @@ def get_active_sessions(user_id: int, session: sa_orm.Session) -> List[Session]:
         .filter(Session.user_id == user_id, Session.expires_at > now)
         .all()
     )
+
+
+def validate_session(token: str, session: sa_orm.Session) -> bool:
+    if not token:
+        return False
+    sess = get_session_by_id(token, session)
+    return True if sess else False

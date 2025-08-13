@@ -5,7 +5,11 @@ import dash
 import dash_bootstrap_components as dbc
 from configurations.config import get_base_config
 from configurations.log_config import init_log
-from components.trigger_page_change import add_watcher_params_preferences
+from components.trigger_page_change import (
+    add_input_manual_trigger,
+    stores as trigger_stores,
+)
+from utils_dashboard.utils_auth import validate_session
 from utils_dashboard.utils_navs import build_nav_items
 from server_instance import get_app, get_server
 
@@ -27,6 +31,7 @@ from components.navbar import (
     layout as navbar_layout,
 )
 
+from components.auth import add_input_auth_token, stores as auth_stores
 from components.title import ID_MAIN_TITLE, layout as tittle_layout
 
 
@@ -34,11 +39,18 @@ app = get_app()
 server = get_server()
 
 
+ID_STORE_LOADED_URL = "store_loaded_url"
+
+
 app.layout = html.Div(
     [
         download_dash,
+        # auth
+        *auth_stores,
         # hookers
         *excel_hookers,
+        # triggers
+        *trigger_stores,
         # Barre de navigation
         navbar_layout,
         # Title
@@ -49,6 +61,7 @@ app.layout = html.Div(
         html.Div(id="page-content"),
         # Stockage pour suivre l'état du menu
         dcc.Location(id="url"),
+        dcc.Store(ID_STORE_LOADED_URL),
     ]
 )
 
@@ -71,19 +84,26 @@ def export_current_chart(_, fig_dict):
     Output(ID_MAIN_TITLE, "children"),
     Output(ID_FILTER_CONTAINER, "style"),
     Output("navbar", "children"),
+    Output(ID_STORE_LOADED_URL, "data"),
     Input("url", "pathname"),
     add_watcher_for_data_status(),
-    add_watcher_params_preferences(),
+    add_input_manual_trigger(),
+    add_input_auth_token(),
+    State(ID_STORE_LOADED_URL, "data"),
 )
-def update_page_and_navbar(pathname, _, pref):
+def update_page_and_navbar(pathname, _, pref, token, loaded_url):
+
+    is_login = validate_session(token)
+
     does_path_exists = path_exists()
     logging.info("Selected Path : %s", pathname)
-    nav_items = build_nav_items(does_path_exists)
+    nav_items = build_nav_items(does_path_exists, is_login)
     logging.info("Does path exist set to %s", does_path_exists)
 
     logging.info("Nav items metadata: %s", [(i.name, i.show_navbar) for i in nav_items])
 
     selected_page_href: str = ""
+    should_update_on_data_change = True
 
     for nav_item in nav_items:
         if pathname == nav_item.href:
@@ -92,15 +112,18 @@ def update_page_and_navbar(pathname, _, pref):
             page_title = nav_item.title
             filter_style = {} if nav_item.show_filter else {"display": "none"}
             selected_page_href = nav_item.href
-
+            should_update_on_data_change = nav_item.update_on_data_change
             break
     else:
         if nav_items:
 
-            page_content = nav_items[0].page
+            nav_item = nav_items[0]
+
+            page_content = nav_item.page
             page_title = nav_items[0].title
             filter_style = {} if nav_items[0].show_filter else {"display": "none"}
             selected_page_href = nav_items[0].href
+            should_update_on_data_change = nav_items[0].update_on_data_change
             logging.info(
                 f"user id didn't find any page with {pathname} and will load the first one {selected_page_href}"
             )
@@ -110,6 +133,9 @@ def update_page_and_navbar(pathname, _, pref):
             page_content = html.Div("No page is loaded")
             page_title = ""
             filter_style = {}
+
+    if (loaded_url == selected_page_href) and (not should_update_on_data_change):
+        page_content = page_title = filter_style = dash.no_update
 
     # Build navbar
     navbar = [
@@ -123,17 +149,18 @@ def update_page_and_navbar(pathname, _, pref):
         for nav_item in nav_items
         if nav_item.show_navbar
     ]
-    navbar.append(
-        dbc.Button(
-            [html.Span("Logout", className="label")],
-            id="logout-btn",
-            className="btn-logout",
-            color="light",
-            outline=True,
+    if is_login:
+        navbar.append(
+            dbc.Button(
+                [html.Span("Logout", className="label")],
+                id="logout-btn",
+                className="btn-logout",
+                color="light",
+                outline=True,
+            )
         )
-    )
 
-    return page_content, page_title, filter_style, navbar
+    return page_content, page_title, filter_style, navbar, selected_page_href
 
 
 add_watcher_excel()

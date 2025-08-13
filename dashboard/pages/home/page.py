@@ -315,6 +315,7 @@ def update_subtype(_):
     add_watcher_for_data(),
 )
 def update_category(_):
+    print("Updating category...")
     df_lazy = get_df()
     if df_lazy is None:
         return go.Figure(), [], []

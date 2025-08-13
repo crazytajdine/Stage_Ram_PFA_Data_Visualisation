@@ -30,16 +30,15 @@ def get_page_visibility(page_key: str) -> Optional[bool]:
     return config.get("pages", {}).get(page_key, None)
 
 
-def build_nav_items_meta(path_exists: bool) -> list[NavItemMeta]:
+def build_nav_items_meta(path_exists: bool, is_login: bool) -> list[NavItemMeta]:
 
-    login = True
     allowed_data_page_types: Tuple[DATA_PAGE_TYPE] = (
         "both",
         "data" if path_exists else "nodata",
     )
     allowed_user_page_types: Tuple[USER_PAGE_TYPE] = (
         "both",
-        "user" if login else "guest",
+        "user" if is_login else "guest",
     )
     meta_list: list[NavItemMeta] = [
         item

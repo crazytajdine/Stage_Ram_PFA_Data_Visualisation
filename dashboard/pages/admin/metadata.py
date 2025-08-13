@@ -8,4 +8,5 @@ metadata = NavItemMeta(
     show_filter=False,
     type_data="both",
     type_user="user",
+    update_on_data_change=False,
 )

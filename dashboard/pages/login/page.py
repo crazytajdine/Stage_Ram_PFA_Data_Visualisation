@@ -6,6 +6,15 @@ import dash_bootstrap_components as dbc
 from server_instance import get_app
 
 
+from dash import Input, Output, State, no_update
+import bcrypt
+import logging
+
+from components.auth import add_output_auth_token
+from services import user_service, session_service
+from data_managers.database_manager import session_scope
+
+
 app = get_app()
 
 
@@ -174,3 +183,55 @@ layout = html.Div(
         ),
     ]
 )
+
+
+@app.callback(
+    [
+        add_output_auth_token(),
+        Output("login-alert", "children"),
+        Output("login-alert", "is_open"),
+        Output("login-alert", "color"),
+    ],
+    Input("login-button", "n_clicks"),
+    State("login-email", "value"),
+    State("login-password", "value"),
+    prevent_initial_call=True,
+)
+def handle_login(n_clicks, email, password):
+    if not email or not password:
+        return no_update, "Please fill in all fields", True, "danger"
+
+    with session_scope() as session:
+
+        user = user_service.get_user_by_email(email, session)
+        if not user:
+            logging.warning(f"Login failed: no user with email {email}")
+            return no_update, no_update, "Invalid email or password", True, "danger"
+
+        # Retrieve full User model to check password
+        db_user = session.query(user_service.User).filter_by(id=user.id).one()
+
+        # Password check
+        if not bcrypt.checkpw(
+            password.encode("utf-8"), db_user.password.encode("utf-8")
+        ):
+            logging.warning(f"Login failed: wrong password for {email}")
+            return no_update, no_update, "Invalid email or password", True, "danger"
+
+        new_session = session_service.create_session(db_user.id, session)
+
+        # Double-check token validity
+        if not session_service.validate_session(new_session.id, session):
+            logging.error(f"Token validation failed right after creation for {email}")
+            return no_update, no_update, "Login failed, try again", True, "danger"
+
+        logging.info(
+            f"User {email} logged in successfully with session {new_session.id}"
+        )
+
+        return (
+            new_session.id,
+            "Login successful",
+            True,
+            "success",
+        )

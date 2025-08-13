@@ -51,7 +51,7 @@ def _all_page_options() -> list[dict]:
     Build checklist options with VALUE = canonical href (e.g. '/performance-metrics').
     Labels keep the friendly name + href for clarity.
     """
-    meta = build_nav_items_meta(path_exists()) or []
+    meta = []
     opts = []
     seen = set()
     for m in meta:
@@ -261,7 +261,10 @@ layout = dbc.Container(
                         # Bottom actions
                         html.Div(
                             dbc.Button(
-                                [html.I(className="bi bi-shield-plus me-2"), "Create Role"],
+                                [
+                                    html.I(className="bi bi-shield-plus me-2"),
+                                    "Create Role",
+                                ],
                                 id="create-role-btn",
                                 color="primary",
                                 className="w-100 mt-3",
@@ -285,7 +288,6 @@ layout = dbc.Container(
         dbc.Card(
             [
                 dbc.CardHeader(html.H4("Edit Role & Permissions", className="mb-0")),
-
                 dbc.CardBody(
                     [
                         # Pick the role to edit
@@ -296,24 +298,25 @@ layout = dbc.Container(
                                         dbc.Label("Select role"),
                                         dbc.Select(
                                             id="edit-role-select",
-                                            options=[],              # ← fill from your roles source/callback
+                                            options=[],  # ← fill from your roles source/callback
                                             placeholder="Choose a role",
                                         ),
-                                        dbc.FormText("Pick a role to view and modify its allowed pages."),
+                                        dbc.FormText(
+                                            "Pick a role to view and modify its allowed pages."
+                                        ),
                                     ],
                                     md=6,
                                 ),
                             ],
                             className="g-3 mb-3",
                         ),
-
                         # Pages checklist (from navbar)
                         dbc.Label("Allowed pages"),
                         html.Div(
                             dcc.Checklist(
                                 id="edit-perm-pages-checklist",
-                                options=_all_page_options(),   # ← uses your navbar helper
-                                value=[],                      # ← fill with current role's pages
+                                options=_all_page_options(),  # ← uses your navbar helper
+                                value=[],  # ← fill with current role's pages
                                 labelStyle={"display": "block"},
                                 inputStyle={"marginRight": "8px"},
                             ),
@@ -327,13 +330,15 @@ layout = dbc.Container(
                             },
                             className="mb-2",
                         ),
-
                         # Tiny status line
                         html.Small(
-                            ["Selected ", html.Span("0", id="edit-pages-count"), " page(s)"],
+                            [
+                                "Selected ",
+                                html.Span("0", id="edit-pages-count"),
+                                " page(s)",
+                            ],
                             className="text-muted",
                         ),
-
                         # Feedback
                         dbc.Alert(
                             id="edit-roles-alert",
@@ -343,14 +348,16 @@ layout = dbc.Container(
                         ),
                     ]
                 ),
-
                 # Edge-to-edge footer with Update & Delete
                 dbc.CardFooter(
                     dbc.Row(
                         [
                             dbc.Col(
                                 dbc.Button(
-                                    [html.I(className="bi bi-save2 me-2"), "Update Permissions"],
+                                    [
+                                        html.I(className="bi bi-save2 me-2"),
+                                        "Update Permissions",
+                                    ],
                                     id="update-perms-btn",
                                     color="dark",
                                     className="w-100 rounded-0 py-3 text-uppercase fw-semibold",
@@ -359,7 +366,10 @@ layout = dbc.Container(
                             ),
                             dbc.Col(
                                 dbc.Button(
-                                    [html.I(className="bi bi-trash me-2"), "Delete Role"],
+                                    [
+                                        html.I(className="bi bi-trash me-2"),
+                                        "Delete Role",
+                                    ],
                                     id="edit-delete-role-btn",
                                     color="danger",
                                     className="w-100 rounded-0 py-3 text-uppercase fw-semibold",
@@ -374,8 +384,6 @@ layout = dbc.Container(
             ],
             className="mb-4",
         ),
-
-
         # Users table + actions + assign role
         dbc.Card(
             [

@@ -27,6 +27,12 @@ def create_user(
     return to_user_out(user)
 
 
+def get_all_users(session: Session) -> List[UserOut]:
+    users = session.query(User).all()
+
+    return [to_user_out(user) for user in users]
+
+
 def get_user_by_id(user_id: int, session: Session) -> Optional[UserOut]:
     user = session.query(User).filter(User.id == user_id).one_or_none()
     return to_user_out(user) if user else None
