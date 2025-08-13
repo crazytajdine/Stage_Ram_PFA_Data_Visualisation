@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 
 from sqlalchemy.orm import sessionmaker, Session
 
+from schemas.database_models import Base
 
 load_dotenv()
 
@@ -50,12 +51,13 @@ def init_engine():
     print(url)
     try:
         eng = sa_create_engine(url, pool_pre_ping=True, pool_recycle=1800, future=True)
-
+        Base.metadata.create_all(eng)
         engine = eng
         SessionLocal.configure(bind=engine)
         logging.info(f"Database engine created with URL: {url}")
     except SQLAlchemyError as e:
         engine = None
+        SessionLocal.configure(bind=None)
         url = (
             f"{config_database['driver']}://{config_database['user']}:####@"
             f"{config_database['host']}:{config_database['port']}/{config_database['name']}"

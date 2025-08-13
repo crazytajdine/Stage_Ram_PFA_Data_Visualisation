@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, List
 import logging
 import bcrypt
-from schemas.database_models import User, Option
+from schemas.database_models import User
 from data_managers.database_manager import run_in_session
 from sqlalchemy.orm import Session
 
@@ -12,7 +12,6 @@ def create_user(
     password: str,
     role_id: int,
     created_by: Optional[int] = None,
-    new_option: Optional[Option] = None,
 ) -> Optional[User]:
 
     def logic(s: Session) -> Optional[User]:
@@ -22,7 +21,6 @@ def create_user(
             role_id=role_id,
             created_at=datetime.now(),
             created_by=created_by,
-            option=new_option,
         )
         s.add(user)
         logging.info(f"Created user {email} id={user.id} by {created_by}")
