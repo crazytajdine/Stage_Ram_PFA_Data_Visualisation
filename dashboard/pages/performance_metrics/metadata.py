@@ -5,4 +5,6 @@ metadata = NavItemMeta(
     name="Performance Metrics",
     href="/Performance_Metrics",
     title="Performance Metrics",
+    type_data="data",
+    type_user="user",
 )

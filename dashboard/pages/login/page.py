@@ -1,12 +1,10 @@
 # dashboard/pages/login/page.py
-from dash import html, dcc, Input, Output, State
+from dash import html, dcc
 import dash_bootstrap_components as dbc
-import dash
-from datetime import datetime
+
 
 from server_instance import get_app
 
-from data_managers.excel_manager import path_exists
 
 app = get_app()
 
@@ -176,60 +174,3 @@ layout = html.Div(
         ),
     ]
 )
-
-
-@app.callback(
-    [
-        Output("session-store", "data"),
-        Output("login-alert", "children"),
-        Output("login-alert", "color"),
-        Output("login-alert", "is_open"),
-        Output("url", "pathname", allow_duplicate=True),  # <-- IMPORTANT
-        Output("login-loading-output", "children"),
-    ],
-    [Input("login-button", "n_clicks"), Input("login-password", "n_submit")],
-    [State("login-email", "value"), State("login-password", "value")],
-    prevent_initial_call=True,
-)
-def handle_login(n_clicks, n_submit, email, password):
-    if not (n_clicks or n_submit):
-        raise dash.exceptions.PreventUpdate
-
-    if not email or not password:
-        return (
-            dash.no_update,
-            "Please enter both email and password",
-            "warning",
-            True,
-            dash.no_update,
-            None,
-        )
-
-    email_norm = (email or "").strip().lower()
-    if auth_db.verify_user(email_norm, password):
-        user = auth_db.get_user_by_email(email_norm)
-        session_id = session_manager.create_session(email_norm, user["role"])
-        redirect_path = _first_allowed_href(path_exists(), user.get("role"))
-
-        return (
-            {
-                "session_id": session_id,
-                "role": user["role"],
-                "email": email_norm,
-                "login_time": datetime.now().isoformat(),
-            },
-            f"Welcome back, {email_norm}!",
-            "success",
-            True,
-            redirect_path,
-            None,
-        )
-
-    return (
-        dash.no_update,
-        "Invalid email or password.",
-        "danger",
-        True,
-        dash.no_update,
-        None,
-    )

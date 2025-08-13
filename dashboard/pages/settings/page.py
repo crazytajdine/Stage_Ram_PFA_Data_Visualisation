@@ -4,6 +4,7 @@ import dash
 import dash_bootstrap_components as dbc
 import logging
 
+from components.trigger_page_change import ID_TRIGGER_PAGE_CHANGE
 from server_instance import get_app
 
 from utils_dashboard.utils_preference import get_nav_preferences, set_page_visibility
@@ -17,11 +18,10 @@ ID_PAGE_VISIBILITY_MSG = "page-visibility-message"
 
 ID_CONTAINER_VISIBILITY_CONTROLS = "page-visibility-controls"
 
-ID_TRIGGER_PARAMS_PREFERENCES = "trigger-params-preferences"
 
 layout = html.Div(
     [
-        dcc.Store(ID_TRIGGER_PARAMS_PREFERENCES),
+        dcc.Store(ID_TRIGGER_PAGE_CHANGE),
         # ── Excel File
         dbc.Card(
             [
@@ -86,16 +86,12 @@ def update_page_visibility_controls(pathname):
         return []
 
 
-def add_watcher_params_preferences():
-    return Input(ID_TRIGGER_PARAMS_PREFERENCES, "data", True)
-
-
 # 7. Save page visibility preferences
 @app.callback(
     Output(ID_PAGE_VISIBILITY_MSG, "children"),
     Output(ID_PAGE_VISIBILITY_MSG, "color"),
     Output(ID_PAGE_VISIBILITY_MSG, "is_open"),
-    Output(ID_TRIGGER_PARAMS_PREFERENCES, "data"),
+    Output(ID_TRIGGER_PAGE_CHANGE, "data"),
     Input(ID_SETTINGS_BUTTON_NAV, "n_clicks"),
     State({"type": "page-checkbox", "index": dash.ALL}, "value"),
     State({"type": "page-checkbox", "index": dash.ALL}, "id"),

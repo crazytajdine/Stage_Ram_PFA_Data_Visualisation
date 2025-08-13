@@ -2,5 +2,9 @@ from schemas.navbarItem import NavItemMeta
 
 
 metadata = NavItemMeta(
-    name="Weekly", href="/weekly", title="Weekly Analysis of Delay Codes"
+    name="Weekly",
+    href="/weekly",
+    title="Weekly Analysis of Delay Codes",
+    type_data="data",
+    type_user="user",
 )

@@ -2,9 +2,10 @@ from dash import html, Output, Input, State, dcc
 import logging
 import plotly.io as pio
 import dash
-
+import dash_bootstrap_components as dbc
 from configurations.config import get_base_config
 from configurations.log_config import init_log
+from components.trigger_page_change import add_watcher_params_preferences
 from utils_dashboard.utils_navs import build_nav_items
 from server_instance import get_app, get_server
 
@@ -18,19 +19,20 @@ from data_managers.excel_manager import (
 )
 from data_managers.watcher_excel_dir import add_callbacks as add_watcher_excel
 from components.filter import (
+    ID_FILTER_CONTAINER,
     layout as filter_layout,
     add_callbacks as add_filter_callbacks,
 )
 from components.navbar import (
     layout as navbar_layout,
-    add_callback as add_navbar_callback,
 )
 
-from components.title import layout as tittle_layout
+from components.title import ID_MAIN_TITLE, layout as tittle_layout
 
 
 app = get_app()
 server = get_server()
+
 
 app.layout = html.Div(
     [
@@ -66,33 +68,77 @@ def export_current_chart(_, fig_dict):
 
 @app.callback(
     Output("page-content", "children"),
-    [
-        Input("url", "pathname"),
-        add_watcher_for_data_status(),
-    ],
+    Output(ID_MAIN_TITLE, "children"),
+    Output(ID_FILTER_CONTAINER, "style"),
+    Output("navbar", "children"),
+    Input("url", "pathname"),
+    add_watcher_for_data_status(),
+    add_watcher_params_preferences(),
 )
-def update_content_page(pathname, _):
+def update_page_and_navbar(pathname, _, pref):
     does_path_exists = path_exists()
-
+    logging.info("Selected Path : %s", pathname)
     nav_items = build_nav_items(does_path_exists)
-    logging.info("does path exist set to %s", does_path_exists)
-    if not does_path_exists and nav_items:
-        return nav_items[0].page
+    logging.info("Does path exist set to %s", does_path_exists)
+
+    logging.info("Nav items metadata: %s", [(i.name, i.show_navbar) for i in nav_items])
+
+    selected_page_href: str = ""
 
     for nav_item in nav_items:
+        if pathname == nav_item.href:
+            logging.info(f"user id selected page  {pathname}")
+            page_content = nav_item.page
+            page_title = nav_item.title
+            filter_style = {} if nav_item.show_filter else {"display": "none"}
+            selected_page_href = nav_item.href
 
-        is_selected = pathname == nav_item.href
+            break
+    else:
+        if nav_items:
 
-        if is_selected:
-            return nav_item.page
+            page_content = nav_items[0].page
+            page_title = nav_items[0].title
+            filter_style = {} if nav_items[0].show_filter else {"display": "none"}
+            selected_page_href = nav_items[0].href
+            logging.info(
+                f"user id didn't find any page with {pathname} and will load the first one {selected_page_href}"
+            )
 
-    return html.Div("404 Page Not Found")
+        else:
+            logging.info(f"user id didn't find any page  {pathname}")
+            page_content = html.Div("No page is loaded")
+            page_title = ""
+            filter_style = {}
+
+    # Build navbar
+    navbar = [
+        dbc.NavItem(
+            dbc.NavLink(
+                nav_item.name,
+                href=nav_item.href,
+                active=(selected_page_href == nav_item.href),
+            )
+        )
+        for nav_item in nav_items
+        if nav_item.show_navbar
+    ]
+    navbar.append(
+        dbc.Button(
+            [html.Span("Logout", className="label")],
+            id="logout-btn",
+            className="btn-logout",
+            color="light",
+            outline=True,
+        )
+    )
+
+    return page_content, page_title, filter_style, navbar
 
 
 add_watcher_excel()
 add_excel_manager_callbacks()
 add_filter_callbacks()
-add_navbar_callback()
 
 
 def start_server(start_dev=True):

@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 from sqlalchemy.orm import sessionmaker, Session
 
-from data_managers.database_seed import initialize_database_first_time
+from data_managers.unitializers.database_seed import initialize_database_first_time
 from schemas.database_models import Base
 
 load_dotenv()
