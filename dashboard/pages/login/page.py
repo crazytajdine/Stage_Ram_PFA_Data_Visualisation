@@ -7,13 +7,12 @@ from server_instance import get_app
 
 
 from dash import Input, Output, State, no_update
-import bcrypt
 import logging
 
 from components.auth import add_output_auth_token
 from services import user_service, session_service
 from data_managers.database_manager import session_scope
-
+from utils_dashboard.utils_authentication import verify_password
 
 app = get_app()
 
@@ -203,27 +202,18 @@ def handle_login(n_clicks, email, password):
 
     with session_scope() as session:
 
-        user = user_service.get_user_by_email(email, session)
+        user: user_service.User = user_service.get_user_by_email_with_password(
+            email, session
+        )
         if not user:
             logging.warning(f"Login failed: no user with email {email}")
             return no_update, no_update, "Invalid email or password", True, "danger"
 
-        # Retrieve full User model to check password
-        db_user = session.query(user_service.User).filter_by(id=user.id).one()
-
-        # Password check
-        if not bcrypt.checkpw(
-            password.encode("utf-8"), db_user.password.encode("utf-8")
-        ):
+        if not verify_password(password, user.password):
             logging.warning(f"Login failed: wrong password for {email}")
             return no_update, no_update, "Invalid email or password", True, "danger"
 
-        new_session = session_service.create_session(db_user.id, session)
-
-        # Double-check token validity
-        if not session_service.validate_session(new_session.id, session):
-            logging.error(f"Token validation failed right after creation for {email}")
-            return no_update, no_update, "Login failed, try again", True, "danger"
+        new_session = session_service.create_session(user.id, session)
 
         logging.info(
             f"User {email} logged in successfully with session {new_session.id}"

@@ -100,7 +100,7 @@ def save_page_visibility_cb(n_clicks, values, ids):
 
     print(n_clicks)
     if not n_clicks:
-        return dash.exceptions.PreventUpdate
+        raise dash.exceptions.PreventUpdate
 
     prefs = {
         ids[i]["index"]: (values[i] if values[i] is not None else False)

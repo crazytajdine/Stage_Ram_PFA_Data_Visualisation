@@ -23,7 +23,7 @@ def initialize_database_first_time(session: Session):
     # Create admin user
     salt = bcrypt.gensalt()
 
-    admin_password = bcrypt.hashpw(b"test", salt)
+    admin_password = bcrypt.hashpw("test".encode("utf-8"), salt).decode("utf-8")
     admin_user: UserOut = user_service.create_user(
         "admin@ff.com", admin_password, admin_role.id, session
     )

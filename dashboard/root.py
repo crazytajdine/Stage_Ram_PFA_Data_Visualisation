@@ -9,7 +9,7 @@ from components.trigger_page_change import (
     add_input_manual_trigger,
     stores as trigger_stores,
 )
-from utils_dashboard.utils_auth import validate_session
+from utils_dashboard.utils_authorization import validate_session
 from utils_dashboard.utils_navs import build_nav_items
 from server_instance import get_app, get_server
 
@@ -92,8 +92,8 @@ def export_current_chart(_, fig_dict):
     State(ID_STORE_LOADED_URL, "data"),
 )
 def update_page_and_navbar(pathname, _, pref, token, loaded_url):
-
     is_login = validate_session(token)
+    print(token, is_login)
 
     does_path_exists = path_exists()
     logging.info("Selected Path : %s", pathname)

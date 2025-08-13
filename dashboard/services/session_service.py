@@ -33,7 +33,7 @@ def create_session(user_id: int, session: sa_orm.Session) -> Session:
 def get_session_by_id(session_id: str, session: sa_orm.Session) -> Optional[Session]:
     return (
         session.query(Session)
-        .filter(Session.id == session_id, Session.expires_at < datetime.now())
+        .filter(Session.id == session_id, Session.expires_at > datetime.now())
         .one_or_none()
     )
 
