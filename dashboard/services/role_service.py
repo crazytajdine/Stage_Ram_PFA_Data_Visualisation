@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 import logging
 from sqlalchemy.orm import Session
-from schemas.database_models import Role
+from schemas.database_models import Page, Role
 
 
 def create_role(
@@ -17,6 +17,12 @@ def create_role(
     session.flush()
     logging.info(f"User {created_by} created role '{role_name}'")
     return role
+
+
+def assign_pages_to_role(role: Role, pages: list[Page], session: Session):
+    role.pages.extend(pages)
+
+    session.flush()
 
 
 def get_role_by_id(role_id: int, session: Session) -> Optional[Role]:

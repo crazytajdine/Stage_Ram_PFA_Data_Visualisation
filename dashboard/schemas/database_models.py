@@ -10,8 +10,12 @@ Base = declarative_base()
 role_page_table = Table(
     "role_page",
     Base.metadata,
-    Column("role_id", Integer, ForeignKey("roles.id"), primary_key=True),
-    Column("page_id", Integer, ForeignKey("pages.id"), primary_key=True),
+    Column(
+        "role_id", Integer, ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True
+    ),
+    Column(
+        "page_id", Integer, ForeignKey("pages.id", ondelete="CASCADE"), primary_key=True
+    ),
 )
 
 
@@ -49,7 +53,7 @@ class Page(Base):
     __tablename__ = "pages"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    page_name = Column(String, nullable=False)
+    page_name = Column(String, nullable=False, unique=True)
 
     roles = relationship(
         "Role",

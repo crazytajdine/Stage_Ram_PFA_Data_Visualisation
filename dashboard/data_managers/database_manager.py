@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 
 from sqlalchemy.orm import sessionmaker, Session
 
+from data_managers.database_seed import initialize_database_first_time
 from schemas.database_models import Base
 
 load_dotenv()
@@ -20,7 +21,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=None)
 
 
 @contextmanager
-def session_scope(commit: bool = True) -> Session:
+def session_scope(commit: bool = True):
 
     session = get_session()
     try:
@@ -61,6 +62,7 @@ def init_engine():
             f"{config_database['driver']}://####:####@"
             f"{config_database['host']}:{config_database['port']}/####"
         )
+
         logging.error(f"Failed to create database engine with URL: {url} - Error: {e}")
         raise e
 
@@ -82,3 +84,6 @@ def get_engine():
 
 
 init_engine()
+with session_scope() as session:
+
+    initialize_database_first_time(session)

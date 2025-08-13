@@ -16,6 +16,18 @@ def create_page(
     return page
 
 
+def create_pages(name_pages, session, created_by: Optional[int]):
+    pages = []
+    for page_name in name_pages:
+        pages.append(create_page(page_name, session, created_by))
+
+    return pages
+
+
+def get_pages(session: Session) -> list[Page]:
+    return session.query(Page).all()
+
+
 def get_page_by_id(page_id: int, session: Session) -> Optional[Page]:
     return session.query(Page).filter(Page.id == page_id).one_or_none()
 
