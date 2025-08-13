@@ -22,7 +22,9 @@ class Role(Base):
     role_name = Column(String, unique=True, nullable=False)
 
     created_at = Column(DateTime, default=datetime.now)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_by = Column(
+        Integer, ForeignKey("users.id"), nullable=True, name="fk_roles_created_by"
+    )
 
     created_by_user = relationship(
         "User",
@@ -64,10 +66,12 @@ class User(Base):
     password = Column(String, nullable=False)
     disabled = Column(Boolean, default=False)
 
-    role_id = Column(Integer, ForeignKey("roles.id"))
+    role_id = Column(Integer, ForeignKey("roles.id"), name="fk_users_role_id")
 
     created_at = Column(DateTime, default=datetime.now)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_by = Column(
+        Integer, ForeignKey("users.id"), nullable=True, name="fk_users_created_by"
+    )
 
     # self-referential: which users this user created
     created_users = relationship(

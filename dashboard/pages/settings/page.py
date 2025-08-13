@@ -1,18 +1,11 @@
 # pages/settings/page.py
-from datetime import datetime
 from dash import html, dcc, Input, Output, State
 import dash
 import dash_bootstrap_components as dbc
 import logging
 
 from server_instance import get_app
-from data_managers.excel_manager import (
-    ID_INTERVAL_WATCHER,
-    ID_PATH_STORE,
-    get_path_to_excel,
-    get_modification_time_cashed,
-    add_watch_file,
-)
+
 from utils_dashboard.utils_preference import get_nav_preferences, set_page_visibility
 
 from pages.settings.metadata import metadata

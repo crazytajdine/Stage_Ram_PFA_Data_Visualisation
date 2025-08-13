@@ -1,6 +1,6 @@
+from contextlib import contextmanager
 import os
 import logging
-from typing import Any, Callable
 from sqlalchemy import create_engine as sa_create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from configurations.config import get_base_config
@@ -19,18 +19,18 @@ engine = None
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=None)
 
 
-def run_in_session(fn: Callable[[Session], Any], commit=False):
+@contextmanager
+def session_scope(commit: bool = True) -> Session:
+
     session = get_session()
     try:
-        result = fn(session)
+        yield session
         if commit:
             session.commit()
-        return result
-    except Exception as e:
+    except Exception:
         if commit:
             session.rollback()
-        logging.error(f"Database error: {e}")
-        return None
+        raise
     finally:
         session.close()
 
@@ -48,7 +48,6 @@ def init_engine():
         f"{config_database['driver']}://{user}:{password}@"
         f"{config_database['host']}:{config_database['port']}/{dbname}"
     )
-    print(url)
     try:
         eng = sa_create_engine(url, pool_pre_ping=True, pool_recycle=1800, future=True)
         Base.metadata.create_all(eng)
@@ -59,8 +58,8 @@ def init_engine():
         engine = None
         SessionLocal.configure(bind=None)
         url = (
-            f"{config_database['driver']}://{config_database['user']}:####@"
-            f"{config_database['host']}:{config_database['port']}/{config_database['name']}"
+            f"{config_database['driver']}://####:####@"
+            f"{config_database['host']}:{config_database['port']}/####"
         )
         logging.error(f"Failed to create database engine with URL: {url} - Error: {e}")
         raise e
