@@ -1,7 +1,7 @@
 # models.py
 from datetime import datetime
 import uuid
-from sqlalchemy import Column, DateTime, Integer, String, ForeignKey, Table
+from sqlalchemy import Column, DateTime, Integer, String, ForeignKey, Table, Boolean
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -22,13 +22,25 @@ class Role(Base):
     role_name = Column(String, unique=True, nullable=False)
 
     created_at = Column(DateTime, default=datetime.now)
-    created_by = Column(Integer, ForeignKey("users.id"))
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
-    created_by_user = relationship("User", back_populates="created_roles")
+    created_by_user = relationship(
+        "User",
+        back_populates="created_roles",
+        foreign_keys=[created_by],
+    )
 
-    users = relationship("User", back_populates="role")
+    users = relationship(
+        "User",
+        back_populates="role",
+        foreign_keys="User.role_id",
+    )
 
-    pages = relationship("Page", secondary=role_page_table, back_populates="roles")
+    pages = relationship(
+        "Page",
+        secondary=role_page_table,
+        back_populates="roles",
+    )
 
 
 class Page(Base):
@@ -36,7 +48,12 @@ class Page(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     page_name = Column(String, nullable=False)
-    roles = relationship("Role", secondary=role_page_table, back_populates="pages")
+
+    roles = relationship(
+        "Role",
+        secondary=role_page_table,
+        back_populates="pages",
+    )
 
 
 class User(Base):
@@ -45,39 +62,82 @@ class User(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     email = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
+    disabled = Column(Boolean, default=False)
+
     role_id = Column(Integer, ForeignKey("roles.id"))
-    session_id = Column(String, ForeignKey("sessions.id"), nullable=True)
 
     created_at = Column(DateTime, default=datetime.now)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
-    created_users = relationship("User", back_populates="creator", remote_side=[id])
-    creator = relationship("User", back_populates="created_users")
+    # self-referential: which users this user created
+    created_users = relationship(
+        "User",
+        back_populates="creator",
+        remote_side=[id],
+        foreign_keys=[created_by],
+    )
 
-    created_roles = relationship("Role", back_populates="created_by_user")
-    role = relationship("Role", back_populates="users")
+    creator = relationship(
+        "User",
+        back_populates="created_users",
+        foreign_keys=[created_by],
+    )
+
+    option = relationship(
+        "Option",
+        back_populates="user",
+        uselist=False,
+    )
+
+    created_roles = relationship(
+        "Role",
+        back_populates="created_by_user",
+        foreign_keys="Role.created_by",
+    )
+
+    role = relationship(
+        "Role",
+        back_populates="users",
+        foreign_keys=[role_id],
+        uselist=False,
+    )
+
     session = relationship(
-        "Session", back_populates="user", cascade="all,delete-orphan"
+        "Session",
+        back_populates="user",
+        cascade="all,delete-orphan",
+        uselist=False,
     )
 
 
 class Session(Base):
     __tablename__ = "sessions"
+
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.now)
 
-    user = relationship("User", back_populates="session")
+    user = relationship(
+        "User",
+        back_populates="session",
+        foreign_keys=[user_id],
+        uselist=False,
+    )
 
 
 class Option(Base):
     __tablename__ = "options"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
     preferences = Column(JSONB, nullable=False, default=dict)
 
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
-    user = relationship("User", back_populates="preferences")
+    user = relationship(
+        "User",
+        back_populates="option",
+        foreign_keys=[user_id],
+        uselist=False,
+    )

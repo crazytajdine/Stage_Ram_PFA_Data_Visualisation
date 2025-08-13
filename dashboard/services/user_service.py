@@ -1,9 +1,10 @@
 from datetime import datetime
 from typing import Optional, List
 import logging
-from schemas.database_models import User, Option
-from data_managers.database_manager import session_scope
 import bcrypt
+from schemas.database_models import User, Option
+from data_managers.database_manager import run_in_session
+from sqlalchemy.orm import Session
 
 
 def create_user(
@@ -11,11 +12,10 @@ def create_user(
     password: str,
     role_id: int,
     created_by: Optional[int] = None,
-    new_option: Option = None,
-    commit: bool = True,
-) -> User:
-    with session_scope(commit) as session:
+    new_option: Optional[Option] = None,
+) -> Optional[User]:
 
+    def logic(s: Session) -> Optional[User]:
         user = User(
             email=email,
             password=password,
@@ -24,62 +24,58 @@ def create_user(
             created_by=created_by,
             option=new_option,
         )
-        session.add(user)
-        session.flush()
-        logging.info(f"Created user {email} with id {user.id} by creator {created_by}")
+        s.add(user)
+        logging.info(f"Created user {email} id={user.id} by {created_by}")
         return user
+
+    return run_in_session(logic, commit=True)
 
 
 def get_user_by_id(user_id: int) -> Optional[User]:
-    with session_scope() as session:
-        user = session.query(User).filter(User.id == user_id).one_or_none()
-        if user:
-            logging.info(f"Found user with id {user_id}")
-        else:
-            logging.warning(f"User with id {user_id} not found")
-        return user
+    return run_in_session(
+        lambda s: s.query(User).filter(User.id == user_id).one_or_none()
+    )
 
 
 def get_user_by_email(email: str) -> Optional[User]:
-    with session_scope() as session:
-        user = session.query(User).filter(User.email == email).one_or_none()
-        if user:
-            logging.info(f"Found user with email {email}")
-        else:
-            logging.warning(f"User with email {email} not found")
-        return user
+    return run_in_session(
+        lambda s: s.query(User).filter(User.email == email).one_or_none()
+    )
 
 
 def get_users_created_by(user_id: int) -> List[User]:
-    with session_scope() as session:
-        users = session.query(User).filter(User.created_by == user_id).all()
-        logging.info(f"Found {len(users)} users created by user {user_id}")
-        return users
+    return run_in_session(
+        lambda s: s.query(User).filter(User.created_by == user_id).all(), default=[]
+    )
 
 
 def update_user(user_id: int, **kwargs) -> Optional[User]:
-    with session_scope() as session:
-        user = session.query(User).filter(User.id == user_id).one_or_none()
-        if user is None:
-            logging.warning(f"User with id {user_id} not found for update")
-            return None
 
-        for key, value in kwargs.items():
-            if hasattr(user, key):
-                setattr(user, key, value)
-        logging.info(f"Updated user {user_id} with fields {list(kwargs.keys())}")
+    def logic(s: Session) -> Optional[User]:
+        user = s.query(User).filter(User.id == user_id).one_or_none()
+        if not user:
+            logging.warning(f"User id={user_id} not found for update")
+            return None
+        for k, v in kwargs.items():
+            if hasattr(user, k):
+                setattr(user, k, v)
+        logging.info(f"Updated user id={user_id}: {list(kwargs.keys())}")
         return user
+
+    return run_in_session(logic, commit=True)
 
 
 def delete_user(user_id: int) -> bool:
-    with session_scope() as session:
-        user = session.query(User).filter(User.id == user_id).one_or_none()
-        if user is None:
-            logging.warning(f"User with id {user_id} not found for deletion")
+    def logic(s):
+        user = s.query(User).filter(User.id == user_id).one_or_none()
+        if not user:
+            logging.warning(f"User id={user_id} not found for deletion")
             return False
-        session.delete(user)
-        logging.info(f"Deleted user with id {user_id}")
+        s.delete(user)
+        logging.info(f"Deleted user id={user_id}")
         return True
+
+    return run_in_session(logic, commit=True, default=False)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

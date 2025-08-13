@@ -1,18 +1,10 @@
 from typing import Optional
 import polars as pl
-import dash
-from dash import html, dash_table, Output
-import dash_bootstrap_components as dbc
 
 # ─────────────── Application modules ───────────────
 from data_managers.cache_manager import cache_result
-from utils_dashboard.utils_download import (
-    add_export_callbacks,
-)
-from server_instance import get_app
 from data_managers.excel_manager import (
     get_df,
-    add_watcher_for_data,
 )
 
 

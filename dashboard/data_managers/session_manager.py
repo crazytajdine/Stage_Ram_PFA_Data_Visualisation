@@ -20,6 +20,7 @@ def _session_dump(s: UserSession) -> str:
     # pydantic v1
     return s.json()
 
+
 def _session_load(data: str) -> UserSession:
     # pydantic v2
     if hasattr(UserSession, "model_validate_json"):
@@ -114,7 +115,9 @@ class SessionManager:
                 data = self.redis_client.get(key)
                 if data:
                     # extend TTL
-                    self.redis_client.expire(key, int(self.session_timeout.total_seconds()))
+                    self.redis_client.expire(
+                        key, int(self.session_timeout.total_seconds())
+                    )
                     return _session_load(data)
             except redis.exceptions.RedisError as e:
                 logging.error(f"Redis error retrieving session: {e}")
@@ -134,7 +137,9 @@ class SessionManager:
                 data = self.redis_client.get(key)
                 if data:
                     s = _session_load(data)
-                    self.redis_client.srem(f"user_sessions:{s.email.lower().strip()}", session_id)
+                    self.redis_client.srem(
+                        f"user_sessions:{s.email.lower().strip()}", session_id
+                    )
                 deleted = bool(self.redis_client.delete(key))
             except redis.exceptions.RedisError as e:
                 logging.error(f"Redis error deleting session: {e}")
@@ -164,7 +169,10 @@ class SessionManager:
         else:
             now = datetime.now()
             for sid, s in list(self.sessions.items()):
-                if s.email.lower().strip() == email_key and (now - s.login_time) < self.session_timeout:
+                if (
+                    s.email.lower().strip() == email_key
+                    and (now - s.login_time) < self.session_timeout
+                ):
                     out.append(s)
 
         return out
@@ -186,7 +194,10 @@ class SessionManager:
         else:
             now = datetime.now()
             for sid, s in list(self.sessions.items()):
-                if s.email.lower().strip() == email_key and (now - s.login_time) < self.session_timeout:
+                if (
+                    s.email.lower().strip() == email_key
+                    and (now - s.login_time) < self.session_timeout
+                ):
                     del self.sessions[sid]
                     count += 1
 
@@ -230,7 +241,11 @@ class SessionManager:
         if self.redis_client:
             return  # Redis handles expiration
         now = datetime.now()
-        expired = [sid for sid, s in self.sessions.items() if now - s.login_time >= self.session_timeout]
+        expired = [
+            sid
+            for sid, s in self.sessions.items()
+            if now - s.login_time >= self.session_timeout
+        ]
         for sid in expired:
             del self.sessions[sid]
         if expired:
@@ -260,7 +275,9 @@ class SessionManager:
             return []
         cursor = 0
         while True:
-            cursor, batch = self.redis_client.scan(cursor=cursor, match=pattern, count=count)
+            cursor, batch = self.redis_client.scan(
+                cursor=cursor, match=pattern, count=count
+            )
             for k in batch:
                 yield k
             if cursor == 0:

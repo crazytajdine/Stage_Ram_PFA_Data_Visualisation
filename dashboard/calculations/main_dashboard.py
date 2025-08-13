@@ -1,13 +1,15 @@
+import polars as pl
+
+from data_managers.cache_manager import cache_result
+from data_managers.excel_manager import COL_NAME_WINDOW_TIME, COL_NAME_WINDOW_TIME_MAX
+
+
 COL_NAME_COUNT_FLIGHTS = "count of flights"
 COL_NAME_SUBTYPE = "AC_SUBTYPE"
 COL_NAME_PERCENTAGE_DELAY = "pct"
 COL_NAME_CATEGORY_GT_15MIN = "delay_category_gt_15min"
 COL_NAME_CATEGORY_GT_15MIN_COUNT = "delay_cat_count"
 COL_NAME_CATEGORY_GT_15MIN_MEAN = "delay_cat_mean"
-import polars as pl
-
-from data_managers.cache_manager import cache_result
-from data_managers.excel_manager import COL_NAME_WINDOW_TIME, COL_NAME_WINDOW_TIME_MAX
 
 
 # @cache_result("main_subtype_pct")

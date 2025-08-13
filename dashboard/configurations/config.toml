@@ -24,5 +24,3 @@ db = 0
 driver = "postgresql+psycopg2"
 host = "localhost"
 port = 5432
-name = "ram_dashboard"
-user = "ram_user"

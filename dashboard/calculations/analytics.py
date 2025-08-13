@@ -1,4 +1,3 @@
-from data_managers.cache_manager import cache_result
 from data_managers.excel_manager import (
     COL_NAME_WINDOW_TIME,
     COL_NAME_WINDOW_TIME_MAX,

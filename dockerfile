@@ -12,6 +12,8 @@ RUN pip install --upgrade pip && \
 
 EXPOSE 8000
 
+COPY .env .
+
 COPY dashboard/ .
 
 
