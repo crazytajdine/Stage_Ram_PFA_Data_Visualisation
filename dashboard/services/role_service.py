@@ -6,9 +6,10 @@ from schemas.database_models import Page, Role
 
 
 def create_role(
-    role_name: str, session: Session, created_by: Optional[int] = None
+    role_name: str, session: Session, created_by: Optional[int] = None, id=None
 ) -> Role:
     role = Role(
+        id=id,
         role_name=role_name,
         created_at=datetime.now(),
         created_by=created_by,

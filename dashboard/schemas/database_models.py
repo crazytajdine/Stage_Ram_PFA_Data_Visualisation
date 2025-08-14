@@ -3,7 +3,6 @@ from datetime import datetime
 import uuid
 from sqlalchemy import Column, DateTime, Integer, String, ForeignKey, Table, Boolean
 from sqlalchemy.orm import relationship, declarative_base
-from sqlalchemy.dialects.postgresql import JSONB
 
 Base = declarative_base()
 
@@ -16,6 +15,7 @@ role_page_table = Table(
     Column(
         "page_id", Integer, ForeignKey("pages.id", ondelete="CASCADE"), primary_key=True
     ),
+    Column("disabled", Boolean, nullable=False, default=False, name="disabled"),
 )
 
 
@@ -27,7 +27,10 @@ class Role(Base):
 
     created_at = Column(DateTime, default=datetime.now)
     created_by = Column(
-        Integer, ForeignKey("users.id"), nullable=True, name="fk_roles_created_by"
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        name="fk_roles_created_by",
     )
 
     created_by_user = relationship(
@@ -53,7 +56,6 @@ class Page(Base):
     __tablename__ = "pages"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    page_name = Column(String, nullable=False, unique=True)
 
     roles = relationship(
         "Role",
@@ -70,11 +72,16 @@ class User(Base):
     password = Column(String, nullable=False)
     disabled = Column(Boolean, nullable=False, default=False)
 
-    role_id = Column(Integer, ForeignKey("roles.id"), name="fk_users_role_id")
+    role_id = Column(
+        Integer, ForeignKey("roles.id", ondelete="SET NULL"), name="fk_users_role_id"
+    )
 
     created_at = Column(DateTime, default=datetime.now)
     created_by = Column(
-        Integer, ForeignKey("users.id"), nullable=True, name="fk_users_created_by"
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        name="fk_users_created_by",
     )
 
     # self-referential: which users this user created
@@ -129,23 +136,6 @@ class Session(Base):
     user = relationship(
         "User",
         back_populates="session",
-        foreign_keys=[user_id],
-        uselist=False,
-    )
-
-
-class Option(Base):
-    __tablename__ = "options"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
-    preferences = Column(JSONB, nullable=False, default=dict)
-
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-
-    user = relationship(
-        "User",
-        back_populates="option",
         foreign_keys=[user_id],
         uselist=False,
     )
