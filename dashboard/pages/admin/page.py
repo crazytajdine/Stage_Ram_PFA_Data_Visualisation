@@ -2,7 +2,6 @@
 from dash import html, dcc, Input, Output, State, callback, dash_table, no_update
 import dash_bootstrap_components as dbc
 from server_instance import get_app
-from dashboard.state import session_manager
 import dash
 import plotly.graph_objs as go
 from datetime import datetime, timedelta
@@ -27,7 +26,7 @@ def _fmt_dt(value: t.Any) -> str:
 
 
 def _format_users_table_data() -> list[dict]:
-    users = auth_db.get_all_users()
+    users = []
     for u in users:
         u["status"] = "Active" if u.get("is_active") else "Inactive"
         u["created_at"] = _fmt_dt(u.get("created_at"))

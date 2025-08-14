@@ -18,6 +18,10 @@ def create_session(user_id: int, session: sa_orm.Session) -> Session:
 
     expires_at = datetime.now() + timedelta(hours=session_expiration_offset_in_hours)
 
+    is_deleted = delete_session_with_user_id(user_id, session)
+    if is_deleted:
+        logging.debug(f"Deleted previous session for user {user_id}")
+
     new_session = Session(
         id=str(uuid.uuid4()),
         user_id=user_id,
@@ -39,6 +43,7 @@ def get_session_by_id(session_id: str, session: sa_orm.Session) -> Optional[Sess
 
 
 def get_sessions_by_user(user_id: int, session: sa_orm.Session) -> List[Session]:
+
     return session.query(Session).filter(Session.user_id == user_id).all()
 
 
@@ -48,7 +53,19 @@ def delete_session(session_id: str, session: sa_orm.Session) -> bool:
         logging.warning(f"Cannot delete; session {session_id} not found")
         return False
     session.delete(sess)
+    session.flush()
     logging.info(f"Deleted session {session_id}")
+    return True
+
+
+def delete_session_with_user_id(user_id: int, session: sa_orm.Session) -> bool:
+    sess = session.query(Session).filter(Session.user_id == user_id).one_or_none()
+    if not sess:
+        logging.warning(f"Cannot delete; no session found for user {user_id}")
+        return False
+    session.delete(sess)
+    session.flush()
+    logging.info(f"Deleted session for user {user_id}")
     return True
 
 

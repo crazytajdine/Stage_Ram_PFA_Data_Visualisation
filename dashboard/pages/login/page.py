@@ -207,11 +207,11 @@ def handle_login(n_clicks, email, password):
         )
         if not user:
             logging.warning(f"Login failed: no user with email {email}")
-            return no_update, no_update, "Invalid email or password", True, "danger"
+            return no_update, "Invalid email or password", True, "danger"
 
         if not verify_password(password, user.password):
             logging.warning(f"Login failed: wrong password for {email}")
-            return no_update, no_update, "Invalid email or password", True, "danger"
+            return no_update, "Invalid email or password", True, "danger"
 
         new_session = session_service.create_session(user.id, session)
 

@@ -12,7 +12,6 @@ from components.trigger_page_change import (
 from utils_dashboard.utils_authorization import validate_session
 from utils_dashboard.utils_navs import build_nav_items
 from server_instance import get_app, get_server
-
 from utils_dashboard.utils_download import download_dash
 
 from data_managers.excel_manager import (
@@ -31,7 +30,12 @@ from components.navbar import (
     layout as navbar_layout,
 )
 
-from components.auth import add_input_auth_token, stores as auth_stores
+from components.auth import (
+    logout_button,
+    add_input_auth_token,
+    stores as auth_stores,
+    add_callbacks as add_auth_callbacks,
+)
 from components.title import ID_MAIN_TITLE, layout as tittle_layout
 
 
@@ -150,15 +154,8 @@ def update_page_and_navbar(pathname, _, pref, token, loaded_url):
         if nav_item.show_navbar
     ]
     if is_login:
-        navbar.append(
-            dbc.Button(
-                [html.Span("Logout", className="label")],
-                id="logout-btn",
-                className="btn-logout",
-                color="light",
-                outline=True,
-            )
-        )
+
+        navbar.append(logout_button)
 
     return page_content, page_title, filter_style, navbar, selected_page_href
 
@@ -166,6 +163,7 @@ def update_page_and_navbar(pathname, _, pref, token, loaded_url):
 add_watcher_excel()
 add_excel_manager_callbacks()
 add_filter_callbacks()
+add_auth_callbacks()
 
 
 def start_server(start_dev=True):
