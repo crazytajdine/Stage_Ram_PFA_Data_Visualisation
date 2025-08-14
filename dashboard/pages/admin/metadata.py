@@ -2,6 +2,7 @@ from schemas.navbarItem import NavItemMeta
 
 
 metadata = NavItemMeta(
+    id=0,
     name="Admin",
     href="/admin",
     title="Admin ss",

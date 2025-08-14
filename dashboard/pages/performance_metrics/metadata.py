@@ -2,6 +2,7 @@ from schemas.navbarItem import NavItemMeta
 
 
 metadata = NavItemMeta(
+    id=3,
     name="Performance Metrics",
     href="/Performance_Metrics",
     title="Performance Metrics",

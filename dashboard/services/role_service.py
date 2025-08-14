@@ -21,7 +21,8 @@ def create_role(
 
 
 def assign_pages_to_role(role: Role, pages: list[Page], session: Session):
-    role.pages.extend(pages)
+    role.pages = pages
+    logging.info(f"Assigned {len(pages)} pages to role '{role.role_name}'")
 
     session.flush()
 

@@ -2,6 +2,7 @@ from schemas.navbarItem import NavItemMeta
 
 
 metadata = NavItemMeta(
+    id=2,
     name="Dashboard",
     href="/",
     title="Overview",
