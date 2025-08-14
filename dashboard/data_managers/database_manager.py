@@ -52,9 +52,15 @@ def init_engine():
     try:
         eng = sa_create_engine(url, pool_pre_ping=True, pool_recycle=1800, future=True)
         Base.metadata.create_all(eng)
+
         engine = eng
         SessionLocal.configure(bind=engine)
         logging.info(f"Database engine created with URL: {url}")
+
+        with session_scope() as session:
+
+            initialize_database_first_time(session)
+
     except SQLAlchemyError as e:
         engine = None
         SessionLocal.configure(bind=None)
@@ -84,6 +90,3 @@ def get_engine():
 
 
 init_engine()
-with session_scope() as session:
-
-    initialize_database_first_time(session)

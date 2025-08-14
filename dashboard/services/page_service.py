@@ -1,3 +1,4 @@
+from hmac import new
 from typing import List, Optional
 import logging
 from sqlalchemy.orm import Session
@@ -15,9 +16,12 @@ def create_page(page_id: str, session: Session) -> Page:
 
 
 def create_pages(page_ids: List[int], session: Session) -> List[Page]:
-    new_pages = [Page(id=pid) for pid in page_ids if pid not in page_ids]
+    # new_pages = [Page(id=pid) for pid in page_ids if pid not in page_ids]
 
-    session.bulk_save_objects(new_pages)
+    # session.bulk_save_objects(new_pages)
+
+    # session.flush()
+    new_pages = [create_page(id, session) for id in page_ids]
     return new_pages
 
 

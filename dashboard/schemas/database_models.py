@@ -3,6 +3,7 @@ from datetime import datetime
 import uuid
 from sqlalchemy import Column, DateTime, Integer, String, ForeignKey, Table, Boolean
 from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.sql import func
 
 Base = declarative_base()
 
@@ -25,7 +26,7 @@ class Role(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     role_name = Column(String, unique=True, nullable=False)
 
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=func.now())
     created_by = Column(
         Integer,
         ForeignKey("users.id", ondelete="SET NULL"),
@@ -76,7 +77,7 @@ class User(Base):
         Integer, ForeignKey("roles.id", ondelete="SET NULL"), name="fk_users_role_id"
     )
 
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=func.now())
     created_by = Column(
         Integer,
         ForeignKey("users.id", ondelete="SET NULL"),
@@ -123,9 +124,11 @@ class Session(Base):
     __tablename__ = "sessions"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True
+    )
     expires_at = Column(DateTime, nullable=False)
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=func.now())
 
     user = relationship(
         "User",
