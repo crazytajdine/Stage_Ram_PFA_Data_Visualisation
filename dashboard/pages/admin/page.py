@@ -1,6 +1,8 @@
-import logging
-from datetime import datetime, timedelta
-import bcrypt
+# dashboard/pages/admin/page.py
+from dash import html, dcc, Input, Output, State, callback, dash_table, no_update
+import dash_bootstrap_components as dbc
+from server_instance import get_app
+from dashboard.state import session_manager
 import dash
 from dash import Input, Output, State, html, dcc, dash_table
 import dash_bootstrap_components as dbc
@@ -15,65 +17,57 @@ from server_instance import get_app
 
 app = get_app()
 
-# Initialize session manager for tracking active sessions
-session_manager = SessionManager()
 
-# Helper function to get all navigable pages from your nav config
-def _all_page_options():
-    """Get all pages from NAV_CONFIG for permission checkboxes"""
-    return [
-        {"label": item.title, "value": item.name}
-        for item in NAV_CONFIG
-        if item.show_navbar and item.preference_show
-    ]
-# --- Compatibility helpers: work with either ORM models or Pydantic DTOs ---
-
-def _get_attr(obj, *names, default=None):
-    for n in names:
-        try:
-            v = getattr(obj, n)
-        except Exception:
-            v = None
-        if v is not None:
-            return v
-    return default
-
-def _role_name(u, db_session):
-    # Try direct fields commonly present on DTOs
-    rn = _get_attr(u, "role", "role_name")
-    if rn:
-        return rn
-    # Fallback: fetch via role_id if present
-    role_id = _get_attr(u, "role_id")
-    if role_id:
-        r = role_service.get_role_by_id(role_id, db_session)
-        if r:
-            return _get_attr(r, "role_name", "name", default="No Role")
-    return "No Role"
-
-def _creator_email(u, db_session):
-    # Many schemas use created_by_id; some use created_by (id)
-    creator_id = _get_attr(u, "created_by", "created_by_id")
-    if creator_id:
-        creator = user_service.get_user_by_id(creator_id, db_session)
-        if creator:
-            return _get_attr(creator, "email", default="")
-    return ""
-
-def _is_disabled(u):
-    return bool(_get_attr(u, "disabled", "is_disabled", default=False))
-
-def _created_at_str(u):
-    dt = _get_attr(u, "created_at")
-    if not dt:
-        return ""
-    from datetime import datetime
-    if isinstance(dt, datetime):
-        return dt.strftime("%Y-%m-%d %H:%M")
+# ---------- Helpers ----------
+def _fmt_dt(value: t.Any) -> str:
+    if value is None:
+        return "-"
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%d %H:%M")
     try:
-        return datetime.fromisoformat(str(dt)).strftime("%Y-%m-%d %H:%M")
+        return datetime.fromisoformat(str(value)).strftime("%Y-%m-%d %H:%M")
     except Exception:
-        return str(dt)
+        return str(value)
+
+
+def _format_users_table_data() -> list[dict]:
+    users = auth_db.get_all_users()
+    for u in users:
+        u["status"] = "Active" if u.get("is_active") else "Inactive"
+        u["created_at"] = _fmt_dt(u.get("created_at"))
+    return users
+
+
+def _norm_href(h: str | None) -> str:
+    """
+    Canonicalize to leading '/', no trailing '/', lowercase.
+    Works for both slugs ('performance-metrics') and hrefs ('/performance-metrics/').
+    """
+    p = (h or "/").split("?")[0].split("#")[0].strip()
+    if not p.startswith("/"):
+        p = "/" + p
+    p = "/" + p.lstrip("/").rstrip("/")
+    return p.lower()
+
+
+def _all_page_options() -> list[dict]:
+    """
+    Build checklist options with VALUE = canonical href (e.g. '/performance-metrics').
+    Labels keep the friendly name + href for clarity.
+    """
+    meta = []
+    opts = []
+    seen = set()
+    for m in meta:
+        href = _norm_href(m.href)
+        if href == "/admin":  # admin reserved
+            continue
+        label = getattr(m, "name", None) or href.lstrip("/") or "home"
+        if href not in seen:
+            seen.add(href)
+            opts.append({"label": f"{label} ({href})", "value": href})
+    return opts
+
 
 # ---------- Layout ----------
 layout = dbc.Container(

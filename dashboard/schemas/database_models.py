@@ -68,7 +68,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     email = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
-    disabled = Column(Boolean, default=False)
+    disabled = Column(Boolean, nullable=False, default=False)
 
     role_id = Column(Integer, ForeignKey("roles.id"), name="fk_users_role_id")
 

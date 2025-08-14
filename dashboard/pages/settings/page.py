@@ -98,7 +98,6 @@ def update_page_visibility_controls(pathname):
 )
 def save_page_visibility_cb(n_clicks, values, ids):
 
-    print(n_clicks)
     if not n_clicks:
         raise dash.exceptions.PreventUpdate
 
