@@ -1,69 +1,79 @@
-# dashboard/pages/admin/page.py
-from dash import html, dcc, Input, Output, State, callback, dash_table, no_update
-import dash_bootstrap_components as dbc
-from server_instance import get_app
-from dashboard.state import session_manager
-import dash
-import plotly.graph_objs as go
+import logging
 from datetime import datetime, timedelta
-import typing as t
+import bcrypt
+import dash
+from dash import Input, Output, State, html, dcc, dash_table
+import dash_bootstrap_components as dbc
+import plotly.graph_objs as go
+from dash.exceptions import PreventUpdate
 
-from configurations.nav_config import build_nav_items_meta
-from data_managers.excel_manager import path_exists
+from data_managers.database_manager import session_scope
+from data_managers.session_manager import SessionManager
+from services import user_service, role_service, page_service, session_service
+from configurations.nav_config import NAV_CONFIG
+from server_instance import get_app
 
 app = get_app()
 
+# Initialize session manager for tracking active sessions
+session_manager = SessionManager()
 
-# ---------- Helpers ----------
-def _fmt_dt(value: t.Any) -> str:
-    if value is None:
-        return "-"
-    if isinstance(value, datetime):
-        return value.strftime("%Y-%m-%d %H:%M")
+# Helper function to get all navigable pages from your nav config
+def _all_page_options():
+    """Get all pages from NAV_CONFIG for permission checkboxes"""
+    return [
+        {"label": item.title, "value": item.name}
+        for item in NAV_CONFIG
+        if item.show_navbar and item.preference_show
+    ]
+# --- Compatibility helpers: work with either ORM models or Pydantic DTOs ---
+
+def _get_attr(obj, *names, default=None):
+    for n in names:
+        try:
+            v = getattr(obj, n)
+        except Exception:
+            v = None
+        if v is not None:
+            return v
+    return default
+
+def _role_name(u, db_session):
+    # Try direct fields commonly present on DTOs
+    rn = _get_attr(u, "role", "role_name")
+    if rn:
+        return rn
+    # Fallback: fetch via role_id if present
+    role_id = _get_attr(u, "role_id")
+    if role_id:
+        r = role_service.get_role_by_id(role_id, db_session)
+        if r:
+            return _get_attr(r, "role_name", "name", default="No Role")
+    return "No Role"
+
+def _creator_email(u, db_session):
+    # Many schemas use created_by_id; some use created_by (id)
+    creator_id = _get_attr(u, "created_by", "created_by_id")
+    if creator_id:
+        creator = user_service.get_user_by_id(creator_id, db_session)
+        if creator:
+            return _get_attr(creator, "email", default="")
+    return ""
+
+def _is_disabled(u):
+    return bool(_get_attr(u, "disabled", "is_disabled", default=False))
+
+def _created_at_str(u):
+    dt = _get_attr(u, "created_at")
+    if not dt:
+        return ""
+    from datetime import datetime
+    if isinstance(dt, datetime):
+        return dt.strftime("%Y-%m-%d %H:%M")
     try:
-        return datetime.fromisoformat(str(value)).strftime("%Y-%m-%d %H:%M")
+        return datetime.fromisoformat(str(dt)).strftime("%Y-%m-%d %H:%M")
     except Exception:
-        return str(value)
-
-
-def _format_users_table_data() -> list[dict]:
-    users = auth_db.get_all_users()
-    for u in users:
-        u["status"] = "Active" if u.get("is_active") else "Inactive"
-        u["created_at"] = _fmt_dt(u.get("created_at"))
-    return users
-
-
-def _norm_href(h: str | None) -> str:
-    """
-    Canonicalize to leading '/', no trailing '/', lowercase.
-    Works for both slugs ('performance-metrics') and hrefs ('/performance-metrics/').
-    """
-    p = (h or "/").split("?")[0].split("#")[0].strip()
-    if not p.startswith("/"):
-        p = "/" + p
-    p = "/" + p.lstrip("/").rstrip("/")
-    return p.lower()
-
-
-def _all_page_options() -> list[dict]:
-    """
-    Build checklist options with VALUE = canonical href (e.g. '/performance-metrics').
-    Labels keep the friendly name + href for clarity.
-    """
-    meta = []
-    opts = []
-    seen = set()
-    for m in meta:
-        href = _norm_href(m.href)
-        if href == "/admin":  # admin reserved
-            continue
-        label = getattr(m, "name", None) or href.lstrip("/") or "home"
-        if href not in seen:
-            seen.add(href)
-            opts.append({"label": f"{label} ({href})", "value": href})
-    return opts
-
+        return str(dt)
 
 # ---------- Layout ----------
 layout = dbc.Container(
@@ -590,272 +600,541 @@ layout = dbc.Container(
     fluid=True,
     className="p-4",
 )
+# admin_callbacks.py
 
-# # ---------- Callbacks ----------
-# @callback(
-#     Output("total-users-count", "children"),
-#     Output("active-users-count", "children"),
-#     Output("admin-users-count", "children"),
-#     Output("recent-logins-count", "children"),
-#     Input("users-interval", "n_intervals"),
-# )
-# def update_stats(_n):
-#     users = auth_db.get_all_users()
-#     total = len(users)
-#     active = sum(1 for u in users if u.get("is_active"))
-#     admins = sum(1 for u in users if u.get("role") == "admin")
-#     try:
-#         sess_counts = session_manager.get_active_sessions_count()
-#         recent = sess_counts.get("total", 0)
-#     except Exception:
-#         recent = 0
-#     return total, active, admins, recent
+# ==================== STATISTICS CALLBACKS ====================
 
-# # load roles and pages (instant refresh via rbac-refresh)
-# @callback(
-#     Output("new-user-role", "options"),
-#     Output("assign-role-select", "options"),
-#     Output("perm-role-select", "options"),
-#     Output("perm-pages-checklist", "options"),
-#     Input("users-interval", "n_intervals"),
-#     Input("rbac-refresh", "data"),
-# )
-# def load_roles_and_pages(_n, _refresh):
-#     roles = auth_db.list_roles()
-#     role_opts = [{"label": r, "value": r} for r in roles]
-#     return role_opts, role_opts, role_opts, _all_page_options()
+@app.callback(
+    [
+        Output("total-users-count", "children"),
+        Output("active-users-count", "children"),
+        Output("admin-users-count", "children"),
+        Output("recent-logins-count", "children"),
+    ],
+    [Input("users-interval", "n_intervals")],
+    prevent_initial_call=False,
+)
+def update_statistics(_):
+    try:
+        with session_scope(False) as db_session:
+            all_users = user_service.get_all_users(db_session)
+            total_users = len(all_users)
 
-# # Create user
-# @callback(
-#     Output("create-user-alert", "children"),
-#     Output("create-user-alert", "color"),
-#     Output("create-user-alert", "is_open"),
-#     Output("new-user-email", "value"),
-#     Output("new-user-password", "value"),
-#     Output("users-table", "data", allow_duplicate=True),
-#     Input("create-user-btn", "n_clicks"),
-#     State("new-user-email", "value"),
-#     State("new-user-password", "value"),
-#     State("new-user-role", "value"),
-#     State("session-store", "data"),
-#     prevent_initial_call=True,
-# )
-# def create_user(n_clicks, email, password, role, session_data):
-#     if not n_clicks:
-#         raise dash.exceptions.PreventUpdate
-#     email_norm = (email or "").lower().strip()
-#     if not email_norm or not password or not role:
-#         return "Please fill all fields", "warning", True, email, password, no_update
-#     if "@" not in email_norm:
-#         return "Please enter a valid email address", "warning", True, email, password, no_update
-#     if len(password) < 8:
-#         return "Password must be at least 8 characters", "warning", True, email, password, no_update
-#     try:
-#         creator_email = (session_data or {}).get("email") or "system"
-#         auth_db.create_user(email_norm, password, role, creator_email)
-#         users_data = _format_users_table_data()
-#         return (f"User {email_norm} created successfully!", "success", True, "", "", users_data)
-#     except Exception as e:
-#         msg = str(e)
-#         if "UNIQUE" in msg or "unique" in msg:
-#             return "This email is already registered", "danger", True, email, password, no_update
-#     # generic error
-#         return f"Error: {e}", "danger", True, email, password, no_update
+            # Robust admin count regardless of DTO shape
+            admin_users = 0
+            for u in all_users:
+                rn = (_role_name(u, db_session) or "").lower()
+                if rn == "admin":
+                    admin_users += 1
 
-# # Refresh table
-# @callback(
-#     Output("users-table", "data"),
-#     Input("refresh-users-btn", "n_clicks"),
-#     Input("users-interval", "n_intervals"),
-# )
-# def refresh_users_table(_n_clicks, _n_int):
-#     return _format_users_table_data()
+            # Active sessions (your existing logic)
+            session_counts = session_manager.get_active_sessions_count()
+            active_users = session_counts.get("total", 0)
 
-# # Search
-# @callback(
-#     Output("users-table", "filter_query"),
-#     Input("user-search", "value"),
-# )
-# def apply_search_filter(q):
-#     if not q:
-#         return ""
-#     q = q.replace('"', r'\"')
-#     return f'{{email}} contains "{q}" || {{role}} contains "{q}" || {{status}} contains "{q}"'
+            # "Recent logins" (keeps your current approach)
+            recent_logins = 0
+            for u in all_users:
+                sessions = session_service.get_active_sessions(_get_attr(u, "id"), db_session)
+                if sessions:
+                    recent_logins += 1
 
-# # Open confirm modal
-# @callback(
-#     Output("confirm-modal", "is_open"),
-#     Output("confirm-modal-body", "children"),
-#     Output("pending-action-store", "data"),
-#     Output("user-action-alert", "children"),
-#     Output("user-action-alert", "color"),
-#     Output("user-action-alert", "is_open"),
-#     Input("btn-enable", "n_clicks"),
-#     Input("btn-disable", "n_clicks"),
-#     Input("btn-delete", "n_clicks"),
-#     State("users-table", "selected_rows"),
-#     State("users-table", "data"),
-#     prevent_initial_call=True,
-# )
-# def open_action_modal(n_en, n_dis, n_del, selected_rows, data):
-#     trig = dash.ctx.triggered_id
-#     if not trig:
-#         raise dash.exceptions.PreventUpdate
-#     if not selected_rows:
-#         return False, no_update, no_update, "Select a user first.", "warning", True
-#     row_idx = selected_rows[0]
-#     user = data[row_idx]
-#     action = "enable" if trig == "btn-enable" else "disable" if trig == "btn-disable" else "delete"
-#     body = f"Are you sure you want to {action} user: {user['email']} (id={user['id']})?"
-#     pending = {"action": action, "user_id": user["id"], "email": user["email"]}
-#     return True, body, pending, no_update, no_update, False
+        return total_users, active_users, admin_users, recent_logins
+    except Exception as e:
+        logging.error(f"Error updating statistics: {e}")
+        return "0", "0", "0", "0"
 
-# # Confirm / cancel action
-# @callback(
-#     Output("confirm-modal", "is_open", allow_duplicate=True),
-#     Output("users-table", "data", allow_duplicate=True),
-#     Output("user-action-alert", "children", allow_duplicate=True),
-#     Output("user-action-alert", "color", allow_duplicate=True),
-#     Output("user-action-alert", "is_open", allow_duplicate=True),
-#     Input("confirm-action-btn", "n_clicks"),
-#     Input("cancel-action-btn", "n_clicks"),
-#     State("pending-action-store", "data"),
-#     prevent_initial_call=True,
-# )
-# def perform_action(n_confirm, n_cancel, pending):
-#     if dash.ctx.triggered_id == "cancel-action-btn":
-#         return False, no_update, no_update, no_update, False
-#     if not n_confirm or not pending:
-#         raise dash.exceptions.PreventUpdate
-#     user_id = pending.get("user_id")
-#     email = pending.get("email")
-#     action = pending.get("action")
-#     try:
-#         if action == "enable":
-#             auth_db.set_active(user_id, True)
-#             msg, color = f"User {email} enabled.", "success"
-#         elif action == "disable":
-#             auth_db.set_active(user_id, False)
-#             msg, color = f"User {email} disabled.", "warning"
-#         else:
-#             auth_db.delete_user(user_id)
-#             msg, color = f"User {email} deleted.", "danger"
-#         users_data = _format_users_table_data()
-#         return False, users_data, msg, color, True
-#     except Exception as e:
-#         return False, no_update, f"Action failed: {e}", "danger", True
+# ==================== USER CREATION CALLBACK ====================
 
-# # Assign role to selected user
-# @callback(
-#     Output("users-table", "data", allow_duplicate=True),
-#     Output("user-action-alert", "children", allow_duplicate=True),
-#     Output("user-action-alert", "color", allow_duplicate=True),
-#     Output("user-action-alert", "is_open", allow_duplicate=True),
-#     Input("assign-role-btn", "n_clicks"),
-#     State("assign-role-select", "value"),
-#     State("users-table", "selected_rows"),
-#     State("users-table", "data"),
-#     prevent_initial_call=True,
-# )
-# def assign_role(n, role, selected_rows, data):
-#     if not n:
-#         raise dash.exceptions.PreventUpdate
-#     if not selected_rows:
-#         return no_update, "Select a user first.", "warning", True
-#     if not role:
-#         return no_update, "Choose a role to assign.", "warning", True
-#     row_idx = selected_rows[0]
-#     user = data[row_idx]
-#     try:
-#         auth_db.assign_user_role(user["id"], role)
-#         users_data = _format_users_table_data()
-#         return users_data, f"Role '{role}' assigned to {user['email']}.", "success", True
-#     except Exception as e:
-#         return no_update, f"Error: {e}", "danger", True
+@app.callback(
+    [
+        Output("create-user-alert", "children"),
+        Output("create-user-alert", "is_open"),
+        Output("create-user-alert", "color"),
+        Output("new-user-email", "value"),
+        Output("new-user-password", "value"),
+        Output("rbac-refresh", "data"),
+    ],
+    [Input("create-user-btn", "n_clicks")],
+    [
+        State("new-user-email", "value"),
+        State("new-user-password", "value"),
+        State("new-user-role", "value"),
+    ],
+    prevent_initial_call=True,
+)
+def create_user(n_clicks, email, password, role_name):
+    """Create new user using existing user_service"""
+    if not n_clicks:
+        raise PreventUpdate
+        
+    if not all([email, password, role_name]):
+        return "Please fill all fields", True, "danger", dash.no_update, dash.no_update, dash.no_update
+        
+    if len(password) < 8:
+        return "Password must be at least 8 characters", True, "danger", dash.no_update, dash.no_update, dash.no_update
+        
+    try:
+        with session_scope() as db_session:
+            # Check if user exists using existing service
+            existing = user_service.get_user_by_email(email, db_session)
+            if existing:
+                return f"User {email} already exists", True, "warning", dash.no_update, dash.no_update, dash.no_update
+            
+            # Get role using existing service
+            role = role_service.get_role_by_name(role_name, db_session)
+            if not role:
+                return f"Role {role_name} not found", True, "danger", dash.no_update, dash.no_update, dash.no_update
+            
+            # Hash password using bcrypt (matching your existing pattern)
+            salt = bcrypt.gensalt()
+            hashed = bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
+            
+            # Create user using existing service
+            new_user = user_service.create_user(
+                email=email,
+                password=hashed,
+                role_id=role.id,
+                session=db_session,
+                created_by=None  # TODO: Get from current session
+            )
+            
+            if new_user:
+                return f"User {email} created successfully", True, "success", "", "", {"refresh": True}
+            else:
+                return "Failed to create user", True, "danger", dash.no_update, dash.no_update, dash.no_update
+                
+    except Exception as e:
+        logging.error(f"Error creating user: {e}")
+        return f"Error: {str(e)}", True, "danger", dash.no_update, dash.no_update, dash.no_update
 
-# # Role creation / deletion (instant refresh via rbac-refresh ping)
-# @callback(
-#     Output("roles-alert", "children"),
-#     Output("roles-alert", "color"),
-#     Output("roles-alert", "is_open"),
-#     Output("perm-role-select", "value"),
-#     Output("new-role-name", "value"),
-#     Output("rbac-refresh", "data"),
-#     Input("create-role-btn", "n_clicks"),
-#     Input("delete-role-btn", "n_clicks"),
-#     State("new-role-name", "value"),
-#     State("perm-role-select", "value"),
-#     prevent_initial_call=True,
-# )
-# def create_or_delete_role(n_add, n_del, new_role, selected_role):
-#     import time
-#     trig = dash.ctx.triggered_id
-#     try:
-#         if trig == "create-role-btn":
-#             r = (new_role or "").strip().lower()
-#             if not r:
-#                 return "Role name is required.", "warning", True, dash.no_update, new_role, dash.no_update
-#             auth_db.create_role(r, "admin-ui")
-#             return f"Role '{r}' created.", "success", True, r, "", time.time()
-#         elif trig == "delete-role-btn":
-#             r = (selected_role or "").strip().lower()
-#             if not r:
-#                 return "Select a role to delete.", "warning", True, dash.no_update, dash.no_update, dash.no_update
-#             auth_db.delete_role(r)
-#             return f"Role '{r}' deleted.", "success", True, "", dash.no_update, time.time()
-#     except Exception as e:
-#         return f"Error: {e}", "danger", True, dash.no_update, dash.no_update, dash.no_update
-#     raise dash.exceptions.PreventUpdate
+# ==================== ROLE MANAGEMENT CALLBACKS ====================
 
-# # Load permissions for selected role (normalize for checklist values)
-# @callback(
-#     Output("perm-pages-checklist", "value"),
-#     Input("perm-role-select", "value"),
-# )
-# def load_role_perms(role):
-#     if not role:
-#         return []
-#     perms = auth_db.get_role_permissions(role) or []
-#     # accept legacy slugs and normalize to hrefs so they match options
-#     return sorted({_norm_href(v) for v in perms} | {_norm_href("/" + v) for v in perms})
+@app.callback(
+    [
+        Output("new-user-role", "options"),
+        Output("edit-role-select", "options"),
+        Output("assign-role-select", "options"),
+    ],
+    [Input("rbac-refresh", "data")],
+    prevent_initial_call=False,
+)
+def update_role_dropdowns(_):
+    """Populate role dropdowns using existing services"""
+    try:
+        with session_scope(False) as db_session:
+            from schemas.database_models import Role
+            roles = db_session.query(Role).all()
+            role_options = [{"label": r.role_name, "value": r.role_name} for r in roles]
+        return role_options, role_options, role_options
+    except Exception as e:
+        logging.error(f"Error loading roles: {e}")
+        return [], [], []
 
-# # Save permissions (store normalized hrefs)
-# @callback(
-#     Output("roles-alert", "children", allow_duplicate=True),
-#     Output("roles-alert", "color", allow_duplicate=True),
-#     Output("roles-alert", "is_open", allow_duplicate=True),
-#     Output("rbac-refresh", "data", allow_duplicate=True),
-#     Input("save-perms-btn", "n_clicks"),
-#     State("perm-role-select", "value"),
-#     State("perm-pages-checklist", "value"),
-#     prevent_initial_call=True,
-# )
-# def save_perms(n, role, pages):
-#     import time
-#     if not n:
-#         raise dash.exceptions.PreventUpdate
-#     if not role:
-#         return "Select a role first.", "warning", True, no_update
-#     try:
-#         normalized = sorted({_norm_href(p) for p in (pages or [])})
-#         auth_db.set_role_permissions(role, normalized)
-#         return "Permissions saved.", "success", True, time.time()
-#     except Exception as e:
-#         return f"Error: {e}", "danger", True, no_update
+@app.callback(
+    [
+        Output("roles-alert", "children"),
+        Output("roles-alert", "is_open"),
+        Output("roles-alert", "color"),
+        Output("new-role-name", "value"),
+        Output("perm-pages-checklist", "value"),
+        Output("rbac-refresh", "data", allow_duplicate=True),
+    ],
+    [Input("create-role-btn", "n_clicks")],
+    [
+        State("new-role-name", "value"),
+        State("perm-pages-checklist", "value"),
+    ],
+    prevent_initial_call=True,
+)
+def create_role_with_permissions(n_clicks, role_name, selected_pages):
+    """Create role with permissions using existing services"""
+    if not n_clicks:
+        raise PreventUpdate
+        
+    if not role_name:
+        return "Please enter a role name", True, "danger", dash.no_update, dash.no_update, dash.no_update
+        
+    try:
+        with session_scope() as db_session:
+            # Check if role exists
+            existing = role_service.get_role_by_name(role_name, db_session)
+            if existing:
+                return f"Role {role_name} already exists", True, "warning", dash.no_update, dash.no_update, dash.no_update
+            
+            # Create role using existing service
+            new_role = role_service.create_role(
+                role_name=role_name,
+                session=db_session,
+                created_by=None  # TODO: Get from current session
+            )
+            
+            # Assign pages if selected
+            if selected_pages:
+                pages_to_assign = []
+                for page_name in selected_pages:
+                    page = page_service.get_page_by_name(page_name, db_session)
+                    if not page:
+                        # Create page if it doesn't exist
+                        page = page_service.create_page(page_name, db_session)
+                    pages_to_assign.append(page)
+                
+                role_service.assign_pages_to_role(new_role, pages_to_assign, db_session)
+            
+            return f"Role {role_name} created with {len(selected_pages or [])} permissions", True, "success", "", [], {"refresh": True}
+            
+    except Exception as e:
+        logging.error(f"Error creating role: {e}")
+        return f"Error: {str(e)}", True, "danger", dash.no_update, dash.no_update, dash.no_update
 
-# # Login activity placeholder
-# @callback(
-#     Output("login-activity-chart", "figure"),
-#     Input("users-interval", "n_intervals"),
-# )
-# def update_login_chart(_n):
-#     dates = [(datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(6, -1, -1)]
-#     counts = [max(0, (i * 3) % 17 + (i % 5)) for i in range(len(dates))]
-#     fig = go.Figure()
-#     fig.add_bar(x=dates, y=counts, name="Logins")
-#     fig.update_layout(title="Daily Login Activity", xaxis_title="Date", yaxis_title="Number of Logins",
-#                       showlegend=False, height=300, margin=dict(l=0, r=0, t=30, b=0),
-#                       paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-#     fig.update_xaxes(gridcolor="rgba(128,128,128,0.2)")
-#     fig.update_yaxes(gridcolor="rgba(128,128,128,0.2)")
-#     return fig
+# ==================== EDIT ROLE CALLBACKS ====================
+
+@app.callback(
+    [
+        Output("edit-perm-pages-checklist", "value"),
+        Output("edit-pages-count", "children"),
+    ],
+    [Input("edit-role-select", "value")],
+    prevent_initial_call=True,
+)
+def load_role_permissions(role_name):
+    """Load current permissions for selected role"""
+    if not role_name:
+        return [], "0"
+        
+    try:
+        with session_scope(False) as db_session:
+            role = role_service.get_role_by_name(role_name, db_session)
+            if role:
+                selected_pages = [p.page_name for p in role.pages]
+                return selected_pages, str(len(selected_pages))
+        return [], "0"
+    except Exception as e:
+        logging.error(f"Error loading role permissions: {e}")
+        return [], "0"
+
+@app.callback(
+    [
+        Output("edit-roles-alert", "children"),
+        Output("edit-roles-alert", "is_open"),
+        Output("edit-roles-alert", "color"),
+        Output("rbac-refresh", "data", allow_duplicate=True),
+    ],
+    [Input("update-perms-btn", "n_clicks")],
+    [
+        State("edit-role-select", "value"),
+        State("edit-perm-pages-checklist", "value"),
+    ],
+    prevent_initial_call=True,
+)
+def update_role_permissions(n_clicks, role_name, selected_pages):
+    """Update role permissions using existing services"""
+    if not n_clicks or not role_name:
+        raise PreventUpdate
+        
+    try:
+        with session_scope() as db_session:
+            role = role_service.get_role_by_name(role_name, db_session)
+            if not role:
+                return f"Role {role_name} not found", True, "danger", dash.no_update
+            
+            # Clear existing pages
+            role.pages.clear()
+            
+            # Assign new pages
+            if selected_pages:
+                pages_to_assign = []
+                for page_name in selected_pages:
+                    page = page_service.get_page_by_name(page_name, db_session)
+                    if not page:
+                        page = page_service.create_page(page_name, db_session)
+                    pages_to_assign.append(page)
+                role_service.assign_pages_to_role(role, pages_to_assign, db_session)
+            
+            return f"Updated {role_name} with {len(selected_pages or [])} permissions", True, "success", {"refresh": True}
+            
+    except Exception as e:
+        logging.error(f"Error updating role: {e}")
+        return f"Error: {str(e)}", True, "danger", dash.no_update
+
+@app.callback(
+    [
+        Output("edit-roles-alert", "children", allow_duplicate=True),
+        Output("edit-roles-alert", "is_open", allow_duplicate=True),
+        Output("edit-roles-alert", "color", allow_duplicate=True),
+        Output("edit-role-select", "value"),
+        Output("rbac-refresh", "data", allow_duplicate=True),
+    ],
+    [Input("edit-delete-role-btn", "n_clicks")],
+    [State("edit-role-select", "value")],
+    prevent_initial_call=True,
+)
+def delete_role(n_clicks, role_name):
+    """Delete role using existing service"""
+    if not n_clicks or not role_name:
+        raise PreventUpdate
+        
+    if role_name == "admin":
+        return "Cannot delete admin role", True, "warning", dash.no_update, dash.no_update
+        
+    try:
+        with session_scope() as db_session:
+            role = role_service.get_role_by_name(role_name, db_session)
+            if not role:
+                return f"Role {role_name} not found", True, "danger", dash.no_update, dash.no_update
+            
+            # Check if role has users
+            if role.users:
+                return f"Cannot delete role with {len(role.users)} users", True, "warning", dash.no_update, dash.no_update
+            
+            success = role_service.delete_role(role.id, 0, db_session)
+            if success:
+                return f"Role {role_name} deleted", True, "success", None, {"refresh": True}
+            else:
+                return "Failed to delete role", True, "danger", dash.no_update, dash.no_update
+                
+    except Exception as e:
+        logging.error(f"Error deleting role: {e}")
+        return f"Error: {str(e)}", True, "danger", dash.no_update, dash.no_update
+
+# ==================== USER TABLE CALLBACKS ====================
+
+@app.callback(
+    Output("users-table", "data"),
+    [
+        Input("users-interval", "n_intervals"),
+        Input("rbac-refresh", "data"),
+        Input("user-search", "value"),
+    ],
+    prevent_initial_call=False,
+)
+def update_users_table(_, __, search_term):
+    try:
+        with session_scope(False) as db_session:
+            users = user_service.get_all_users(db_session)
+
+            table_data = []
+            for u in users:
+                row = {
+                    "id": _get_attr(u, "id"),
+                    "email": _get_attr(u, "email", default=""),
+                    "role": _role_name(u, db_session) or "No Role",
+                    "status": "Inactive" if _is_disabled(u) else "Active",
+                    "created_at": _created_at_str(u),
+                    "created_by": _creator_email(u, db_session),
+                }
+
+                if search_term:
+                    q = search_term.lower()
+                    if q in row["email"].lower() or q in row["role"].lower():
+                        table_data.append(row)
+                else:
+                    table_data.append(row)
+
+        return table_data
+    except Exception as e:
+        logging.error(f"Error updating users table: {e}")
+        return []
+
+# ==================== USER ACTIONS CALLBACKS ====================
+
+@app.callback(
+    [
+        Output("confirm-modal", "is_open"),
+        Output("confirm-modal-body", "children"),
+        Output("pending-action-store", "data"),
+    ],
+    [
+        Input("btn-enable", "n_clicks"),
+        Input("btn-disable", "n_clicks"),
+        Input("btn-delete", "n_clicks"),
+    ],
+    [State("users-table", "selected_rows"), State("users-table", "data")],
+    prevent_initial_call=True,
+)
+def show_confirm_modal(enable_clicks, disable_clicks, delete_clicks, selected_rows, table_data):
+    """Show confirmation modal for user actions"""
+    if not selected_rows or not table_data:
+        raise PreventUpdate
+        
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+        
+    button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    selected_user = table_data[selected_rows[0]]
+    
+    if button_id == "btn-enable":
+        message = f"Enable user {selected_user['email']}?"
+        action = "enable"
+    elif button_id == "btn-disable":
+        message = f"Disable user {selected_user['email']}?"
+        action = "disable"
+    elif button_id == "btn-delete":
+        message = f"Delete user {selected_user['email']}? This action cannot be undone."
+        action = "delete"
+    else:
+        raise PreventUpdate
+        
+    return True, message, {"action": action, "user_id": selected_user["id"]}
+
+@app.callback(
+    [
+        Output("user-action-alert", "children"),
+        Output("user-action-alert", "is_open"),
+        Output("user-action-alert", "color"),
+        Output("confirm-modal", "is_open", allow_duplicate=True),
+        Output("rbac-refresh", "data", allow_duplicate=True),
+    ],
+    [Input("confirm-action-btn", "n_clicks")],
+    [State("pending-action-store", "data")],
+    prevent_initial_call=True,
+)
+def execute_user_action(n_clicks, pending_action):
+    """Execute user action using existing services"""
+    if not n_clicks or not pending_action:
+        raise PreventUpdate
+        
+    action = pending_action["action"]
+    user_id = pending_action["user_id"]
+    
+    try:
+        with session_scope() as db_session:
+            if action == "enable":
+                user = user_service.update_user(user_id, db_session, disabled=False)
+                if user:
+                    return "User enabled", True, "success", False, {"refresh": True}
+                    
+            elif action == "disable":
+                user = user_service.update_user(user_id, db_session, disabled=True)
+                if user:
+                    # Also delete their sessions
+                    user_obj = user_service.get_user_by_id(user_id, db_session)
+                    if user_obj:
+                        session_manager.delete_user_sessions(user_obj.email)
+                    return "User disabled", True, "warning", False, {"refresh": True}
+                    
+            elif action == "delete":
+                success = user_service.delete_user(user_id, db_session)
+                if success:
+                    return "User deleted", True, "success", False, {"refresh": True}
+                    
+        return "Action failed", True, "danger", False, dash.no_update
+        
+    except Exception as e:
+        logging.error(f"Error executing user action: {e}")
+        return f"Error: {str(e)}", True, "danger", False, dash.no_update
+
+@app.callback(
+    [
+        Output("user-action-alert", "children", allow_duplicate=True),
+        Output("user-action-alert", "is_open", allow_duplicate=True),
+        Output("user-action-alert", "color", allow_duplicate=True),
+        Output("rbac-refresh", "data", allow_duplicate=True),
+    ],
+    [Input("assign-role-btn", "n_clicks")],
+    [
+        State("assign-role-select", "value"),
+        State("users-table", "selected_rows"),
+        State("users-table", "data"),
+    ],
+    prevent_initial_call=True,
+)
+def assign_role_to_user(n_clicks, role_name, selected_rows, table_data):
+    """Assign role to selected user"""
+    if not n_clicks or not role_name or not selected_rows:
+        raise PreventUpdate
+        
+    selected_user = table_data[selected_rows[0]]
+    
+    try:
+        with session_scope() as db_session:
+            role = role_service.get_role_by_name(role_name, db_session)
+            if not role:
+                return f"Role {role_name} not found", True, "danger", dash.no_update
+                
+            user = user_service.update_user(
+                selected_user["id"], 
+                db_session, 
+                role_id=role.id
+            )
+            
+            if user:
+                return f"Assigned {role_name} to {selected_user['email']}", True, "success", {"refresh": True}
+            else:
+                return "Failed to assign role", True, "danger", dash.no_update
+                
+    except Exception as e:
+        logging.error(f"Error assigning role: {e}")
+        return f"Error: {str(e)}", True, "danger", dash.no_update
+
+# ==================== LOGIN ACTIVITY CHART ====================
+
+@app.callback(
+    Output("login-activity-chart", "figure"),
+    [Input("users-interval", "n_intervals")],
+    prevent_initial_call=False,
+)
+def update_login_activity_chart(_):
+    """Generate login activity chart"""
+    try:
+        # Generate sample data for last 7 days
+        dates = [(datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(6, -1, -1)]
+        
+        with session_scope(False) as db_session:
+            # Count sessions per day (simplified - you may want to aggregate from your session logs)
+            from schemas.database_models import Session
+            
+            daily_counts = []
+            for date_str in dates:
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                next_day = date_obj + timedelta(days=1)
+                
+                count = db_session.query(Session).filter(
+                    Session.created_at >= date_obj,
+                    Session.created_at < next_day
+                ).count()
+                daily_counts.append(count)
+        
+        figure = go.Figure()
+        figure.add_trace(go.Bar(
+            x=dates,
+            y=daily_counts,
+            marker_color='rgb(55, 83, 109)',
+            text=daily_counts,
+            textposition='auto',
+        ))
+        
+        figure.update_layout(
+            title="Login Activity (Last 7 Days)",
+            xaxis_title="Date",
+            yaxis_title="Number of Logins",
+            showlegend=False,
+            hovermode='x unified',
+            template='plotly_white',
+            margin=dict(l=0, r=0, t=30, b=0),
+            height=300,
+        )
+        
+        return figure
+        
+    except Exception as e:
+        logging.error(f"Error generating login chart: {e}")
+        # Return empty chart on error
+        return go.Figure().add_annotation(
+            text="Unable to load data",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
+        )
+
+# ==================== MODAL CLOSE CALLBACK ====================
+
+@app.callback(
+    Output("confirm-modal", "is_open", allow_duplicate=True),
+    [Input("cancel-action-btn", "n_clicks")],
+    prevent_initial_call=True,
+)
+def close_modal(n_clicks):
+    """Close confirmation modal"""
+    if n_clicks:
+        return False
+    raise PreventUpdate
