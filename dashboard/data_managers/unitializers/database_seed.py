@@ -43,7 +43,7 @@ def initialize_database_first_time(session: Session):
 
     # Only create missing pages
     missing_pages = [name for name in default_pages if name not in existing_names]
-    new_pages = page_service.create_pages(missing_pages, session, admin_user)
+    new_pages = page_service.create_pages(missing_pages, session)
 
     # Combine all pages
     all_pages = existing_pages + new_pages

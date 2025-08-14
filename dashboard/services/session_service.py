@@ -78,8 +78,10 @@ def get_active_sessions(user_id: int, session: sa_orm.Session) -> List[Session]:
     )
 
 
-def validate_session(token: str, session: sa_orm.Session) -> bool:
+def validate_session(token: str, session: sa_orm.Session) -> Optional[int]:
     if not token:
-        return False
+        return None
     sess = get_session_by_id(token, session)
-    return True if sess else False
+    if not sess:
+        return None
+    return sess.user_id

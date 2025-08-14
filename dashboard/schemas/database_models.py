@@ -15,7 +15,7 @@ role_page_table = Table(
     Column(
         "page_id", Integer, ForeignKey("pages.id", ondelete="CASCADE"), primary_key=True
     ),
-    Column("disabled", Boolean, nullable=False, default=False, name="disabled"),
+    Column("disabled", Boolean, nullable=False, default=False),
 )
 
 
@@ -96,12 +96,6 @@ class User(Base):
         "User",
         back_populates="created_users",
         foreign_keys=[created_by],
-    )
-
-    option = relationship(
-        "Option",
-        back_populates="user",
-        uselist=False,
     )
 
     created_roles = relationship(

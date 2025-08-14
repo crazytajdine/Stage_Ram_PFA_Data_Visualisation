@@ -1,7 +1,7 @@
 # dashboard/utils_dashboard/utils_navs.py
 import logging
-from typing import Any
-from configurations.nav_config import (
+from typing import Any, Optional
+from utils_dashboard.utils_page import (
     build_nav_items_meta,
 )
 
@@ -32,10 +32,10 @@ PAGE_MAP: dict[str, Any] = {
 }
 
 
-def build_nav_items(path_exists: bool, is_login: bool) -> list[NavItem]:
+def build_nav_items(path_exists: bool, user_id: Optional[int]) -> list[NavItem]:
     logging.info("Building navigation items; path_exists=%s", path_exists)
 
-    pages_meta = build_nav_items_meta(path_exists, is_login)
+    pages_meta = build_nav_items_meta(path_exists, user_id)
 
     results = [
         NavItem(**item.model_dump(), page=PAGE_MAP[item.name]) for item in pages_meta

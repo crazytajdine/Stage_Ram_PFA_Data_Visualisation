@@ -12,6 +12,7 @@ from components.trigger_page_change import (
 from utils_dashboard.utils_authorization import validate_session
 from utils_dashboard.utils_navs import build_nav_items
 from server_instance import get_app, get_server
+
 from utils_dashboard.utils_download import download_dash
 
 from data_managers.excel_manager import (
@@ -31,7 +32,6 @@ from components.navbar import (
 )
 
 from components.auth import (
-    logout_button,
     add_input_auth_token,
     stores as auth_stores,
     add_callbacks as add_auth_callbacks,
@@ -96,12 +96,13 @@ def export_current_chart(_, fig_dict):
     State(ID_STORE_LOADED_URL, "data"),
 )
 def update_page_and_navbar(pathname, _, pref, token, loaded_url):
-    is_login = validate_session(token)
-    print(token, is_login)
+    user_id = validate_session(token)
+    is_login = user_id is not None
+    logging.info("User is logged in: %s", user_id)
 
     does_path_exists = path_exists()
     logging.info("Selected Path : %s", pathname)
-    nav_items = build_nav_items(does_path_exists, is_login)
+    nav_items = build_nav_items(does_path_exists, user_id)
     logging.info("Does path exist set to %s", does_path_exists)
 
     logging.info("Nav items metadata: %s", [(i.name, i.show_navbar) for i in nav_items])
@@ -154,8 +155,15 @@ def update_page_and_navbar(pathname, _, pref, token, loaded_url):
         if nav_item.show_navbar
     ]
     if is_login:
-
-        navbar.append(logout_button)
+        navbar.append(
+            dbc.Button(
+                [html.Span("Logout", className="label")],
+                id="logout-btn",
+                className="btn-logout",
+                color="light",
+                outline=True,
+            )
+        )
 
     return page_content, page_title, filter_style, navbar, selected_page_href
 

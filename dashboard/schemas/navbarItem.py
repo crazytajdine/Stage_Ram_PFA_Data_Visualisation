@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 from pydantic import BaseModel
 
 DATA_PAGE_TYPE = Literal["data", "nodata", "both"]
@@ -6,6 +6,7 @@ USER_PAGE_TYPE = Literal["guest", "user", "both"]
 
 
 class NavItemMeta(BaseModel):
+    id: Optional[int] = None
     name: str
     href: str
     title: str
@@ -18,6 +19,7 @@ class NavItemMeta(BaseModel):
 
 
 class NavItem(BaseModel):
+    id: Optional[int] = None
     name: str
     href: str
     title: str

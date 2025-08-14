@@ -32,9 +32,8 @@ def build_nav_items_meta(
             pages = user_service.get_user_allowed_pages(user_id, session)
             id_pages = [page.id for page in pages]
             nav_config = [
-                nav for nav in NAV_CONFIG if nav.id in id_pages or nav.id is None
+                nav for nav in NAV_CONFIG if (nav.id in id_pages) or (nav.id is None)
             ]
-
     allowed_data_page_types: Tuple[DATA_PAGE_TYPE] = (
         "both",
         "data" if path_exists else "nodata",
