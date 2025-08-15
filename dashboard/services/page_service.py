@@ -1,6 +1,6 @@
 from typing import List, Optional
 import logging
-from sqlalchemy import Row
+from sqlalchemy import Row, case, update
 from sqlalchemy.orm import Session
 from schemas.database_models import Page, User, role_page_table
 
@@ -65,3 +65,27 @@ def get_user_allowed_pages_all(user_id: int, session: Session) -> list[Row]:
         .filter(User.id == user_id)
         .all()
     )
+
+
+def update_user_page_preferences(
+    user_id: int, preferences: dict[int, bool], session: Session
+) -> bool:
+    if not preferences:
+        return False
+
+    case_stmt = case(
+        preferences,
+        value=role_page_table.c.page_id,
+    )
+
+    stmt = (
+        update(role_page_table)
+        .where(role_page_table.c.role_id == User.role_id)
+        .where(User.id == user_id)
+        .values(disabled=case_stmt)
+    )
+
+    session.execute(stmt)
+    session.commit()
+
+    return True

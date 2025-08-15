@@ -12,6 +12,7 @@ from server_instance import get_app
 
 from utils_dashboard.utils_page import (
     get_allowed_pages_all,
+    update_user_page_preferences,
 )
 
 from pages.settings.metadata import metadata
@@ -104,17 +105,18 @@ def update_page_visibility_controls(pathname, user_id):
     Output(ID_PAGE_VISIBILITY_MSG, "is_open"),
     add_output_manual_trigger(),
     Input(ID_SETTINGS_BUTTON_NAV, "n_clicks"),
+    State(ID_USER_ID, "data"),
     State({"type": "page-checkbox", "index": dash.ALL}, "value"),
     State({"type": "page-checkbox", "index": dash.ALL}, "id"),
     prevent_initial_call=True,
 )
-def save_page_visibility_cb(n_clicks, values, ids):
+def save_page_visibility_cb(n_clicks, user_id, values, ids):
 
     if not n_clicks:
         raise dash.exceptions.PreventUpdate
 
     prefs = {
-        ids[i]["index"]: (values[i] if values[i] is not None else False)
+        ids[i]["index"]: values[i] if values[i] is not None else False
         for i in range(len(ids))
     }
     logging.info(f"Saving page visibility settings: {prefs}")
@@ -125,6 +127,17 @@ def save_page_visibility_cb(n_clicks, values, ids):
         )
         return (
             "Error: At least one page must be selected.",
+            "danger",
+            True,
+            dash.no_update,
+        )
+
+    is_updated = update_user_page_preferences(user_id, prefs)
+
+    if not is_updated:
+        logging.error("Failed to update page visibility settings.")
+        return (
+            "Error: Failed to save settings.",
             "danger",
             True,
             dash.no_update,

@@ -87,3 +87,18 @@ def get_allowed_pages_all(user_id: int):
 
     with session_scope() as session:
         return page_service.get_user_allowed_pages_all(user_id, session)
+
+
+def update_user_page_preferences(user_id: int, preferences: dict[int, bool]):
+    """Update user page preferences. preferences should contain page IDs as keys and visibility as values (is enabled)."""
+    from data_managers.database_manager import session_scope
+    from dashboard.services import page_service
+
+    disabled_preferences = {
+        page_id: not enabled for page_id, enabled in preferences.items()
+    }
+
+    with session_scope() as session:
+        return page_service.update_user_page_preferences(
+            user_id, disabled_preferences, session
+        )
