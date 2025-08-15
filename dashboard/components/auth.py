@@ -6,13 +6,22 @@ from server_instance import get_app
 from services.session_service import delete_session
 from data_managers.database_manager import session_scope
 
-ID_AUTH_TOKEN = "token_user"
+ID_AUTH_TOKEN = "token_user_store"
+ID_USER_ID = "user_id_store"
 
 app = get_app()
 
 
+def add_input_user_id():
+    return Input(ID_USER_ID, "data")
+
+
+def add_output_user_id():
+    return Output(ID_USER_ID, "data", True)
+
+
 def add_input_auth_token():
-    return Input(ID_AUTH_TOKEN, "data", True)
+    return Input(ID_AUTH_TOKEN, "data")
 
 
 def add_output_auth_token():
@@ -28,7 +37,7 @@ logout_button = dbc.Button(
 )
 
 
-stores = [dcc.Store(ID_AUTH_TOKEN, "session")]
+stores = [dcc.Store(ID_AUTH_TOKEN, "session"), dcc.Store(ID_USER_ID, "session")]
 
 
 def add_callbacks():

@@ -78,3 +78,12 @@ def fetch_allowed_page_for_user(path_exists, user_id):
         and (item.type_user in allowed_user_page_types)
     ]
     return meta_list
+
+
+def get_allowed_pages_all(user_id: int):
+
+    from data_managers.database_manager import session_scope
+    from dashboard.services import page_service
+
+    with session_scope() as session:
+        return page_service.get_user_allowed_pages_all(user_id, session)

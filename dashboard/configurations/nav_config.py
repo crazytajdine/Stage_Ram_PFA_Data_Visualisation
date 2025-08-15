@@ -17,3 +17,5 @@ NAV_CONFIG = [
     undefined_metadata,
     login_metadata,
 ]
+
+MAPPER_NAV_CONFIG = {meta.id: meta for meta in NAV_CONFIG if meta.id is not None}
