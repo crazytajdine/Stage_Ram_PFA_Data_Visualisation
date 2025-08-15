@@ -16,6 +16,10 @@ def get_all_metadata_id_pages_dynamic() -> List[int]:
     return [nav.id for nav in NAV_CONFIG if nav.id is not None]
 
 
+def get_all_metadata_pages_dynamic() -> List[NavItemMeta]:
+    return [nav for nav in NAV_CONFIG if nav.id is not None]
+
+
 def get_page_visibility(page_key: str) -> Optional[bool]:
     config = get_user_config()
 

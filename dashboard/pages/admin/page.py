@@ -2,16 +2,17 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
-import typing as t
-
-import bcrypt
 import dash
 from dash import Input, Output, State, html, dcc, dash_table
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
-import plotly.graph_objs as go
 
+from dashboard.components.auth import add_state_user_id
+from dashboard.configurations.nav_config import MAPPER_NAV_CONFIG
+from dashboard.utils_dashboard.utils_page import (
+    get_all_metadata_id_pages_dynamic,
+    get_all_metadata_pages_dynamic,
+)
 from server_instance import get_app
 from data_managers.database_manager import session_scope
 
@@ -20,96 +21,46 @@ from services import user_service, role_service, page_service, session_service
 app = get_app()
 
 
-# ---------- Helpers (robust for ORM models OR Pydantic DTOs) ----------
-def _get_attr(obj, *names, default=None):
-    for n in names:
-        try:
-            v = getattr(obj, n)
-        except Exception:
-            v = None
-        if v is not None:
-            return v
-    return default
+ID_EDIT_PERM_PAGES_CHECKLIST = "edit-perm-pages-checklist"
+ID_SELECT_ROLE = "edit-role-select"
 
 
-def _role_name(u, db_session):
-    rn = _get_attr(u, "role", "role_name")
-    if rn:
-        return rn
-    role_id = _get_attr(u, "role_id")
-    if role_id:
-        r = role_service.get_role_by_id(role_id, db_session)
-        if r:
-            return _get_attr(r, "role_name", "name", default="No Role")
-    return "No Role"
-
-
-def _creator_email(u, db_session):
-    creator_id = _get_attr(u, "created_by", "created_by_id")
-    if creator_id:
-        creator = user_service.get_user_by_id(creator_id, db_session)
-        if creator:
-            return _get_attr(creator, "email", default="")
-    return ""
-
-
-def _is_disabled(u):
-    return bool(_get_attr(u, "disabled", "is_disabled", default=False))
-
-
-def _created_at_str(u):
-    dt = _get_attr(u, "created_at")
-    if not dt:
-        return ""
-    if isinstance(dt, datetime):
-        return dt.strftime("%Y-%m-%d %H:%M")
-    try:
-        return datetime.fromisoformat(str(dt)).strftime("%Y-%m-%d %H:%M")
-    except Exception:
-        return str(dt)
-
-def _norm_href(p: str) -> str:
-    if not p:
-        return "/"
-    p = "/" + p.lstrip("/").rstrip("/")
-    return p.lower()
-
-def _nav_index_by_id() -> dict[int, object]:
-    """
-    Returns {meta_id: NavItemMeta} for all selectable pages.
-    Skips /admin and hidden pages.
-    """
-    try:
-        from configurations.nav_config import NAV_CONFIG
-    except Exception:
-        return {}
-
-    idx = {}
-    for m in NAV_CONFIG:
-        meta_id = getattr(m, "id", None)
-        if meta_id is None:
-            continue                       # keep only pages with a real ID
-        href = _norm_href(getattr(m, "href", "/"))
-        if href == "/admin":
-            continue                       # do not grant admin page
-        show_nav = getattr(m, "show_navbar", True)
-        pref_show = getattr(m, "preference_show", True)
-        if not (show_nav and pref_show):
-            continue
-        idx[meta_id] = m
-    return idx
-
-def _all_page_options_by_id() -> list[dict]:
-    """
-    Checklist options with VALUE = page ID (int), LABEL = 'Name (/href)'.
-    """
-    idx = _nav_index_by_id()
+def _add_pages_to_checklist_options() -> list[dict]:
+    pages = get_all_metadata_pages_dynamic()
     opts = []
-    for meta_id, m in idx.items():
-        name = getattr(m, "name", str(meta_id))
-        href = _norm_href(getattr(m, "href", "/"))
-        opts.append({"label": f"{name} ({href})", "value": meta_id})
+    for p in pages:
+        pid = p.id
+        if pid is None:
+            continue
+        label = p.name + f" (href: {p.href})"
+        opts.append({"label": label, "value": pid})
     return opts
+
+
+def enable_user(user_id):
+    with session_scope() as db_session:
+        user = user_service.update_user(user_id, db_session, disabled=False)
+        if user:
+            return "User enabled", True, "success", False, {"refresh": True}
+    return "Enable failed", True, "danger", False, {"refresh": False}
+
+
+def disable_user(user_id):
+    with session_scope() as db_session:
+        user = user_service.update_user(user_id, db_session, disabled=True)
+        if user:
+            session_service.delete_session_with_user_id(user_id, db_session)
+
+            return "User disabled", True, "warning", False, {"refresh": True}
+    return "Disable failed", True, "danger", False, {"refresh": False}
+
+
+def delete_user(user_id):
+    with session_scope() as db_session:
+        success = user_service.delete_user(user_id, db_session)
+        if success:
+            return "User deleted", True, "success", False, {"refresh": True}
+    return "Delete failed", True, "danger", False, {"refresh": False}
 
 
 # ---------- Layout ----------
@@ -133,22 +84,7 @@ layout = dbc.Container(
                         ),
                         className="text-center",
                     ),
-                    md=3,
-                ),
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody(
-                            [
-                                html.H4("Active Users", className="text-muted mb-1"),
-                                html.H2(
-                                    id="active-users-count",
-                                    className="text-success mb-0",
-                                ),
-                            ]
-                        ),
-                        className="text-center",
-                    ),
-                    md=3,
+                    md=4,
                 ),
                 dbc.Col(
                     dbc.Card(
@@ -163,7 +99,7 @@ layout = dbc.Container(
                         ),
                         className="text-center",
                     ),
-                    md=3,
+                    md=4,
                 ),
                 dbc.Col(
                     dbc.Card(
@@ -177,7 +113,7 @@ layout = dbc.Container(
                         ),
                         className="text-center",
                     ),
-                    md=3,
+                    md=4,
                 ),
             ],
             className="mb-4",
@@ -262,12 +198,10 @@ layout = dbc.Container(
             ],
             className="mb-4",
         ),
-        # Create Role with Permissions
+        # Create Role with pages
         dbc.Card(
             [
-                dbc.CardHeader(
-                    html.H4("Create Role with Permissions", className="mb-0")
-                ),
+                dbc.CardHeader(html.H4("Create Role with pages", className="mb-0")),
                 dbc.CardBody(
                     [
                         dbc.Row(
@@ -292,8 +226,7 @@ layout = dbc.Container(
                                         dbc.Label("Allowed pages"),
                                         dcc.Checklist(
                                             id="perm-pages-checklist",
-                                            options=_all_page_options_by_id(),
-                                            value=[],
+                                            options=_add_pages_to_checklist_options(),
                                             labelStyle={"display": "block"},
                                             inputStyle={"marginRight": "8px"},
                                         ),
@@ -326,10 +259,10 @@ layout = dbc.Container(
             ],
             className="mb-4",
         ),
-        # Edit Role & Permissions
+        # Edit Role & pages
         dbc.Card(
             [
-                dbc.CardHeader(html.H4("Edit Role & Permissions", className="mb-0")),
+                dbc.CardHeader(html.H4("Edit Role & pages", className="mb-0")),
                 dbc.CardBody(
                     [
                         dbc.Row(
@@ -338,7 +271,7 @@ layout = dbc.Container(
                                     [
                                         dbc.Label("Select role"),
                                         dbc.Select(
-                                            id="edit-role-select",
+                                            id=ID_SELECT_ROLE,
                                             options=[],
                                             placeholder="Choose a role",
                                         ),
@@ -354,9 +287,7 @@ layout = dbc.Container(
                         dbc.Label("Allowed pages"),
                         html.Div(
                             dcc.Checklist(
-                                id="edit-perm-pages-checklist",
-                                options=_all_page_options_by_id(),
-                                value=[],
+                                id=ID_EDIT_PERM_PAGES_CHECKLIST,
                                 labelStyle={"display": "block"},
                                 inputStyle={"marginRight": "8px"},
                             ),
@@ -393,7 +324,7 @@ layout = dbc.Container(
                                 dbc.Button(
                                     [
                                         html.I(className="bi bi-save2 me-2"),
-                                        "Update Permissions",
+                                        "Update pages",
                                     ],
                                     id="update-perms-btn",
                                     color="dark",
@@ -425,72 +356,75 @@ layout = dbc.Container(
         dbc.Card(
             [
                 dbc.CardHeader(
-                    [
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    html.H4("User Management", className="mb-0"), md=4
-                                ),
-                                dbc.Col(
-                                    dbc.InputGroup(
-                                        [
-                                            dbc.InputGroupText(
-                                                html.I(className="bi bi-search")
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                html.H4("User Management", className="mb-0"),
+                                md=4,
+                            ),
+                            dbc.Col(
+                                dbc.Row(
+                                    [
+                                        # Enable / Disable group
+                                        dbc.Col(
+                                            dbc.ButtonGroup(
+                                                [
+                                                    dbc.Button(
+                                                        "Enable",
+                                                        id="btn-enable",
+                                                        color="success",
+                                                        size="sm",
+                                                        className="rounded-start",
+                                                    ),
+                                                    dbc.Button(
+                                                        "Disable",
+                                                        id="btn-disable",
+                                                        color="warning",
+                                                        size="sm",
+                                                        className="rounded-end",
+                                                    ),
+                                                ],
+                                                className="me-2",
                                             ),
-                                            dbc.Input(
-                                                id="user-search",
-                                                placeholder="Search email or role...",
-                                                type="text",
-                                            ),
-                                        ],
-                                        size="sm",
-                                    ),
-                                    md=4,
-                                ),
-                                dbc.Col(
-                                    dbc.Button(
-                                        [
-                                            html.I(
-                                                className="bi bi-arrow-clockwise me-2"
-                                            ),
-                                            "Refresh",
-                                        ],
-                                        id="refresh-users-btn",
-                                        color="secondary",
-                                        size="sm",
-                                        className="w-100",
-                                    ),
-                                    md=2,
-                                ),
-                                dbc.Col(
-                                    dbc.ButtonGroup(
-                                        [
-                                            dbc.Button(
-                                                "Enable",
-                                                id="btn-enable",
-                                                color="success",
-                                                size="sm",
-                                            ),
-                                            dbc.Button(
-                                                "Disable",
-                                                id="btn-disable",
-                                                color="warning",
-                                                size="sm",
-                                            ),
+                                            width="auto",
+                                        ),
+                                        # Delete button
+                                        dbc.Col(
                                             dbc.Button(
                                                 "Delete",
                                                 id="btn-delete",
                                                 color="danger",
                                                 size="sm",
+                                                className="rounded-4 me-2",
                                             ),
-                                        ],
-                                        className="w-100",
-                                    ),
-                                    md=2,
+                                            width="auto",
+                                        ),
+                                        # Refresh button
+                                        dbc.Col(
+                                            dbc.Button(
+                                                [
+                                                    html.I(
+                                                        className="bi bi-arrow-clockwise me-2"
+                                                    ),
+                                                    "Refresh",
+                                                ],
+                                                id="refresh-users-btn",
+                                                color="secondary",
+                                                outline=True,
+                                                size="sm",
+                                                className="rounded-4",
+                                            ),
+                                            width="auto",
+                                        ),
+                                    ],
+                                    className="justify-content-end",
+                                    align="center",
                                 ),
-                            ]
-                        )
-                    ]
+                                md=8,
+                            ),
+                        ],
+                        className="align-items-center",
+                    )
                 ),
                 dbc.CardBody(
                     [
@@ -529,9 +463,14 @@ layout = dbc.Container(
                             id="users-table",
                             columns=[
                                 {"name": "ID", "id": "id", "type": "numeric"},
-                                {"name": "Email", "id": "email", "type": "text"},
+                                {
+                                    "name": "Email",
+                                    "id": "email",
+                                    "type": "text",
+                                },
+                                {"name": "Role id", "id": "role_id", "type": "text"},
                                 {"name": "Role", "id": "role", "type": "text"},
-                                {"name": "Status", "id": "status", "type": "text"},
+                                {"name": "disabled", "id": "disabled", "type": "text"},
                                 {
                                     "name": "Created At",
                                     "id": "created_at",
@@ -625,7 +564,6 @@ layout = dbc.Container(
 @app.callback(
     [
         Output("total-users-count", "children"),
-        Output("active-users-count", "children"),
         Output("admin-users-count", "children"),
         Output("recent-logins-count", "children"),
     ],
@@ -633,45 +571,18 @@ layout = dbc.Container(
     prevent_initial_call=False,
 )
 def update_statistics(_):
-    try:
-        with session_scope(False) as db_session:
-            all_users = user_service.get_all_users(db_session)
-            total_users = len(all_users)
+    with session_scope(False) as db_session:
+        all_users = user_service.get_all_users(db_session)
+        total_users = len(all_users)
 
-            admin_users = 0
-            for u in all_users:
-                rn = (_role_name(u, db_session) or "").lower()
-                if rn == "admin":
-                    admin_users += 1
+        admin_users = 0
+        for u in all_users:
+            if u.role_id == 0:
+                admin_users += 1
 
-            active_users = sum(
-                1
-                for u in all_users
-                if len(
-                    session_service.get_active_sessions(_get_attr(u, "id"), db_session)
-                )
-                > 0
-            )
-            from datetime import datetime, timedelta
+        recent_logins = len(session_service.get_recent_logins(db_session))
 
-            cutoff = datetime.now() - timedelta(hours=24)
-            from schemas.database_models import Session as DBSession
-
-            recent_logins = 0
-            for u in all_users:
-                count_24h = (
-                    db_session.query(DBSession)
-                    .filter(DBSession.user_id == _get_attr(u, "id"))
-                    .filter(DBSession.created_at >= cutoff)
-                    .count()
-                )
-                if count_24h > 0:
-                    recent_logins += 1
-
-        return total_users, active_users, admin_users, recent_logins
-    except Exception as e:
-        logging.error(f"Error updating statistics: {e}")
-        return "0", "0", "0", "0"
+    return total_users, admin_users, recent_logins
 
 
 # ==================== USER CREATION CALLBACK ====================
@@ -689,13 +600,14 @@ def update_statistics(_):
         State("new-user-email", "value"),
         State("new-user-password", "value"),
         State("new-user-role", "value"),
+        add_state_user_id(),
     ],
     prevent_initial_call=True,
 )
-def create_user(n_clicks, email, password, role_name):
-    if not n_clicks:
+def create_user(n_clicks, email, password, role_id, user_id):
+    if not n_clicks or user_id is None:
         raise PreventUpdate
-    if not all([email, password, role_name]):
+    if not all([email, password, role_id is not None]):
         return (
             "Please fill all fields",
             True,
@@ -714,76 +626,64 @@ def create_user(n_clicks, email, password, role_name):
             dash.no_update,
         )
 
-    try:
-        with session_scope() as db_session:
-            existing = user_service.get_user_by_email(email, db_session)
-            if existing:
-                return (
-                    f"User {email} already exists",
-                    True,
-                    "warning",
-                    dash.no_update,
-                    dash.no_update,
-                    dash.no_update,
-                )
-
-            role = role_service.get_role_by_name(role_name, db_session)
-            if not role:
-                return (
-                    f"Role {role_name} not found",
-                    True,
-                    "danger",
-                    dash.no_update,
-                    dash.no_update,
-                    dash.no_update,
-                )
-
-            salt = bcrypt.gensalt()
-            hashed = bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
-
-            new_user = user_service.create_user(
-                email=email,
-                password=hashed,
-                role_id=role.id,
-                session=db_session,
-                created_by=None,  # TODO: current user id
+    with session_scope() as db_session:
+        existing = user_service.get_user_by_email(email, db_session)
+        if existing:
+            return (
+                f"User {email} already exists",
+                True,
+                "warning",
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
             )
 
-            if new_user:
-                return (
-                    f"User {email} created successfully",
-                    True,
-                    "success",
-                    "",
-                    "",
-                    {"refresh": True},
-                )
-            else:
-                return (
-                    "Failed to create user",
-                    True,
-                    "danger",
-                    dash.no_update,
-                    dash.no_update,
-                    dash.no_update,
-                )
-    except Exception as e:
-        logging.error(f"Error creating user: {e}")
-        return (
-            f"Error: {str(e)}",
-            True,
-            "danger",
-            dash.no_update,
-            dash.no_update,
-            dash.no_update,
+        role = role_service.get_role_by_id(role_id, db_session)
+        if not role:
+            return (
+                f"Role {role_id} not found",
+                True,
+                "danger",
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+            )
+
+        hashed = user_service.hash_password(password)
+
+        new_user = user_service.create_user(
+            email=email,
+            password=hashed,
+            role_id=role.id,
+            session=db_session,
+            created_by=user_id,
         )
+
+        if new_user:
+            return (
+                f"User {email} created successfully",
+                True,
+                "success",
+                "",
+                "",
+                {"refresh": True},
+            )
+        else:
+            return (
+                "Failed to create user",
+                True,
+                "danger",
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+            )
 
 
 # ==================== ROLE MANAGEMENT CALLBACKS ====================
 @app.callback(
     [
         Output("new-user-role", "options"),
-        Output("edit-role-select", "options"),
+        Output(ID_SELECT_ROLE, "options"),
         Output("assign-role-select", "options"),
     ],
     [Input("rbac-refresh", "data")],
@@ -791,11 +691,10 @@ def create_user(n_clicks, email, password, role_name):
 )
 def update_role_dropdowns(_):
     try:
-        with session_scope(False) as db_session:
-            from schemas.database_models import Role
+        with session_scope(False) as session:
 
-            roles = db_session.query(Role).all()
-            role_options = [{"label": r.role_name, "value": r.role_name} for r in roles]
+            roles = role_service.get_roles(session)
+            role_options = [{"label": r.role_name, "value": r.id} for r in roles]
         return role_options, role_options, role_options
     except Exception as e:
         logging.error(f"Error loading roles: {e}")
@@ -812,107 +711,65 @@ def update_role_dropdowns(_):
         Output("rbac-refresh", "data", allow_duplicate=True),
     ],
     [Input("create-role-btn", "n_clicks")],
-    [State("new-role-name", "value"), State("perm-pages-checklist", "value")],  # ← now list[int]
+    [
+        State("new-role-name", "value"),
+        State("perm-pages-checklist", "value"),
+    ],
     prevent_initial_call=True,
 )
-def create_role_with_permissions(n_clicks, role_name, selected_ids):
+def create_role_with_pages(n_clicks, role_name, selected_ids):
     if not n_clicks:
         raise PreventUpdate
     if not role_name:
-        return ("Please enter a role name", True, "danger", dash.no_update, dash.no_update, dash.no_update)
+        return (
+            "Please enter a role name",
+            True,
+            "danger",
+            dash.no_update,
+            dash.no_update,
+            dash.no_update,
+        )
+    if not selected_ids:
+        return (
+            "Please select at least one page",
+            True,
+            "danger",
+            dash.no_update,
+            dash.no_update,
+            dash.no_update,
+        )
 
-    try:
-        with session_scope() as db_session:
-            existing = role_service.get_role_by_name(role_name, db_session)
-            if existing:
-                return (f"Role {role_name} already exists", True, "warning", dash.no_update, dash.no_update, dash.no_update)
-
-            new_role = role_service.create_role(role_name=role_name, session=db_session, created_by=None)
-
-            pages_to_assign = []
-            if selected_ids:
-                idx = _nav_index_by_id()
-                for meta_id in selected_ids:
-                    if meta_id not in idx:
-                        continue
-                    meta = idx[meta_id]
-                    name = getattr(meta, "name", str(meta_id))
-                    href = _norm_href(getattr(meta, "href", "/"))
-
-                    # Reuse existing Page by name; create if missing
-                    page = page_service.get_page_by_name(name, db_session)
-                    if not page:
-                        page = page_service.create_page(name, db_session)
-
-                    # Persist the NAV_CONFIG id if your model supports it
-                    if hasattr(page, "page_id"):
-                        page.page_id = meta_id
-                    if hasattr(page, "meta_id"):
-                        page.meta_id = meta_id
-                    if hasattr(page, "href"):
-                        page.href = href
-
-                    pages_to_assign.append(page)
-
-            # ← This was commented out: actually link the pages
-            # Prefer a service call if you have one:
-            role_service.assign_pages_to_role(new_role, pages_to_assign, db_session)
-            new_role.pages = pages_to_assign
-            db_session.flush()
-
+    with session_scope() as session:
+        existing = role_service.get_role_by_name(role_name, session)
+        if existing:
             return (
-                f"Role {role_name} created with {len(pages_to_assign)} permissions",
+                f"Role {role_name} already exists",
                 True,
-                "success",
-                "",      # clear role name
-                [],      # clear checklist
-                {"refresh": True},
+                "warning",
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
             )
-    except Exception as e:
-        logging.error(f"Error creating role: {e}")
-        return (f"Error: {str(e)}", True, "danger", dash.no_update, dash.no_update, dash.no_update)
+
+        new_role = role_service.create_role(
+            role_name=role_name, session=session, created_by=None
+        )
+
+        pages_to_assign = page_service.get_pages_by_id(selected_ids, session)
+
+        role_service.assign_pages_to_role(new_role, pages_to_assign, session)
+
+        return (
+            f"Role {role_name} created with {len(pages_to_assign)} pages",
+            True,
+            "success",
+            "",
+            [],
+            {"refresh": True},
+        )
 
 
 # ==================== EDIT ROLE CALLBACKS ====================
-@app.callback(
-    [
-        Output("edit-perm-pages-checklist", "value"),
-        Output("edit-pages-count", "children"),
-    ],
-    [Input("edit-role-select", "value")],
-    prevent_initial_call=True,
-)
-def load_role_permissions(role_name):
-    if not role_name:
-        return [], "0"
-    try:
-        with session_scope(False) as db_session:
-            role = role_service.get_role_by_name(role_name, db_session)
-            if not role:
-                return [], "0"
-
-            idx = _nav_index_by_id()
-            # Build a name->id map as fallback if your Page doesn’t persist ids
-            name_to_id = {getattr(m, "name", str(i)): i for i, m in idx.items()}
-
-            selected_ids = []
-            for p in role.pages:
-                # Prefer persisted page id/meta_id if your model has it
-                pid = getattr(p, "page_id", None) or getattr(p, "meta_id", None)
-                if pid is not None and pid in idx:
-                    selected_ids.append(pid)
-                    continue
-                # Fallback: map stored page_name to id
-                pname = getattr(p, "page_name", None)
-                if pname in name_to_id:
-                    selected_ids.append(name_to_id[pname])
-
-            # Deduplicate & keep only still-valid pages
-            selected_ids = sorted({i for i in selected_ids if i in idx})
-            return selected_ids, str(len(selected_ids))
-    except Exception as e:
-        logging.error(f"Error loading role permissions: {e}")
-        return [], "0"
 
 
 @app.callback(
@@ -923,52 +780,33 @@ def load_role_permissions(role_name):
         Output("rbac-refresh", "data", allow_duplicate=True),
     ],
     [Input("update-perms-btn", "n_clicks")],
-    [State("edit-role-select", "value"), State("edit-perm-pages-checklist", "value")],  # list[int]
+    [
+        State(ID_SELECT_ROLE, "value"),
+        State("edit-perm-pages-checklist", "value"),
+    ],
     prevent_initial_call=True,
 )
-def update_role_permissions(n_clicks, role_name, selected_ids):
-    if not n_clicks or not role_name:
+def update_role_pages(n_clicks, role_id, selected_ids):
+    if not n_clicks or not role_id:
         raise PreventUpdate
-    try:
-        with session_scope() as db_session:
-            role = role_service.get_role_by_name(role_name, db_session)
-            if not role:
-                return (f"Role {role_name} not found", True, "danger", dash.no_update)
+    if not selected_ids:
+        return ("No pages selected", True, "warning", dash.no_update)
+    with session_scope() as session:
+        role = role_service.get_role_by_id(role_id, session)
+        if not role:
+            return (f"Role {role_id} not found", True, "danger", dash.no_update)
 
-            # Clear old links
-            role.pages.clear()
+        print(selected_ids)
+        pages = page_service.get_pages_by_id(selected_ids, session)
 
-            pages_to_assign = []
-            if selected_ids:
-                idx = _nav_index_by_id()
-                for meta_id in selected_ids:
-                    if meta_id not in idx:
-                        continue
-                    meta = idx[meta_id]
-                    name = getattr(meta, "name", str(meta_id))
-                    href = _norm_href(getattr(meta, "href", "/"))
+        role_service.assign_pages_to_role(role, pages, session)
 
-                    page = page_service.get_page_by_name(name, db_session)
-                    if not page:
-                        page = page_service.create_page(name, db_session)
-
-                    if hasattr(page, "page_id"):
-                        page.page_id = meta_id
-                    if hasattr(page, "meta_id"):
-                        page.meta_id = meta_id
-                    if hasattr(page, "href"):
-                        page.href = href
-
-                    pages_to_assign.append(page)
-
-            # role_service.assign_pages_to_role(role, pages_to_assign, db_session)
-            role.pages = pages_to_assign
-            db_session.flush()
-
-            return (f"Updated {role_name} with {len(pages_to_assign)} permissions", True, "success", {"refresh": True})
-    except Exception as e:
-        logging.error(f"Error updating role permissions: {e}")
-        return (f"Error: {str(e)}", True, "danger", dash.no_update)
+        return (
+            f"Updated role with {len(selected_ids)} pages",
+            True,
+            "success",
+            {"refresh": True},
+        )
 
 
 @app.callback(
@@ -976,11 +814,11 @@ def update_role_permissions(n_clicks, role_name, selected_ids):
         Output("edit-roles-alert", "children", allow_duplicate=True),
         Output("edit-roles-alert", "is_open", allow_duplicate=True),
         Output("edit-roles-alert", "color", allow_duplicate=True),
-        Output("edit-role-select", "value"),
+        Output(ID_SELECT_ROLE, "value"),
         Output("rbac-refresh", "data", allow_duplicate=True),
     ],
     [Input("edit-delete-role-btn", "n_clicks")],
-    [State("edit-role-select", "value")],
+    [State(ID_SELECT_ROLE, "value")],
     prevent_initial_call=True,
 )
 def delete_role(n_clicks, role_name):
@@ -1042,34 +880,32 @@ def delete_role(n_clicks, role_name):
     [
         Input("users-interval", "n_intervals"),
         Input("rbac-refresh", "data"),
-        Input("user-search", "value"),
     ],
     prevent_initial_call=False,
 )
-def update_users_table(_, __, search_term):
-    try:
-        with session_scope(False) as db_session:
-            users = user_service.get_all_users(db_session)
-            table_data = []
-            for u in users:
-                row = {
-                    "id": _get_attr(u, "id"),
-                    "email": _get_attr(u, "email", default=""),
-                    "role": _role_name(u, db_session) or "No Role",
-                    "status": "Inactive" if _is_disabled(u) else "Active",
-                    "created_at": _created_at_str(u),
-                    "created_by": _creator_email(u, db_session),
-                }
-                if search_term:
-                    q = (search_term or "").lower()
-                    if q in row["email"].lower() or q in row["role"].lower():
-                        table_data.append(row)
-                else:
-                    table_data.append(row)
-        return table_data
-    except Exception as e:
-        logging.error(f"Error updating users table: {e}")
-        return []
+def update_users_table(_, __):
+    with session_scope(False) as db_session:
+        users = user_service.get_all_users(db_session)
+        table_data = []
+        role_ids = {user.role_id for user in users}
+        roles = role_service.get_roles_by_ids(role_ids, db_session)
+
+        name_roles = {role.id: role.role_name for role in roles}
+        for u in users:
+            created_by = u.created_by
+            creator_source = created_by if created_by is not None else "system"
+            row = {
+                "id": u.id,
+                "email": u.email,
+                "role": name_roles[u.role_id] or "No Role",
+                "role_id": u.role_id,
+                "disabled": u.disabled,
+                "created_at": u.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                "created_by": creator_source,
+            }
+
+            table_data.append(row)
+    return table_data
 
 
 # ==================== USER ACTIONS CALLBACKS ====================
@@ -1110,7 +946,15 @@ def show_confirm_modal(
     else:
         raise PreventUpdate
 
-    return True, message, {"action": action, "user_id": selected_user["id"]}
+    return (
+        True,
+        message,
+        {
+            "action": action,
+            "user_id": selected_user["id"],
+            "disabled": selected_user["disabled"],
+        },
+    )
 
 
 @app.callback(
@@ -1128,52 +972,18 @@ def show_confirm_modal(
 def execute_user_action(n_clicks, pending_action):
     if not n_clicks or not pending_action:
         raise PreventUpdate
+
     action = pending_action["action"]
     user_id = pending_action["user_id"]
 
-    try:
-        with session_scope() as db_session:
-            if action == "enable":
-                user = user_service.update_user(user_id, db_session, disabled=False)
-                if user:
-                    return "User enabled", True, "success", False, {"refresh": True}
-            elif action == "disable":
-                user = user_service.update_user(user_id, db_session, disabled=True)
-                if user:
-                    user_obj = user_service.get_user_by_id(user_id, db_session)
-                    if user_obj:
-                        try:
-                            # Prefer the service if it exposes a delete/revoke for a user
-                            # (try common names to avoid editing the service right now)
-                            for fn_name in (
-                                "delete_sessions_for_user",
-                                "revoke_user_sessions",
-                                "revoke_sessions_for_user",
-                                "delete_user_sessions",
-                            ):
-                                fn = getattr(session_service, fn_name, None)
-                                if fn:
-                                    fn(_get_attr(user_obj, "id"), db_session)
-                                    break
-                            else:
-                                # Fallback: delete directly in DB by user_id
-                                from schemas.database_models import Session as DBSession
+    if action == "enable":
 
-                                db_session.query(DBSession).filter(
-                                    DBSession.user_id == _get_attr(user_obj, "id")
-                                ).delete(synchronize_session=False)
-                        except Exception:
-                            # Non-fatal for UI; we still disabled the account
-                            pass
-                    return "User disabled", True, "warning", False, {"refresh": True}
-            elif action == "delete":
-                success = user_service.delete_user(user_id, db_session)
-                if success:
-                    return "User deleted", True, "success", False, {"refresh": True}
-        return "Action failed", True, "danger", False, dash.no_update
-    except Exception as e:
-        logging.error(f"Error executing user action: {e}")
-        return f"Error: {str(e)}", True, "danger", False, dash.no_update
+        return enable_user(user_id)
+    elif action == "disable":
+        return disable_user(user_id)
+    elif action == "delete":
+        return delete_user(user_id)
+    return "Unknown action", True, "danger", False, dash.no_update
 
 
 @app.callback(
@@ -1191,21 +1001,21 @@ def execute_user_action(n_clicks, pending_action):
     ],
     prevent_initial_call=True,
 )
-def assign_role_to_user(n_clicks, role_name, selected_rows, table_data):
-    if not n_clicks or not role_name or not selected_rows:
+def assign_role_to_user(n_clicks, role_id, selected_rows, table_data):
+    if not n_clicks or not role_id or not selected_rows:
         raise PreventUpdate
     selected_user = table_data[selected_rows[0]]
     try:
         with session_scope() as db_session:
-            role = role_service.get_role_by_name(role_name, db_session)
+            role = role_service.get_role_by_id(role_id, db_session)
             if not role:
-                return f"Role {role_name} not found", True, "danger", dash.no_update
+                return f"Role {role_id} not found", True, "danger", dash.no_update
             user = user_service.update_user(
                 selected_user["id"], db_session, role_id=role.id
             )
             if user:
                 return (
-                    f"Assigned {role_name} to {selected_user['email']}",
+                    f"Assigned {role.role_name} to {selected_user['email']}",
                     True,
                     "success",
                     {"refresh": True},
@@ -1227,3 +1037,84 @@ def close_modal(n_clicks):
     if n_clicks:
         return False
     raise PreventUpdate
+
+
+@app.callback(
+    Output(ID_EDIT_PERM_PAGES_CHECKLIST, "options"),
+    Output(ID_EDIT_PERM_PAGES_CHECKLIST, "value"),
+    Input(ID_SELECT_ROLE, "value"),
+)
+def update_page_visibility_controls(role_id):
+    if role_id is None:
+        return [], []
+    with session_scope(False) as session:
+
+        allowed_pages = role_service.get_pages_with_role_id(role_id, session)
+        allowed_pages_ids = {allowed_page.id for allowed_page in allowed_pages}
+
+        allowed_pages_meta = [
+            MAPPER_NAV_CONFIG[allowed_page_id] for allowed_page_id in allowed_pages_ids
+        ]
+
+        all_pages = get_all_metadata_id_pages_dynamic()
+
+        unselected_pages_ids = {
+            page_id for page_id in all_pages if page_id not in allowed_pages_ids
+        }
+
+        unselected_pages_meta = [
+            MAPPER_NAV_CONFIG[unselected_page_id]
+            for unselected_page_id in unselected_pages_ids
+        ]
+
+        options = [
+            {"label": page.name, "value": page.id}
+            for page in allowed_pages_meta + unselected_pages_meta
+        ]
+
+    return options, list(allowed_pages_ids)
+
+
+@app.callback(
+    [
+        Output("btn-enable", "disabled"),
+        Output("btn-disable", "disabled"),
+        Output("btn-delete", "disabled"),
+        Output("assign-role-btn", "disabled"),
+        Output("assign-role-select", "disabled"),
+        Output("assign-role-select", "value"),
+    ],
+    Input("users-table", "selected_rows"),
+    State("users-table", "data"),
+)
+def toggle_action_buttons(selected_rows, table_data):
+    # Default: all buttons disabled
+    if not selected_rows:
+        return True, True, True, True, True, None
+
+    row_index = selected_rows[0]
+    selected_row = table_data[row_index]
+    is_disabled = selected_row["disabled"]
+    created_by = selected_row["created_by"]
+    role_id = selected_row["role_id"]
+
+    # Enable button logic:
+    # - Enable "Enable" button only if the user is disabled
+    enable_btn_disabled = not is_disabled
+
+    # Disable button logic:
+    # - Enable "Disable" button only if the user is enabled
+    disable_btn_disabled = is_disabled
+
+    # Delete button logic:
+    # - Disable delete if created_by is None
+    delete_btn_disabled = created_by == "system"
+
+    return (
+        enable_btn_disabled,
+        disable_btn_disabled,
+        delete_btn_disabled,
+        False,
+        False,
+        str(role_id),
+    )

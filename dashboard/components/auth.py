@@ -16,6 +16,10 @@ def add_input_user_id():
     return Input(ID_USER_ID, "data")
 
 
+def add_state_user_id():
+    return State(ID_USER_ID, "data")
+
+
 def add_output_user_id():
     return Output(ID_USER_ID, "data", True)
 
