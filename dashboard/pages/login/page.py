@@ -199,14 +199,15 @@ def handle_login(n_clicks, email, password):
         # 1) User exists?
         if not user:
             logging.warning(f"Login failed: no user with email {email}")
-            return no_update, "Invalid email or password", True, "danger"
+            return None, None, "Invalid email or password", True, "danger"
 
         # 2) Disabled flag check (boolean column on users table)
         #    If your field name differs, replace `disabled` below.
         if getattr(user, "disabled", False):
             logging.warning(f"Login blocked: disabled account for {email}")
             return (
-                no_update,
+                None,
+                None,
                 "Your account is disabled. Please contact an administrator.",
                 True,
                 "danger",

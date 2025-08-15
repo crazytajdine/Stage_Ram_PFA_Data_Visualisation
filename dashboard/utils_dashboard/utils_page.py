@@ -40,7 +40,6 @@ def build_nav_items_meta(
 
         results.append(item)
 
-    print([meta.name for meta in meta_list])
     return results
 
 
@@ -57,7 +56,6 @@ def fetch_allowed_page_for_user(path_exists, user_id):
             role_pages = page_service.get_user_allowed_pages_with_preferences(
                 user_id, session
             )
-            print(role_pages)
             id_pages = {role_page.page_id for role_page in role_pages}
             nav_config = [
                 nav for nav in NAV_CONFIG if (nav.id in id_pages) or (nav.id is None)
