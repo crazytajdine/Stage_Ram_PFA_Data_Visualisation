@@ -192,20 +192,38 @@ def handle_login(n_clicks, email, password):
         return None, None, "Please fill in all fields", True, "danger"
 
     with session_scope() as session:
-
         user: user_service.User = user_service.get_user_by_email_with_password(
             email, session
         )
+
+        # 1) User exists?
         if not user:
             logging.warning(f"Login failed: no user with email {email}")
             return no_update, "Invalid email or password", True, "danger"
 
+        # 2) Disabled flag check (boolean column on users table)
+        #    If your field name differs, replace `disabled` below.
+        if getattr(user, "disabled", False):
+            logging.warning(f"Login blocked: disabled account for {email}")
+            return (
+                no_update,
+                "Your account is disabled. Please contact an administrator.",
+                True,
+                "danger",
+            )
+
+        # (Optional) If you also keep a disabled flag on the role, uncomment:
+        # if getattr(getattr(user, "role", None), "disabled", False):
+        #     logging.warning(f"Login blocked: disabled role for user {email}")
+        #     return no_update, "Your role is disabled. Please contact an administrator.", True, "danger"
+
+        # 3) Password check
         if not verify_password(password, user.password):
             logging.warning(f"Login failed: wrong password for {email}")
             return no_update, "Invalid email or password", True, "danger"
 
+        # 4) Create session
         new_session = session_service.create_session(user.id, session)
-
         logging.info(
             f"User {email} logged in successfully with session {new_session.id}"
         )

@@ -68,47 +68,47 @@ def _created_at_str(u):
     except Exception:
         return str(dt)
 
-
-def _norm_href(h: str | None) -> str:
-    """
-    Canonicalize to leading '/', no trailing '/', lowercase.
-    Works for both slugs ('performance-metrics') and hrefs ('/performance-metrics/').
-    """
-    p = (h or "/").split("?")[0].split("#")[0].strip()
-    if not p.startswith("/"):
-        p = "/" + p
+def _norm_href(p: str) -> str:
+    if not p:
+        return "/"
     p = "/" + p.lstrip("/").rstrip("/")
     return p.lower()
 
-
-def _all_page_options() -> list[dict]:
+def _nav_index_by_id() -> dict[int, object]:
     """
-    Build checklist options.
-    VALUE = page name (so page_service.get_page_by_name works)
-    LABEL = 'Name (/href)' for clarity.
+    Returns {meta_id: NavItemMeta} for all selectable pages.
+    Skips /admin and hidden pages.
     """
     try:
-        # Lazy import to avoid circular imports at module load time
         from configurations.nav_config import NAV_CONFIG
     except Exception:
-        return []
+        return {}
 
-    opts: list[dict] = []
-    seen: set[str] = set()
-
+    idx = {}
     for m in NAV_CONFIG:
+        meta_id = getattr(m, "id", None)
+        if meta_id is None:
+            continue                       # keep only pages with a real ID
         href = _norm_href(getattr(m, "href", "/"))
-        if href == "/admin":  # admin is reserved
-            continue
+        if href == "/admin":
+            continue                       # do not grant admin page
         show_nav = getattr(m, "show_navbar", True)
         pref_show = getattr(m, "preference_show", True)
         if not (show_nav and pref_show):
             continue
-        name = getattr(m, "name", None) or href.lstrip("/") or "home"
-        if name in seen:
-            continue
-        seen.add(name)
-        opts.append({"label": f"{name} ({href})", "value": name})
+        idx[meta_id] = m
+    return idx
+
+def _all_page_options_by_id() -> list[dict]:
+    """
+    Checklist options with VALUE = page ID (int), LABEL = 'Name (/href)'.
+    """
+    idx = _nav_index_by_id()
+    opts = []
+    for meta_id, m in idx.items():
+        name = getattr(m, "name", str(meta_id))
+        href = _norm_href(getattr(m, "href", "/"))
+        opts.append({"label": f"{name} ({href})", "value": meta_id})
     return opts
 
 
@@ -292,7 +292,7 @@ layout = dbc.Container(
                                         dbc.Label("Allowed pages"),
                                         dcc.Checklist(
                                             id="perm-pages-checklist",
-                                            options=_all_page_options(),
+                                            options=_all_page_options_by_id(),
                                             value=[],
                                             labelStyle={"display": "block"},
                                             inputStyle={"marginRight": "8px"},
@@ -355,7 +355,7 @@ layout = dbc.Container(
                         html.Div(
                             dcc.Checklist(
                                 id="edit-perm-pages-checklist",
-                                options=_all_page_options(),
+                                options=_all_page_options_by_id(),
                                 value=[],
                                 labelStyle={"display": "block"},
                                 inputStyle={"marginRight": "8px"},
@@ -812,68 +812,65 @@ def update_role_dropdowns(_):
         Output("rbac-refresh", "data", allow_duplicate=True),
     ],
     [Input("create-role-btn", "n_clicks")],
-    [State("new-role-name", "value"), State("perm-pages-checklist", "value")],
+    [State("new-role-name", "value"), State("perm-pages-checklist", "value")],  # ← now list[int]
     prevent_initial_call=True,
 )
-def create_role_with_permissions(n_clicks, role_name, selected_pages):
+def create_role_with_permissions(n_clicks, role_name, selected_ids):
     if not n_clicks:
         raise PreventUpdate
     if not role_name:
-        return (
-            "Please enter a role name",
-            True,
-            "danger",
-            dash.no_update,
-            dash.no_update,
-            dash.no_update,
-        )
+        return ("Please enter a role name", True, "danger", dash.no_update, dash.no_update, dash.no_update)
 
     try:
         with session_scope() as db_session:
             existing = role_service.get_role_by_name(role_name, db_session)
             if existing:
-                return (
-                    f"Role {role_name} already exists",
-                    True,
-                    "warning",
-                    dash.no_update,
-                    dash.no_update,
-                    dash.no_update,
-                )
+                return (f"Role {role_name} already exists", True, "warning", dash.no_update, dash.no_update, dash.no_update)
 
-            new_role = role_service.create_role(
-                role_name=role_name,
-                session=db_session,
-                created_by=None,  # TODO: current user id
-            )
+            new_role = role_service.create_role(role_name=role_name, session=db_session, created_by=None)
 
-            if selected_pages:
-                pages_to_assign = []
-                for page_name in selected_pages:
-                    page = page_service.get_page_by_name(page_name, db_session)
+            pages_to_assign = []
+            if selected_ids:
+                idx = _nav_index_by_id()
+                for meta_id in selected_ids:
+                    if meta_id not in idx:
+                        continue
+                    meta = idx[meta_id]
+                    name = getattr(meta, "name", str(meta_id))
+                    href = _norm_href(getattr(meta, "href", "/"))
+
+                    # Reuse existing Page by name; create if missing
+                    page = page_service.get_page_by_name(name, db_session)
                     if not page:
-                        page = page_service.create_page(page_name, db_session)
+                        page = page_service.create_page(name, db_session)
+
+                    # Persist the NAV_CONFIG id if your model supports it
+                    if hasattr(page, "page_id"):
+                        page.page_id = meta_id
+                    if hasattr(page, "meta_id"):
+                        page.meta_id = meta_id
+                    if hasattr(page, "href"):
+                        page.href = href
+
                     pages_to_assign.append(page)
-                # role_service.assign_pages_to_role(new_role, pages_to_assign, db_session)
+
+            # ← This was commented out: actually link the pages
+            # Prefer a service call if you have one:
+            role_service.assign_pages_to_role(new_role, pages_to_assign, db_session)
+            new_role.pages = pages_to_assign
+            db_session.flush()
 
             return (
-                f"Role {role_name} created with {len(selected_pages or [])} permissions",
+                f"Role {role_name} created with {len(pages_to_assign)} permissions",
                 True,
                 "success",
-                "",
-                [],
+                "",      # clear role name
+                [],      # clear checklist
                 {"refresh": True},
             )
     except Exception as e:
         logging.error(f"Error creating role: {e}")
-        return (
-            f"Error: {str(e)}",
-            True,
-            "danger",
-            dash.no_update,
-            dash.no_update,
-            dash.no_update,
-        )
+        return (f"Error: {str(e)}", True, "danger", dash.no_update, dash.no_update, dash.no_update)
 
 
 # ==================== EDIT ROLE CALLBACKS ====================
@@ -891,10 +888,28 @@ def load_role_permissions(role_name):
     try:
         with session_scope(False) as db_session:
             role = role_service.get_role_by_name(role_name, db_session)
-            if role:
-                selected_pages = [p.page_name for p in role.pages]
-                return selected_pages, str(len(selected_pages))
-        return [], "0"
+            if not role:
+                return [], "0"
+
+            idx = _nav_index_by_id()
+            # Build a name->id map as fallback if your Page doesn’t persist ids
+            name_to_id = {getattr(m, "name", str(i)): i for i, m in idx.items()}
+
+            selected_ids = []
+            for p in role.pages:
+                # Prefer persisted page id/meta_id if your model has it
+                pid = getattr(p, "page_id", None) or getattr(p, "meta_id", None)
+                if pid is not None and pid in idx:
+                    selected_ids.append(pid)
+                    continue
+                # Fallback: map stored page_name to id
+                pname = getattr(p, "page_name", None)
+                if pname in name_to_id:
+                    selected_ids.append(name_to_id[pname])
+
+            # Deduplicate & keep only still-valid pages
+            selected_ids = sorted({i for i in selected_ids if i in idx})
+            return selected_ids, str(len(selected_ids))
     except Exception as e:
         logging.error(f"Error loading role permissions: {e}")
         return [], "0"
@@ -908,38 +923,52 @@ def load_role_permissions(role_name):
         Output("rbac-refresh", "data", allow_duplicate=True),
     ],
     [Input("update-perms-btn", "n_clicks")],
-    [State("edit-role-select", "value"), State("edit-perm-pages-checklist", "value")],
+    [State("edit-role-select", "value"), State("edit-perm-pages-checklist", "value")],  # list[int]
     prevent_initial_call=True,
 )
-def update_role_permissions(n_clicks, role_name, selected_pages):
+def update_role_permissions(n_clicks, role_name, selected_ids):
     if not n_clicks or not role_name:
         raise PreventUpdate
     try:
         with session_scope() as db_session:
             role = role_service.get_role_by_name(role_name, db_session)
             if not role:
-                return f"Role {role_name} not found", True, "danger", dash.no_update
+                return (f"Role {role_name} not found", True, "danger", dash.no_update)
 
+            # Clear old links
             role.pages.clear()
 
-            if selected_pages:
-                pages_to_assign = []
-                for page_name in selected_pages:
-                    page = page_service.get_page_by_name(page_name, db_session)
-                    if not page:
-                        page = page_service.create_page(page_name, db_session)
-                    pages_to_assign.append(page)
-                # role_service.assign_pages_to_role(role, pages_to_assign, db_session)
+            pages_to_assign = []
+            if selected_ids:
+                idx = _nav_index_by_id()
+                for meta_id in selected_ids:
+                    if meta_id not in idx:
+                        continue
+                    meta = idx[meta_id]
+                    name = getattr(meta, "name", str(meta_id))
+                    href = _norm_href(getattr(meta, "href", "/"))
 
-            return (
-                f"Updated {role_name} with {len(selected_pages or [])} permissions",
-                True,
-                "success",
-                {"refresh": True},
-            )
+                    page = page_service.get_page_by_name(name, db_session)
+                    if not page:
+                        page = page_service.create_page(name, db_session)
+
+                    if hasattr(page, "page_id"):
+                        page.page_id = meta_id
+                    if hasattr(page, "meta_id"):
+                        page.meta_id = meta_id
+                    if hasattr(page, "href"):
+                        page.href = href
+
+                    pages_to_assign.append(page)
+
+            # role_service.assign_pages_to_role(role, pages_to_assign, db_session)
+            role.pages = pages_to_assign
+            db_session.flush()
+
+            return (f"Updated {role_name} with {len(pages_to_assign)} permissions", True, "success", {"refresh": True})
     except Exception as e:
-        logging.error(f"Error updating role: {e}")
-        return f"Error: {str(e)}", True, "danger", dash.no_update
+        logging.error(f"Error updating role permissions: {e}")
+        return (f"Error: {str(e)}", True, "danger", dash.no_update)
 
 
 @app.callback(
