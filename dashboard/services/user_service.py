@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, List
 import logging
 from sqlalchemy.orm import Session
-from schemas.database_models import Page, Role, User
+from schemas.database_models import User
 from mappers.user_mapper import UserOut, to_user_out
 
 
@@ -42,17 +42,6 @@ def get_user_by_id(user_id: int, session: Session) -> Optional[UserOut]:
 def get_user_by_email(email: str, session: Session) -> Optional[UserOut]:
     user = session.query(User).filter(User.email == email).one_or_none()
     return to_user_out(user) if user else None
-
-
-def get_user_allowed_pages(user_id: int, session: Session) -> List[Page]:
-
-    role = (
-        session.query(Role)
-        .join(User, Role.id == User.role_id)
-        .filter(User.id == user_id)
-        .one_or_none()
-    )
-    return role.pages if role and role.pages else []
 
 
 def get_user_by_email_with_password(email: str, session: Session) -> Optional[UserOut]:

@@ -1,8 +1,8 @@
-from hmac import new
 from typing import List, Optional
 import logging
+from sqlalchemy import Row
 from sqlalchemy.orm import Session
-from schemas.database_models import Page
+from schemas.database_models import Page, User, role_page_table
 
 
 def create_page(page_id: str, session: Session) -> Page:
@@ -45,3 +45,23 @@ def delete_page(page_id: int, session: Session) -> bool:
     session.delete(page)
     logging.info(f"Deleted page id={page_id}")
     return True
+
+
+def get_user_allowed_pages_with_preferences(
+    user_id: int, session: Session
+) -> list[Row]:
+    return (
+        session.query(role_page_table)
+        .join(User, User.role_id == role_page_table.c.role_id)
+        .filter(User.id == user_id, role_page_table.c.disabled.is_(False))
+        .all()
+    )
+
+
+def get_user_allowed_pages_all(user_id: int, session: Session) -> list[Row]:
+    return (
+        session.query(role_page_table)
+        .join(User, User.role_id == role_page_table.c.role_id)
+        .filter(User.id == user_id)
+        .all()
+    )
