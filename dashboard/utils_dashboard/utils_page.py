@@ -16,6 +16,10 @@ def get_all_metadata_id_pages_dynamic() -> List[int]:
     return [nav.id for nav in NAV_CONFIG if nav.id is not None]
 
 
+def get_all_metadata_pages_dynamic() -> List[NavItemMeta]:
+    return [nav for nav in NAV_CONFIG if nav.id is not None]
+
+
 def get_page_visibility(page_key: str) -> Optional[bool]:
     config = get_user_config()
 
@@ -40,7 +44,6 @@ def build_nav_items_meta(
 
         results.append(item)
 
-    print([meta.name for meta in meta_list])
     return results
 
 
@@ -57,7 +60,6 @@ def fetch_allowed_page_for_user(path_exists, user_id):
             role_pages = page_service.get_user_allowed_pages_with_preferences(
                 user_id, session
             )
-            print(role_pages)
             id_pages = {role_page.page_id for role_page in role_pages}
             nav_config = [
                 nav for nav in NAV_CONFIG if (nav.id in id_pages) or (nav.id is None)
@@ -78,3 +80,27 @@ def fetch_allowed_page_for_user(path_exists, user_id):
         and (item.type_user in allowed_user_page_types)
     ]
     return meta_list
+
+
+def get_allowed_pages_all(user_id: int):
+
+    from data_managers.database_manager import session_scope
+    from dashboard.services import page_service
+
+    with session_scope() as session:
+        return page_service.get_user_allowed_pages_all(user_id, session)
+
+
+def update_user_page_preferences(user_id: int, preferences: dict[int, bool]):
+    """Update user page preferences. preferences should contain page IDs as keys and visibility as values (is enabled)."""
+    from data_managers.database_manager import session_scope
+    from dashboard.services import page_service
+
+    disabled_preferences = {
+        page_id: not enabled for page_id, enabled in preferences.items()
+    }
+
+    with session_scope() as session:
+        return page_service.update_user_page_preferences(
+            user_id, disabled_preferences, session
+        )

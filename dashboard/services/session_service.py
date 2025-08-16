@@ -34,6 +34,13 @@ def create_session(user_id: int, session: sa_orm.Session) -> Session:
     return new_session
 
 
+def get_recent_logins(session: sa_orm.Session) -> List[Session]:
+
+    cutoff = datetime.now() - timedelta(hours=session_expiration_offset_in_hours)
+
+    return session.query(Session).filter(Session.created_at >= cutoff).all()
+
+
 def get_session_by_id(session_id: str, session: sa_orm.Session) -> Optional[Session]:
     return (
         session.query(Session)
@@ -69,13 +76,9 @@ def delete_session_with_user_id(user_id: int, session: sa_orm.Session) -> bool:
     return True
 
 
-def get_active_sessions(user_id: int, session: sa_orm.Session) -> List[Session]:
+def get_active_sessions(session: sa_orm.Session) -> List[Session]:
     now = datetime.now()
-    return (
-        session.query(Session)
-        .filter(Session.user_id == user_id, Session.expires_at > now)
-        .all()
-    )
+    return session.query(Session).filter(Session.expires_at > now).all()
 
 
 def validate_session(token: str, session: sa_orm.Session) -> Optional[int]:

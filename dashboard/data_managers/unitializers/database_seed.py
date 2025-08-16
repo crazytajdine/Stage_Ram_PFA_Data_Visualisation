@@ -36,16 +36,14 @@ def initialize_database_first_time(session: Session):
 
     # --- 3. Ensure default pages exist ---
     default_pages = get_all_metadata_id_pages_dynamic()
-    print("shoud be added ", default_pages)
     # Fetch existing pages by name
     existing_pages = page_service.get_pages_by_id(default_pages, session)
 
     existing_ids = {p.id for p in existing_pages}
-    print("found these ", existing_ids)
 
     # Only create missing pages
     missing_pages = [id for id in default_pages if id not in existing_ids]
-    print(missing_pages)
+    logging.info(f"Missing pages to create: {missing_pages}")
     new_pages = page_service.create_pages(missing_pages, session)
 
     # Combine all pages

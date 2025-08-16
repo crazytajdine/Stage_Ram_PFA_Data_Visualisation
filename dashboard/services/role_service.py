@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional, Set
 import logging
 from sqlalchemy.orm import Session
 from schemas.database_models import Page, Role
@@ -31,8 +31,23 @@ def get_role_by_id(role_id: int, session: Session) -> Optional[Role]:
     return session.query(Role).filter(Role.id == role_id).one_or_none()
 
 
+def get_roles_by_ids(role_ids: Set[int], session: Session) -> List[Role]:
+    return session.query(Role).filter(Role.id.in_(role_ids)).all()
+
+
+def get_roles(session: Session) -> List[Role]:
+    return session.query(Role).all()
+
+
 def get_role_by_name(role_name: str, session: Session) -> Optional[Role]:
     return session.query(Role).filter(Role.role_name == role_name).one_or_none()
+
+
+def get_pages_with_role_id(role_id: str, session: Session) -> List[Page]:
+    role = get_role_by_id(role_id, session)
+    if not role:
+        return []
+    return role.pages
 
 
 def update_role(

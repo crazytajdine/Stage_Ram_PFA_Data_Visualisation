@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional, List
 import logging
+import bcrypt
 from sqlalchemy.orm import Session
 from schemas.database_models import User
 from mappers.user_mapper import UserOut, to_user_out
@@ -42,6 +43,12 @@ def get_user_by_id(user_id: int, session: Session) -> Optional[UserOut]:
 def get_user_by_email(email: str, session: Session) -> Optional[UserOut]:
     user = session.query(User).filter(User.email == email).one_or_none()
     return to_user_out(user) if user else None
+
+
+def hash_password(password: str) -> str:
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
+    return hashed
 
 
 def get_user_by_email_with_password(email: str, session: Session) -> Optional[UserOut]:

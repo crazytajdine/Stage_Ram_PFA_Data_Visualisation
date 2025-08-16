@@ -1,6 +1,7 @@
 import dash
 import dash_bootstrap_components as dbc
 from dash import Dash
+import logging
 
 app = None
 server = None
@@ -22,7 +23,7 @@ def init_server():
 def get_app() -> dash.Dash:
     global app, server
     if server is None:
-        print("Initializing server instance...")
+        logging.info("Initializing server instance...")
         app, server = init_server()
     return app
 
@@ -30,6 +31,6 @@ def get_app() -> dash.Dash:
 def get_server():
     global server, app
     if server is None:
-        print("Initializing server instance...")
+        logging.info("Initializing server instance...")
         app, server = init_server()
     return server

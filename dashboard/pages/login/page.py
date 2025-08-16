@@ -9,7 +9,7 @@ from server_instance import get_app
 from dash import Input, Output, State, no_update
 import logging
 
-from components.auth import add_output_auth_token
+from components.auth import add_output_auth_token, add_output_user_id
 from services import user_service, session_service
 from data_managers.database_manager import session_scope
 from utils_dashboard.utils_authentication import verify_password
@@ -20,17 +20,6 @@ app = get_app()
 layout = html.Div(
     [
         # Background with gradient
-        html.Div(
-            style={
-                "position": "fixed",
-                "top": 0,
-                "left": 0,
-                "right": 0,
-                "bottom": 0,
-                "background": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                "zIndex": -1,
-            }
-        ),
         dbc.Container(
             dbc.Row(
                 dbc.Col(
@@ -187,6 +176,7 @@ layout = html.Div(
 @app.callback(
     [
         add_output_auth_token(),
+        add_output_user_id(),
         Output("login-alert", "children"),
         Output("login-alert", "is_open"),
         Output("login-alert", "color"),
@@ -197,22 +187,31 @@ layout = html.Div(
     prevent_initial_call=True,
 )
 def handle_login(n_clicks, email, password):
+
     if not email or not password:
-        return no_update, "Please fill in all fields", True, "danger"
+        return None, None, "Please fill in all fields", True, "danger"
 
     with session_scope() as session:
-        user: user_service.User = user_service.get_user_by_email_with_password(email, session)
+        user: user_service.User = user_service.get_user_by_email_with_password(
+            email, session
+        )
 
         # 1) User exists?
         if not user:
             logging.warning(f"Login failed: no user with email {email}")
-            return no_update, "Invalid email or password", True, "danger"
+            return None, None, "Invalid email or password", True, "danger"
 
         # 2) Disabled flag check (boolean column on users table)
         #    If your field name differs, replace `disabled` below.
         if getattr(user, "disabled", False):
             logging.warning(f"Login blocked: disabled account for {email}")
-            return no_update, "Your account is disabled. Please contact an administrator.", True, "danger"
+            return (
+                None,
+                None,
+                "Your account is disabled. Please contact an administrator.",
+                True,
+                "danger",
+            )
 
         # (Optional) If you also keep a disabled flag on the role, uncomment:
         # if getattr(getattr(user, "role", None), "disabled", False):
@@ -226,12 +225,14 @@ def handle_login(n_clicks, email, password):
 
         # 4) Create session
         new_session = session_service.create_session(user.id, session)
-        logging.info(f"User {email} logged in successfully with session {new_session.id}")
-
-        return (
-            new_session.id,          # auth token/id
-            "Login successful",      # alert text
-            True,                    # is_open
-            "success",               # color
+        logging.info(
+            f"User {email} logged in successfully with session {new_session.id}"
         )
 
+        return (
+            new_session.id,
+            user.id,
+            "Login successful",
+            True,
+            "success",
+        )

@@ -28,7 +28,11 @@ from components.filter import (
     add_callbacks as add_filter_callbacks,
 )
 from components.navbar import (
+    add_input_url,
+    add_output_loaded_url,
+    add_state_loaded_url,
     layout as navbar_layout,
+    stores as loaded_url_store,
 )
 
 from components.auth import (
@@ -41,9 +45,6 @@ from components.title import ID_MAIN_TITLE, layout as tittle_layout
 
 app = get_app()
 server = get_server()
-
-
-ID_STORE_LOADED_URL = "store_loaded_url"
 
 
 app.layout = html.Div(
@@ -64,8 +65,7 @@ app.layout = html.Div(
         # Contenu principal
         html.Div(id="page-content"),
         # Stockage pour suivre l'état du menu
-        dcc.Location(id="url"),
-        dcc.Store(ID_STORE_LOADED_URL),
+        *loaded_url_store,
     ]
 )
 
@@ -88,16 +88,18 @@ def export_current_chart(_, fig_dict):
     Output(ID_MAIN_TITLE, "children"),
     Output(ID_FILTER_CONTAINER, "style"),
     Output("navbar", "children"),
-    Output(ID_STORE_LOADED_URL, "data"),
-    Input("url", "pathname"),
+    add_output_loaded_url(),
+    add_input_url(),
     add_watcher_for_data_status(),
     add_input_manual_trigger(),
     add_input_auth_token(),
-    State(ID_STORE_LOADED_URL, "data"),
+    add_state_loaded_url(),
 )
 def update_page_and_navbar(pathname, _, pref, token, loaded_url):
     user_id = validate_session(token)
+
     is_login = user_id is not None
+
     logging.info("User is logged in: %s", user_id)
 
     does_path_exists = path_exists()
@@ -165,7 +167,13 @@ def update_page_and_navbar(pathname, _, pref, token, loaded_url):
             )
         )
 
-    return page_content, page_title, filter_style, navbar, selected_page_href
+    return (
+        page_content,
+        page_title,
+        filter_style,
+        navbar,
+        selected_page_href,
+    )
 
 
 add_watcher_excel()
