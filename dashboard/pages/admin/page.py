@@ -115,8 +115,6 @@ def _all_page_options_by_id() -> list[dict]:
 # ---------- Layout ----------
 layout = dbc.Container(
     [
-        # Header
-        dbc.Row([dbc.Col([html.H1("Admin Dashboard", className="mb-2"), html.Hr()])]),
         # Stats
         dbc.Row(
             [
@@ -425,72 +423,58 @@ layout = dbc.Container(
         dbc.Card(
             [
                 dbc.CardHeader(
-                    [
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    html.H4("User Management", className="mb-0"), md=4
+                    dbc.Row(
+                        [
+                            dbc.Col(html.H4("User Management", className="mb-0"), md=4),
+
+                            # was md=4 → give 1 column to the actions so they fit
+                            dbc.Col(
+                                dbc.InputGroup(
+                                    [
+                                        dbc.InputGroupText(html.I(className="bi bi-search")),
+                                        dbc.Input(
+                                            id="user-search",
+                                            placeholder="Search email or role...",
+                                            type="text",
+                                        ),
+                                    ],
+                                    size="sm",
                                 ),
-                                dbc.Col(
-                                    dbc.InputGroup(
-                                        [
-                                            dbc.InputGroupText(
-                                                html.I(className="bi bi-search")
-                                            ),
-                                            dbc.Input(
-                                                id="user-search",
-                                                placeholder="Search email or role...",
-                                                type="text",
-                                            ),
-                                        ],
-                                        size="sm",
-                                    ),
-                                    md=4,
+                                md=3,
+                            ),
+
+                            dbc.Col(
+                                dbc.Button(
+                                    [
+                                        html.I(className="bi bi-arrow-clockwise me-2"),
+                                        "Refresh",
+                                    ],
+                                    id="refresh-users-btn",
+                                    color="secondary",
+                                    size="sm",
+                                    className="w-100",
                                 ),
-                                dbc.Col(
-                                    dbc.Button(
-                                        [
-                                            html.I(
-                                                className="bi bi-arrow-clockwise me-2"
-                                            ),
-                                            "Refresh",
-                                        ],
-                                        id="refresh-users-btn",
-                                        color="secondary",
-                                        size="sm",
-                                        className="w-100",
-                                    ),
-                                    md=2,
+                                md=2,
+                            ),
+
+                            # was md=2 → md=3 so the 3 buttons don't overflow
+                            dbc.Col(
+                                # keep a group, but give it enough width
+                                dbc.ButtonGroup(
+                                    [
+                                        dbc.Button("Enable", id="btn-enable", color="success", size="sm"),
+                                        dbc.Button("Disable", id="btn-disable", color="warning", size="sm"),
+                                        dbc.Button("Delete", id="btn-delete", color="danger", size="sm"),
+                                    ],
+                                    className="w-100",
                                 ),
-                                dbc.Col(
-                                    dbc.ButtonGroup(
-                                        [
-                                            dbc.Button(
-                                                "Enable",
-                                                id="btn-enable",
-                                                color="success",
-                                                size="sm",
-                                            ),
-                                            dbc.Button(
-                                                "Disable",
-                                                id="btn-disable",
-                                                color="warning",
-                                                size="sm",
-                                            ),
-                                            dbc.Button(
-                                                "Delete",
-                                                id="btn-delete",
-                                                color="danger",
-                                                size="sm",
-                                            ),
-                                        ],
-                                        className="w-100",
-                                    ),
-                                    md=2,
-                                ),
-                            ]
-                        )
-                    ]
+                                md=3,
+                                className="d-flex",  # ensure the group respects the column width
+                            ),
+                        ],
+                        className="g-2 align-items-center",
+                    ),
+                    className="py-2 px-3",  # add inner padding so buttons never touch the edge
                 ),
                 dbc.CardBody(
                     [
@@ -506,11 +490,7 @@ layout = dbc.Container(
                                                     options=[],
                                                     placeholder="Choose role",
                                                 ),
-                                                dbc.Button(
-                                                    "Assign",
-                                                    id="assign-role-btn",
-                                                    color="primary",
-                                                ),
+                                                dbc.Button("Assign", id="assign-role-btn", color="primary"),
                                             ],
                                             className="mb-2",
                                         ),
@@ -617,7 +597,7 @@ layout = dbc.Container(
         dcc.Interval(id="users-interval", interval=30_000),
     ],
     fluid=True,
-    className="p-4",
+    className="p-4 admin-page",
 )
 
 
