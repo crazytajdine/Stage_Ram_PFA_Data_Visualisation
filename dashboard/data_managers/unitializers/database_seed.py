@@ -13,7 +13,9 @@ def initialize_database_first_time(session: Session):
 
     admin_role = role_service.get_role_by_id(0, session)
     if not admin_role:
-        admin_role = role_service.create_role("admin", session, is_admin=True, id=0)
+        admin_role = role_service.create_role(
+            "admin", session, is_admin=True, change_file=True, id=0
+        )
         logging.info("Admin role created with id=0")
     else:
         logging.info("Admin role already exists")

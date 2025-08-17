@@ -1,8 +1,7 @@
-from typing import List, Optional
+from typing import List
 
 from sqlalchemy import Tuple
 from configurations.nav_config import NAV_CONFIG
-from configurations.config import get_user_config
 
 
 from schemas.navbarItem import DATA_PAGE_TYPE, USER_PAGE_TYPE, NavItemMeta
@@ -12,8 +11,13 @@ def get_all_metadata_id_pages() -> List[int]:
     return [nav.id for nav in NAV_CONFIG]
 
 
-def get_all_metadata_id_pages_dynamic() -> List[int]:
-    return [nav.id for nav in NAV_CONFIG if nav.id is not None]
+def get_all_metadata_id_pages_dynamic(including_admin_pages: bool = True) -> List[int]:
+    return [
+        nav.id
+        for nav in NAV_CONFIG
+        if nav.id is not None
+        if including_admin_pages or not nav.admin_page
+    ]
 
 
 def get_all_metadata_pages_dynamic() -> List[NavItemMeta]:

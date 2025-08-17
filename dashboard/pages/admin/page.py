@@ -8,7 +8,6 @@ from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
 from dashboard.components.auth import add_state_user_id
-from dashboard.configurations.nav_config import MAPPER_NAV_CONFIG
 from dashboard.utils_dashboard.utils_page import (
     get_all_metadata_id_pages_dynamic,
     get_all_metadata_pages_dynamic,
@@ -20,21 +19,15 @@ from services import user_service, role_service, page_service, session_service
 
 app = get_app()
 
+ID_CREATE_PAGES_CHECKLIST = "create-pages-checklist"
+ID_CREATE_IS_ADMIN_CHECKBOX = "create-is-admin-pages-checkbox"
+ID_CREATE_ALTER_FILE_CHECKBOX = "create-alter-file-pages-checkbox"
 
-ID_EDIT_PERM_PAGES_CHECKLIST = "edit-perm-pages-checklist"
+ID_EDIT_PAGES_CHECKLIST = "edit-pages-checklist"
+ID_EDIT_IS_ADMIN_CHECKBOX = "edit-is-admin-pages-checkbox"
+ID_EDIT_ALTER_FILE_CHECKBOX = "edit-alter-file-pages-checkbox"
+
 ID_SELECT_ROLE = "edit-role-select"
-
-
-def _add_pages_to_checklist_options() -> list[dict]:
-    pages = get_all_metadata_pages_dynamic()
-    opts = []
-    for p in pages:
-        pid = p.id
-        if pid is None:
-            continue
-        label = p.name + f" (href: {p.href})"
-        opts.append({"label": label, "value": pid})
-    return opts
 
 
 def enable_user(user_id):
@@ -118,6 +111,232 @@ layout = dbc.Container(
             ],
             className="mb-4",
         ),
+        # Create Role with permissions
+        dbc.Card(
+            [
+                dbc.CardHeader(
+                    html.H4("Create Role with permissions", className="mb-0")
+                ),
+                dbc.CardBody(
+                    [
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        dbc.Label("Role name"),
+                                        dbc.Input(
+                                            id="new-role-name",
+                                            placeholder="e.g., perf, ops, finance",
+                                        ),
+                                    ],
+                                    md=6,
+                                ),
+                            ],
+                            className="g-3 mb-3",
+                        ),
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        dbc.Label("Permissions"),
+                                        html.Div(
+                                            children=[
+                                                dbc.Checkbox(
+                                                    id=ID_CREATE_IS_ADMIN_CHECKBOX,
+                                                    label="Is Admin",
+                                                ),
+                                                dbc.Checkbox(
+                                                    id=ID_CREATE_ALTER_FILE_CHECKBOX,
+                                                    label="Alter File",
+                                                ),
+                                            ],
+                                            style={
+                                                "border": "1px solid #e9ecef",
+                                                "borderRadius": "0.5rem",
+                                                "padding": "12px",
+                                                "background": "#fff",
+                                            },
+                                        ),
+                                    ],
+                                    md=6,
+                                    className="mb-2",
+                                ),
+                            ]
+                        ),
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        dbc.Label("Allowed pages"),
+                                        dcc.Checklist(
+                                            id=ID_CREATE_PAGES_CHECKLIST,
+                                            labelStyle={"display": "block"},
+                                            inputStyle={"marginRight": "8px"},
+                                            style={
+                                                "overflowY": "auto",
+                                                "border": "1px solid #e9ecef",
+                                                "borderRadius": "0.5rem",
+                                                "padding": "12px",
+                                                "background": "#fff",
+                                            },
+                                        ),
+                                    ],
+                                    md=8,
+                                ),
+                            ],
+                            className="g-3",
+                        ),
+                        html.Div(
+                            dbc.Button(
+                                [
+                                    html.I(className="bi bi-shield-plus me-2"),
+                                    "Create Role",
+                                ],
+                                id="create-role-btn",
+                                color="primary",
+                                className="w-100 mt-3",
+                            ),
+                            className="d-flex justify-content-end",
+                        ),
+                        dbc.Alert(
+                            id="roles-alert",
+                            is_open=False,
+                            dismissable=True,
+                            className="mt-3",
+                        ),
+                    ]
+                ),
+            ],
+            className="mb-4",
+        ),
+        # Edit Role & pages
+        dbc.Card(
+            [
+                dbc.CardHeader(html.H4("Edit Role & pages", className="mb-0")),
+                dbc.CardBody(
+                    [
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        dbc.Label("Select role"),
+                                        dbc.Select(
+                                            id=ID_SELECT_ROLE,
+                                            options=[],
+                                            placeholder="Choose a role",
+                                        ),
+                                        dbc.FormText(
+                                            "Pick a role to view and modify its allowed pages."
+                                        ),
+                                    ],
+                                    md=6,
+                                ),
+                            ],
+                            className="g-3 mb-3",
+                        ),
+                        dbc.Alert(
+                            id="edit-roles-alert",
+                            is_open=False,
+                            dismissable=True,
+                            className="mt-3",
+                        ),
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        dbc.Label("Permissions"),
+                                        html.Div(
+                                            children=[
+                                                dbc.Checkbox(
+                                                    id=ID_EDIT_IS_ADMIN_CHECKBOX,
+                                                    label="Is Admin",
+                                                ),
+                                                dbc.Checkbox(
+                                                    id=ID_EDIT_ALTER_FILE_CHECKBOX,
+                                                    label="Alter File",
+                                                ),
+                                            ],
+                                            style={
+                                                "border": "1px solid #e9ecef",
+                                                "borderRadius": "0.5rem",
+                                                "padding": "12px",
+                                                "background": "#fff",
+                                            },
+                                        ),
+                                    ],
+                                    md=6,
+                                    className="mb-2",
+                                ),
+                            ]
+                        ),
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        dbc.Label("Allowed pages"),
+                                        html.Div(
+                                            dcc.Checklist(
+                                                id=ID_EDIT_PAGES_CHECKLIST,
+                                                labelStyle={"display": "block"},
+                                                inputStyle={"marginRight": "8px"},
+                                            ),
+                                            style={
+                                                "border": "1px solid #e9ecef",
+                                                "borderRadius": "0.5rem",
+                                                "padding": "12px",
+                                                "background": "#fff",
+                                            },
+                                        ),
+                                        html.Small(
+                                            [
+                                                "Selected ",
+                                                html.Span("0", id="edit-pages-count"),
+                                                " page(s)",
+                                            ],
+                                            className="text-muted",
+                                        ),
+                                    ],
+                                    md=6,
+                                ),
+                            ]
+                        ),
+                    ]
+                ),
+                dbc.CardFooter(
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                dbc.Button(
+                                    [
+                                        html.I(className="bi bi-save2 me-2"),
+                                        "Update pages",
+                                    ],
+                                    id="update-perms-btn",
+                                    color="dark",
+                                    className="w-100 rounded-0 py-3 text-uppercase fw-semibold",
+                                ),
+                                className="p-0",
+                            ),
+                            dbc.Col(
+                                dbc.Button(
+                                    [
+                                        html.I(className="bi bi-trash me-2"),
+                                        "Delete Role",
+                                    ],
+                                    id="edit-delete-role-btn",
+                                    color="danger",
+                                    className="w-100 rounded-0 py-3 text-uppercase fw-semibold",
+                                ),
+                                className="p-0",
+                            ),
+                        ],
+                        className="g-0",
+                    ),
+                    className="p-0",
+                ),
+            ],
+            className="mb-4",
+        ),
         # Create user
         dbc.Card(
             [
@@ -194,160 +413,6 @@ layout = dbc.Container(
                             className="mt-3",
                         ),
                     ]
-                ),
-            ],
-            className="mb-4",
-        ),
-        # Create Role with pages
-        dbc.Card(
-            [
-                dbc.CardHeader(html.H4("Create Role with pages", className="mb-0")),
-                dbc.CardBody(
-                    [
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        dbc.Label("Role name"),
-                                        dbc.Input(
-                                            id="new-role-name",
-                                            placeholder="e.g., perf, ops, finance",
-                                        ),
-                                    ],
-                                    md=6,
-                                ),
-                            ],
-                            className="g-3 mb-3",
-                        ),
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        dbc.Label("Allowed pages"),
-                                        dcc.Checklist(
-                                            id="perm-pages-checklist",
-                                            options=_add_pages_to_checklist_options(),
-                                            labelStyle={"display": "block"},
-                                            inputStyle={"marginRight": "8px"},
-                                        ),
-                                    ],
-                                    md=8,
-                                ),
-                            ],
-                            className="g-3",
-                        ),
-                        html.Div(
-                            dbc.Button(
-                                [
-                                    html.I(className="bi bi-shield-plus me-2"),
-                                    "Create Role",
-                                ],
-                                id="create-role-btn",
-                                color="primary",
-                                className="w-100 mt-3",
-                            ),
-                            className="d-flex justify-content-end",
-                        ),
-                        dbc.Alert(
-                            id="roles-alert",
-                            is_open=False,
-                            dismissable=True,
-                            className="mt-3",
-                        ),
-                    ]
-                ),
-            ],
-            className="mb-4",
-        ),
-        # Edit Role & pages
-        dbc.Card(
-            [
-                dbc.CardHeader(html.H4("Edit Role & pages", className="mb-0")),
-                dbc.CardBody(
-                    [
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        dbc.Label("Select role"),
-                                        dbc.Select(
-                                            id=ID_SELECT_ROLE,
-                                            options=[],
-                                            placeholder="Choose a role",
-                                        ),
-                                        dbc.FormText(
-                                            "Pick a role to view and modify its allowed pages."
-                                        ),
-                                    ],
-                                    md=6,
-                                ),
-                            ],
-                            className="g-3 mb-3",
-                        ),
-                        dbc.Label("Allowed pages"),
-                        html.Div(
-                            dcc.Checklist(
-                                id=ID_EDIT_PERM_PAGES_CHECKLIST,
-                                labelStyle={"display": "block"},
-                                inputStyle={"marginRight": "8px"},
-                            ),
-                            style={
-                                "maxHeight": "320px",
-                                "overflowY": "auto",
-                                "border": "1px solid #e9ecef",
-                                "borderRadius": "0.5rem",
-                                "padding": "12px",
-                                "background": "#fff",
-                            },
-                            className="mb-2",
-                        ),
-                        html.Small(
-                            [
-                                "Selected ",
-                                html.Span("0", id="edit-pages-count"),
-                                " page(s)",
-                            ],
-                            className="text-muted",
-                        ),
-                        dbc.Alert(
-                            id="edit-roles-alert",
-                            is_open=False,
-                            dismissable=True,
-                            className="mt-3",
-                        ),
-                    ]
-                ),
-                dbc.CardFooter(
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                dbc.Button(
-                                    [
-                                        html.I(className="bi bi-save2 me-2"),
-                                        "Update pages",
-                                    ],
-                                    id="update-perms-btn",
-                                    color="dark",
-                                    className="w-100 rounded-0 py-3 text-uppercase fw-semibold",
-                                ),
-                                className="p-0",
-                            ),
-                            dbc.Col(
-                                dbc.Button(
-                                    [
-                                        html.I(className="bi bi-trash me-2"),
-                                        "Delete Role",
-                                    ],
-                                    id="edit-delete-role-btn",
-                                    color="danger",
-                                    className="w-100 rounded-0 py-3 text-uppercase fw-semibold",
-                                ),
-                                className="p-0",
-                            ),
-                        ],
-                        className="g-0",
-                    ),
-                    className="p-0",
                 ),
             ],
             className="mb-4",
@@ -680,6 +745,56 @@ def create_user(n_clicks, email, password, role_id, user_id):
 
 
 # ==================== ROLE MANAGEMENT CALLBACKS ====================
+
+
+@app.callback(
+    Output(ID_CREATE_PAGES_CHECKLIST, "options"),
+    Input(ID_CREATE_IS_ADMIN_CHECKBOX, "value"),
+)
+def add_pages_to_create_checklist_options(is_admin) -> list[dict]:
+
+    pages = get_all_metadata_pages_dynamic()
+    pages.sort(key=lambda page: page.admin_page)
+
+    opts = []
+    for p in pages:
+        if not is_admin and p.admin_page:
+            continue
+
+        pid = p.id
+
+        if pid is None:
+            continue
+        label = p.name + f" (href: {p.href})"
+        opts.append({"label": label, "value": pid})
+
+    return opts
+
+
+@app.callback(
+    Output(ID_EDIT_PAGES_CHECKLIST, "options"),
+    Input(ID_EDIT_IS_ADMIN_CHECKBOX, "value"),
+)
+def add_pages_to_edit_checklist_options(is_admin) -> list[dict]:
+
+    pages = get_all_metadata_pages_dynamic()
+    pages.sort(key=lambda page: page.admin_page)
+
+    opts = []
+    for p in pages:
+        if not is_admin and p.admin_page:
+            continue
+
+        pid = p.id
+
+        if pid is None:
+            continue
+        label = p.name + f" (href: {p.href})"
+        opts.append({"label": label, "value": pid})
+
+    return opts
+
+
 @app.callback(
     [
         Output("new-user-role", "options"),
@@ -707,19 +822,26 @@ def update_role_dropdowns(_):
         Output("roles-alert", "is_open"),
         Output("roles-alert", "color"),
         Output("new-role-name", "value"),
-        Output("perm-pages-checklist", "value"),
+        Output(ID_CREATE_PAGES_CHECKLIST, "value", allow_duplicate=True),
         Output("rbac-refresh", "data", allow_duplicate=True),
     ],
     [Input("create-role-btn", "n_clicks")],
     [
+        add_state_user_id(),
         State("new-role-name", "value"),
-        State("perm-pages-checklist", "value"),
+        State(ID_CREATE_PAGES_CHECKLIST, "value"),
+        State(ID_CREATE_IS_ADMIN_CHECKBOX, "value"),
+        State(ID_CREATE_ALTER_FILE_CHECKBOX, "value"),
     ],
     prevent_initial_call=True,
 )
-def create_role_with_pages(n_clicks, role_name, selected_ids):
+def create_role_with_pages(
+    n_clicks, user_id, role_name, selected_ids, is_admin, alter_file
+):
     if not n_clicks:
         raise PreventUpdate
+    if user_id is None:
+        return dash.no_update
     if not role_name:
         return (
             "Please enter a role name",
@@ -729,7 +851,8 @@ def create_role_with_pages(n_clicks, role_name, selected_ids):
             dash.no_update,
             dash.no_update,
         )
-    if not selected_ids:
+
+    if not selected_ids and not alter_file:
         return (
             "Please select at least one page",
             True,
@@ -752,8 +875,15 @@ def create_role_with_pages(n_clicks, role_name, selected_ids):
             )
 
         new_role = role_service.create_role(
-            role_name=role_name, session=session, created_by=None
+            role_name=role_name,
+            session=session,
+            is_admin=is_admin,
+            created_by=user_id,
+            change_file=alter_file,
         )
+        if not is_admin:
+            pages_ids_without_admin = get_all_metadata_id_pages_dynamic(False)
+            selected_ids = [id for id in selected_ids if id in pages_ids_without_admin]
 
         pages_to_assign = page_service.get_pages_by_id(selected_ids, session)
 
@@ -782,23 +912,32 @@ def create_role_with_pages(n_clicks, role_name, selected_ids):
     [Input("update-perms-btn", "n_clicks")],
     [
         State(ID_SELECT_ROLE, "value"),
-        State("edit-perm-pages-checklist", "value"),
+        State(ID_EDIT_PAGES_CHECKLIST, "value"),
+        State(ID_EDIT_IS_ADMIN_CHECKBOX, "value"),
+        State(ID_EDIT_ALTER_FILE_CHECKBOX, "value"),
     ],
     prevent_initial_call=True,
 )
-def update_role_pages(n_clicks, role_id, selected_ids):
+def update_role_pages(n_clicks, role_id, selected_ids, is_admin, alter_file):
     if not n_clicks or not role_id:
         raise PreventUpdate
     if not selected_ids:
         return ("No pages selected", True, "warning", dash.no_update)
+
+    if not is_admin:
+        pages_ids_without_admin = get_all_metadata_id_pages_dynamic(False)
+        selected_ids = [id for id in selected_ids if id in pages_ids_without_admin]
+
     with session_scope() as session:
         role = role_service.get_role_by_id(role_id, session)
         if not role:
             return (f"Role {role_id} not found", True, "danger", dash.no_update)
 
-        print(selected_ids)
         pages = page_service.get_pages_by_id(selected_ids, session)
 
+        role_service.update_role(
+            role_id, session, is_admin=is_admin, change_file=alter_file
+        )
         role_service.assign_pages_to_role(role, pages, session)
 
         return (
@@ -1040,39 +1179,22 @@ def close_modal(n_clicks):
 
 
 @app.callback(
-    Output(ID_EDIT_PERM_PAGES_CHECKLIST, "options"),
-    Output(ID_EDIT_PERM_PAGES_CHECKLIST, "value"),
+    Output(ID_EDIT_PAGES_CHECKLIST, "value"),
+    Output(ID_EDIT_IS_ADMIN_CHECKBOX, "value"),
+    Output(ID_EDIT_ALTER_FILE_CHECKBOX, "value"),
     Input(ID_SELECT_ROLE, "value"),
+    State(ID_CREATE_PAGES_CHECKLIST, "options"),
 )
-def update_page_visibility_controls(role_id):
-    if role_id is None:
-        return [], []
+def update_page_visibility_controls(role_id, opts):
+
+    if role_id is None or not opts:
+        return [], False, False
     with session_scope(False) as session:
+        role = role_service.get_role_by_id(role_id, session)
 
-        allowed_pages = role_service.get_pages_with_role_id(role_id, session)
-        allowed_pages_ids = {allowed_page.id for allowed_page in allowed_pages}
+        allowed_pages_ids = [allowed_page.id for allowed_page in role.pages]
 
-        allowed_pages_meta = [
-            MAPPER_NAV_CONFIG[allowed_page_id] for allowed_page_id in allowed_pages_ids
-        ]
-
-        all_pages = get_all_metadata_id_pages_dynamic()
-
-        unselected_pages_ids = {
-            page_id for page_id in all_pages if page_id not in allowed_pages_ids
-        }
-
-        unselected_pages_meta = [
-            MAPPER_NAV_CONFIG[unselected_page_id]
-            for unselected_page_id in unselected_pages_ids
-        ]
-
-        options = [
-            {"label": page.name, "value": page.id}
-            for page in allowed_pages_meta + unselected_pages_meta
-        ]
-
-    return options, list(allowed_pages_ids)
+    return allowed_pages_ids, role.is_admin, role.change_file
 
 
 @app.callback(
