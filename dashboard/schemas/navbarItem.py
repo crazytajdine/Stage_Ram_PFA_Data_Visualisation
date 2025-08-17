@@ -14,6 +14,7 @@ class NavItemMeta(BaseModel):
     show_filter: bool = True
     preference_show: bool = True
     update_on_data_change: bool = True
+    admin_page: bool = False
     type_data: DATA_PAGE_TYPE = "both"
     type_user: USER_PAGE_TYPE = "both"
 
@@ -28,5 +29,6 @@ class NavItem(BaseModel):
     show_filter: bool = True
     preference_show: bool = True
     update_on_data_change: bool = True
+    admin_page: bool = False
     data_exists: DATA_PAGE_TYPE = "both"
     user_login: USER_PAGE_TYPE = "both"

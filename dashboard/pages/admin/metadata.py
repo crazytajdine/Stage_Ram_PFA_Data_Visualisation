@@ -10,4 +10,5 @@ metadata = NavItemMeta(
     type_data="both",
     type_user="user",
     update_on_data_change=False,
+    admin_page=True,
 )

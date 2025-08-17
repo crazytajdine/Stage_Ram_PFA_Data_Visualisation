@@ -13,7 +13,7 @@ def initialize_database_first_time(session: Session):
 
     admin_role = role_service.get_role_by_id(0, session)
     if not admin_role:
-        admin_role = role_service.create_role("admin", session, id=0)
+        admin_role = role_service.create_role("admin", session, is_admin=True, id=0)
         logging.info("Admin role created with id=0")
     else:
         logging.info("Admin role already exists")
@@ -40,7 +40,6 @@ def initialize_database_first_time(session: Session):
     existing_pages = page_service.get_pages_by_id(default_pages, session)
 
     existing_ids = {p.id for p in existing_pages}
-
     # Only create missing pages
     missing_pages = [id for id in default_pages if id not in existing_ids]
     logging.info(f"Missing pages to create: {missing_pages}")
@@ -48,7 +47,6 @@ def initialize_database_first_time(session: Session):
 
     # Combine all pages
     all_pages = existing_pages + new_pages
-
     # --- 4. Assign pages to admin role ---
     role_service.assign_pages_to_role(admin_role, all_pages, session)
 
