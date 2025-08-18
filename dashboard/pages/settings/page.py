@@ -44,9 +44,7 @@ layout = html.Div(
                             id=ID_SETTINGS_BUTTON_NAV,
                             className="btn-glossy me-2",
                         ),
-                        dbc.Alert(
-                            id=ID_PAGE_VISIBILITY_MSG, is_open=False, className="mt-3"
-                        ),
+                        dbc.Alert(id=ID_PAGE_VISIBILITY_MSG, is_open=False, fade=True),
                     ]
                 ),
             ]

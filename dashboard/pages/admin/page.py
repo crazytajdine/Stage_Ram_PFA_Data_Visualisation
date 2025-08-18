@@ -611,6 +611,7 @@ layout = dbc.Container(
                             ],
                             id="confirm-modal",
                             is_open=False,
+                            centered=True,
                         ),
                     ]
                 ),
