@@ -2,8 +2,8 @@ from schemas.navbarItem import NavItemMeta
 
 
 metadata = NavItemMeta(
-    name="Login",
-    href="/login",
+    name="About",
+    href="/about",
     title=None, 
     show_filter=False,
     preference_show=False,

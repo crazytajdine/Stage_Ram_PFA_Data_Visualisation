@@ -6,6 +6,7 @@ from pages.settings.metadata import metadata as settings_metadata
 from pages.undefined.metadata import metadata as undefined_metadata
 from pages.admin.metadata import metadata as admin_metadata
 from pages.login.metadata import metadata as login_metadata
+from pages.about.metadata import metadata as about_metadata
 
 NAV_CONFIG = [
     home_metadata,
@@ -16,6 +17,7 @@ NAV_CONFIG = [
     settings_metadata,
     undefined_metadata,
     login_metadata,
+    about_metadata
 ]
 
 MAPPER_NAV_CONFIG = {meta.id: meta for meta in NAV_CONFIG if meta.id is not None}

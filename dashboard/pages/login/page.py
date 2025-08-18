@@ -18,158 +18,74 @@ app = get_app()
 
 
 layout = html.Div(
-    [
-        # Background with gradient
+    className="ram-login-page",   # centering only; keeps your existing page bg
+    children=[
         dbc.Container(
-            dbc.Row(
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody(
-                            [
-                                html.Div(
-                                    [
-                                        html.Img(
-                                            src=app.get_asset_url("logo_ram-2.png"),
-                                            style={
-                                                "height": "120px",
-                                                "display": "block",
-                                                "margin": "0 auto 20px",
-                                            },
-                                        ),
-                                        html.H3(
-                                            "Delay Dashboard",
-                                            className="text-center mb-0",
-                                        ),
-                                        html.P(
-                                            "Royal Air Maroc",
-                                            className="text-center text-muted mb-4",
-                                        ),
-                                    ]
-                                ),
-                                html.Hr(),
-                                # Login Form
-                                dbc.Form(
-                                    [
-                                        dbc.Row(
-                                            dbc.Col(
-                                                html.Div(
-                                                    [
-                                                        dbc.Label(
-                                                            [
-                                                                html.I(
-                                                                    className="bi bi-envelope me-2"
-                                                                ),
-                                                                "Email Address",
-                                                            ],
-                                                            html_for="login-email",
-                                                        ),
-                                                        dbc.Input(
-                                                            id="login-email",
-                                                            type="email",
-                                                            placeholder="user@royalair.ma",
-                                                            className="form-control-lg",
-                                                            autoFocus=True,
-                                                        ),
-                                                        dbc.FormText(
-                                                            "Must be a valid email address"
-                                                        ),
-                                                    ],
-                                                    className="mb-3",
-                                                )
-                                            )
-                                        ),
-                                        dbc.Row(
-                                            dbc.Col(
-                                                html.Div(
-                                                    [
-                                                        dbc.Label(
-                                                            [
-                                                                html.I(
-                                                                    className="bi bi-lock me-2"
-                                                                ),
-                                                                "Password",
-                                                            ],
-                                                            html_for="login-password",
-                                                        ),
-                                                        dbc.Input(
-                                                            id="login-password",
-                                                            type="password",
-                                                            placeholder="Enter your password",
-                                                            className="form-control-lg",
-                                                        ),
-                                                        dbc.FormText(
-                                                            "Minimum 8 characters"
-                                                        ),
-                                                    ],
-                                                    className="mb-4",
-                                                )
-                                            )
-                                        ),
-                                        dbc.Row(
-                                            dbc.Col(
-                                                dbc.Button(
-                                                    [
-                                                        html.I(
-                                                            className="bi bi-box-arrow-in-right me-2"
-                                                        ),
-                                                        "Sign In",
-                                                    ],
-                                                    id="login-button",
-                                                    color="primary",
-                                                    className="w-100 btn-lg",
-                                                    n_clicks=0,
-                                                )
-                                            )
-                                        ),
-                                    ],
-                                    id="login-form",
-                                ),
-                                # Alert for errors
-                                dbc.Alert(
-                                    id="login-alert",
-                                    is_open=False,
-                                    dismissable=True,
-                                    className="mt-3",
-                                ),
-                                # Footer info
-                                html.Div(
-                                    [
-                                        html.Hr(className="mt-4"),
-                                        html.P(
-                                            [
-                                                html.I(
-                                                    className="bi bi-info-circle me-2"
-                                                ),
-                                                "Contact your administrator for access",
-                                            ],
-                                            className="text-center text-muted small mb-0",
-                                        ),
-                                    ]
-                                ),
-                            ]
-                        ),
-                        className="shadow-lg",
-                        style={
-                            "maxWidth": "450px",
-                            "borderRadius": "15px",
-                            "border": "none",
-                        },
-                    ),
-                    width=12,
-                    lg=5,
-                    className="mx-auto",
-                ),
-                className="vh-100 d-flex align-items-center",
-            ),
             fluid=True,
-        ),
-        # Loading overlay
-        dcc.Loading(
-            id="login-loading",
-            type="circle",
-            children=html.Div(id="login-loading-output"),
-        ),
-    ]
+            className="ram-login-wrap",
+            children=[
+                dbc.Card(
+                    body=True,
+                    className="ram-login-card ram-login-card--wide",  # large Google-like card
+                    children=[
+                        # ╭──────────────────── 2-column grid inside the card ────────────────────╮
+                        html.Div(className="ram-card-grid", children=[
+                            # LEFT: logo + title + subtitle (like Google)
+                            html.Div(className="ram-card-left", children=[
+                                html.Img(
+                                    src=app.get_asset_url("logo_ram-2.png"),
+                                    alt="Royal Air Maroc",
+                                    className="ram-login-logo",
+                                ),
+                                html.H2("Sign in", className="ram-sign-title"),
+                                html.P(
+                                    "Use your RAM account",
+                                    className="ram-sign-subtitle"
+                                ),
+                            ]),
+                            # RIGHT: form (keep your IDs/callbacks)
+                            html.Div(className="ram-card-right", children=[
+                                dbc.Label("Email", html_for="login-email", className="ram-field-label"),
+                                dbc.Input(
+                                    id="login-email",
+                                    type="email",
+                                    placeholder="name@example.com",
+                                    className="ram-input",
+                                    autoComplete="username",
+                                ),
+
+                                dbc.Label("Password", html_for="login-password", className="ram-field-label mt-4"),
+                                dbc.Input(
+                                    id="login-password",
+                                    type="password",
+                                    placeholder="••••••••",
+                                    className="ram-input",
+                                    autoComplete="current-password",
+                                ),
+
+                                html.Div(id="login-message", className="ram-login-message"),
+
+                                html.Div(
+                                    dbc.Button(
+                                        "Sign in",
+                                        id="login-submit",
+                                        n_clicks=0,
+                                        className="ram-btn-primary",
+                                    ),
+                                    className="ram-actions",
+                                ),
+                                html.Div(
+                                    "Contact your administrator for access",
+                                    className="ram-locale"
+                                    ),
+                            ]),
+                        ]),
+                        # ╰──────────────────────────────────────────────────────────────────────╯
+                    ],
+                ),
+            ],
+        )
+    ],
 )
 
 
@@ -177,11 +93,11 @@ layout = html.Div(
     [
         add_output_auth_token(),
         add_output_user_id(),
-        Output("login-alert", "children"),
-        Output("login-alert", "is_open"),
-        Output("login-alert", "color"),
+        Output("login-message", "children"),   # was: login-alert
+        Output("login-message", "is_open"),    # was: login-alert
+        Output("login-message", "color"),      # was: login-alert
     ],
-    Input("login-button", "n_clicks"),
+    Input("login-submit", "n_clicks"),         # was: login-button
     State("login-email", "value"),
     State("login-password", "value"),
     prevent_initial_call=True,
@@ -201,8 +117,7 @@ def handle_login(n_clicks, email, password):
             logging.warning(f"Login failed: no user with email {email}")
             return None, None, "Invalid email or password", True, "danger"
 
-        # 2) Disabled flag check (boolean column on users table)
-        #    If your field name differs, replace `disabled` below.
+        # 2) Disabled flag?
         if getattr(user, "disabled", False):
             logging.warning(f"Login blocked: disabled account for {email}")
             return (
@@ -213,15 +128,11 @@ def handle_login(n_clicks, email, password):
                 "danger",
             )
 
-        # (Optional) If you also keep a disabled flag on the role, uncomment:
-        # if getattr(getattr(user, "role", None), "disabled", False):
-        #     logging.warning(f"Login blocked: disabled role for user {email}")
-        #     return no_update, "Your role is disabled. Please contact an administrator.", True, "danger"
-
         # 3) Password check
         if not verify_password(password, user.password):
             logging.warning(f"Login failed: wrong password for {email}")
-            return no_update, "Invalid email or password", True, "danger"
+            # fixed: return the correct number of outputs
+            return no_update, no_update, "Invalid email or password", True, "danger"
 
         # 4) Create session
         new_session = session_service.create_session(user.id, session)
@@ -236,3 +147,4 @@ def handle_login(n_clicks, email, password):
             True,
             "success",
         )
+

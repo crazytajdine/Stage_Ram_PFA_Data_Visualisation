@@ -18,6 +18,7 @@ from pages.settings import page as settings, metadata as settings_metadata
 from pages.undefined import page as undefined, metadata as undefined_metadata
 from pages.admin import page as admin, metadata as admin_metadata
 from pages.login import page as login, metadata as login_metadata
+from pages.about import page as about, metadata as about_metadata
 
 # Map each key to its layout callable
 PAGE_MAP: dict[str, Any] = {
@@ -29,6 +30,7 @@ PAGE_MAP: dict[str, Any] = {
     undefined_metadata.metadata.name: undefined.layout,
     admin_metadata.metadata.name: admin.layout,
     login_metadata.metadata.name: login.layout,
+    about_metadata.metadata.name: about.layout,
 }
 
 

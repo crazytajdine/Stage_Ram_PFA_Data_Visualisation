@@ -9,7 +9,7 @@ class NavItemMeta(BaseModel):
     id: Optional[int] = None
     name: str
     href: str
-    title: str
+    title: Optional[str] = None
     show_navbar: bool = True
     show_filter: bool = True
     preference_show: bool = True
@@ -22,7 +22,7 @@ class NavItem(BaseModel):
     id: Optional[int] = None
     name: str
     href: str
-    title: str
+    title: Optional[str] = None
     page: Any
     show_navbar: bool = True
     show_filter: bool = True
