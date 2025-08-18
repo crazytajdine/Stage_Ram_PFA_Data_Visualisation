@@ -1,4 +1,4 @@
-from dash import html, Output, Input, State, dcc
+from dash import html, Output, Input, State
 import logging
 import plotly.io as pio
 import dash

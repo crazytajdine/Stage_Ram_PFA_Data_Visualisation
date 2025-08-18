@@ -1,4 +1,3 @@
-import time
 import dash
 import dash_bootstrap_components as dbc
 from dash import Output, dash_table, dcc
@@ -28,7 +27,6 @@ from data_managers.excel_manager import (
     COL_NAME_TOTAL_COUNT,
     COL_NAME_WINDOW_TIME,
     COL_NAME_WINDOW_TIME_MAX,
-    get_df,
     add_watcher_for_data,
 )
 

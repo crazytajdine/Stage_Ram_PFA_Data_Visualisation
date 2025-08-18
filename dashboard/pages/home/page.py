@@ -13,7 +13,6 @@ from calculations.main_dashboard import (
     COL_NAME_CATEGORY_GT_15MIN_MEAN,
     COL_NAME_COUNT_FLIGHTS,
     COL_NAME_PERCENTAGE_DELAY,
-    COL_NAME_SUBTYPE,
     calculate_delay_pct,
     calculate_period_distribution,
     process_subtype_pct_data,

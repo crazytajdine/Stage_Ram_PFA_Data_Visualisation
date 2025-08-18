@@ -1,7 +1,6 @@
 from typing import Optional, Tuple
-import dash
 import polars as pl
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from dash import Input, Output, State
 from utils_dashboard.utils_filter import set_name_from_filter
 from data_managers.excel_manager import (

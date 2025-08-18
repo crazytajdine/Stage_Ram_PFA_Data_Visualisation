@@ -5,7 +5,6 @@ weekly_analysis_page.py – Weekly Analysis of Delay Codes
 # ─────────────── Standard library ───────────────
 from datetime import date, datetime
 
-import dash
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 
@@ -17,7 +16,7 @@ from calculations.weekly import analyze_weekly_codes
 from dash import Output, dash_table, dcc, html, State, Input, callback
 from data_managers.excel_manager import add_watcher_for_data, get_df
 from server_instance import get_app
-from utils_dashboard.utils_download import add_export_callbacks
+
 # utils for consistent graphs
 try:
     from utils_dashboard.utils_graph import create_bar_figure
@@ -181,8 +180,8 @@ def refresh_weekly_table(_):
 
 # CHART — grouped bars, one color per code, same rotated day order, sums duplicates
 @callback(
-    Output("weekly-bars", "figure"),       # ← keep your real graph id
-    Input(ID_WEEKLY_TABLE, "data"),        # ← your DataTable id
+    Output("weekly-bars", "figure"),  # ← keep your real graph id
+    Input(ID_WEEKLY_TABLE, "data"),  # ← your DataTable id
     State(ID_WEEKLY_TABLE, "columns"),
 )
 def bars_pct_from_table(rows, cols):
@@ -197,7 +196,9 @@ def bars_pct_from_table(rows, cols):
         return base_fig
 
     # 1) Column ids & order (preserve table order for X axis)
-    column_ids = [c["id"] if isinstance(c, dict) else c for c in (cols or [])] or list(rows[0].keys())
+    column_ids = [c["id"] if isinstance(c, dict) else c for c in (cols or [])] or list(
+        rows[0].keys()
+    )
 
     CODE_COL_CANDIDATES = ["DELAY_CODE", "Code", "CODE"]
     TOTAL_COLS = {"Total", "TOTAL", "Somme", "SUM"}
@@ -210,8 +211,11 @@ def bars_pct_from_table(rows, cols):
 
     # numeric day columns (exclude code + total-like)
     day_cols = [
-        c for c in column_ids
-        if c != code_col and c not in TOTAL_COLS and any(_is_number(r.get(c)) for r in rows)
+        c
+        for c in column_ids
+        if c != code_col
+        and c not in TOTAL_COLS
+        and any(_is_number(r.get(c)) for r in rows)
     ]
     if not code_col or not day_cols:
         return base_fig
@@ -235,24 +239,29 @@ def bars_pct_from_table(rows, cols):
             long_pct.append({"Day": d, "Pct": pct, "DELAY_CODE": code_val})
 
     # 4) Convert to Polars DF (required by utils_graph.create_bar_figure)
-    df_pl = pl.DataFrame(long_pct).with_columns([
-        pl.col("Day").cast(pl.Utf8),
-        pl.col("DELAY_CODE").cast(pl.Utf8),
-        pl.col("Pct").cast(pl.Float64),
-    ])
+    df_pl = pl.DataFrame(long_pct).with_columns(
+        [
+            pl.col("Day").cast(pl.Utf8),
+            pl.col("DELAY_CODE").cast(pl.Utf8),
+            pl.col("Pct").cast(pl.Float64),
+        ]
+    )
 
     # 5) Build figure with util (100% stacked)
-    fig = create_bar_figure(
-        df=df_pl,
-        x="Day",
-        y="Pct",
-        title="",
-        x_max=None,
-        unit="%",
-        color="DELAY_CODE",
-        barmode="stack",
-        legend_title="Code",
-    ) or base_fig
+    fig = (
+        create_bar_figure(
+            df=df_pl,
+            x="Day",
+            y="Pct",
+            title="",
+            x_max=None,
+            unit="%",
+            color="DELAY_CODE",
+            barmode="stack",
+            legend_title="Code",
+        )
+        or base_fig
+    )
 
     # 6) Keep table day order & cap axis
     fig.update_xaxes(type="category", categoryorder="array", categoryarray=day_cols)
@@ -269,11 +278,13 @@ def _is_number(x) -> bool:
     except Exception:
         return False
 
+
 def _to_float(x):
     try:
         return float(str(x).replace(",", "."))
     except Exception:
         return None
+
 
 def _to_float(x):
     try:

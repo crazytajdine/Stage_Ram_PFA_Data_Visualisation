@@ -1,7 +1,6 @@
 import io
 import dash
 import xlsxwriter
-from schemas.filter import FilterType
 from utils_dashboard.utils_filter import get_filter_name
 import polars as pl
 from dash.dcc import send_bytes
@@ -22,9 +21,6 @@ app = get_app()
 
 def get_download_trigger():
     return Output(ID_DOWNLOAD, "data", allow_duplicate=True)
-
-
-import logging
 
 
 def export_excel(
