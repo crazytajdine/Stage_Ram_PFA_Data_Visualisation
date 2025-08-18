@@ -59,8 +59,6 @@ def delete_user(user_id):
 # ---------- Layout ----------
 layout = dbc.Container(
     [
-        # Header
-        dbc.Row([dbc.Col([html.H1("Admin Dashboard", className="mb-2"), html.Hr()])]),
         # Stats
         dbc.Row(
             [
@@ -505,11 +503,7 @@ layout = dbc.Container(
                                                     options=[],
                                                     placeholder="Choose role",
                                                 ),
-                                                dbc.Button(
-                                                    "Assign",
-                                                    id="assign-role-btn",
-                                                    color="primary",
-                                                ),
+                                                dbc.Button("Assign", id="assign-role-btn", color="primary"),
                                             ],
                                             className="mb-2",
                                         ),
@@ -622,7 +616,7 @@ layout = dbc.Container(
         dcc.Interval(id="users-interval", interval=30_000),
     ],
     fluid=True,
-    className="p-4",
+    className="p-4 admin-page",
 )
 
 

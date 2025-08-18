@@ -14,10 +14,15 @@ import polars as pl
 
 # ─────────────── Application modules ───────────────
 from calculations.weekly import analyze_weekly_codes
-from dash import Output, dash_table, dcc, html
+from dash import Output, dash_table, dcc, html, State, Input, callback
 from data_managers.excel_manager import add_watcher_for_data, get_df
 from server_instance import get_app
 from utils_dashboard.utils_download import add_export_callbacks
+# utils for consistent graphs
+try:
+    from utils_dashboard.utils_graph import create_bar_figure
+except ImportError:
+    from utils_dashboard.utils_graph import create_bar_figure
 
 app = get_app()
 
@@ -175,68 +180,103 @@ def refresh_weekly_table(_):
 
 
 # CHART — grouped bars, one color per code, same rotated day order, sums duplicates
-@app.callback(
-    Output(ID_WEEKLY_BARS, "figure"),
-    add_watcher_for_data(),
+@callback(
+    Output("weekly-bars", "figure"),       # ← keep your real graph id
+    Input(ID_WEEKLY_TABLE, "data"),        # ← your DataTable id
+    State(ID_WEEKLY_TABLE, "columns"),
 )
-def build_weekly_bars(_):
-    df = analyze_weekly_codes()
-    fig = go.Figure().update_layout(
+def bars_pct_from_table(rows, cols):
+    base_fig = go.Figure().update_layout(
         xaxis_title="",
-        yaxis_title="Occurrences",
-        barmode="group",
+        yaxis_title="Share (%)",
+        barmode="stack",
         legend_title="Code",
         hovermode="x unified",
     )
-    if df is None or df.is_empty():
-        return fig
+    if not rows:
+        return base_fig
 
-    day_cols = [c for c in df.columns if c not in ("DELAY_CODE", "Total")]
-    rotated = _rotate_days(day_cols)
-    if not rotated:
-        return fig
+    # 1) Column ids & order (preserve table order for X axis)
+    column_ids = [c["id"] if isinstance(c, dict) else c for c in (cols or [])] or list(rows[0].keys())
 
-    # Long format, then GROUP (sum) to merge multiple same weekdays across weeks
-    long_df = (
-        df.melt(
-            id_vars="DELAY_CODE",
-            value_vars=rotated,  # use rotated order
-            variable_name="Day",
-            value_name="Occ",
-        )
-        .with_columns(
-            [
-                pl.col("Occ").cast(pl.Float64, strict=False).fill_null(0.0),
-                pl.col("Day").cast(pl.Utf8),
-                pl.col("DELAY_CODE").cast(pl.Utf8),
-            ]
-        )
-        .group_by(["DELAY_CODE", "Day"])
-        .agg(pl.col("Occ").sum().alias("Occ"))
-    )
+    CODE_COL_CANDIDATES = ["DELAY_CODE", "Code", "CODE"]
+    TOTAL_COLS = {"Total", "TOTAL", "Somme", "SUM"}
 
-    # Build traces; keep X order exactly as `rotated`
-    codes = long_df.select("DELAY_CODE").unique().to_series().to_list()
-    for code in codes:
-        y_vals = (
-            long_df.filter(pl.col("DELAY_CODE") == code)
-            .join(
-                pl.DataFrame({"Day": rotated}),  # ensures we follow rotated order
-                on="Day",
-                how="right",
-            )
-            .select(pl.col("Occ").fill_null(0.0))
-            .to_series()
-            .to_list()
-        )
-        fig.add_bar(name=str(code), x=rotated, y=y_vals)
+    code_col = next((c for c in CODE_COL_CANDIDATES if c in column_ids), None)
+    if code_col is None:
+        # fallback: first non-numeric column
+        sample = rows[0]
+        code_col = next((c for c in column_ids if not _is_number(sample.get(c))), None)
 
-    # Lock x-axis category order to the rotated list
-    fig.update_xaxes(type="category", categoryorder="array", categoryarray=rotated)
+    # numeric day columns (exclude code + total-like)
+    day_cols = [
+        c for c in column_ids
+        if c != code_col and c not in TOTAL_COLS and any(_is_number(r.get(c)) for r in rows)
+    ]
+    if not code_col or not day_cols:
+        return base_fig
+
+    # 2) Day totals directly from table values
+    day_totals = {d: 0.0 for d in day_cols}
+    for r in rows:
+        for d in day_cols:
+            v = _to_float(r.get(d))
+            if v is not None:
+                day_totals[d] += max(v, 0.0)
+
+    # 3) Build long-format records with percentages (no extra calc beyond table)
+    long_pct = []
+    for r in rows:
+        code_val = "" if r.get(code_col) is None else str(r.get(code_col))
+        for d in day_cols:
+            total = day_totals.get(d, 0.0)
+            occ = _to_float(r.get(d)) or 0.0
+            pct = (occ / total * 100.0) if total > 0 else 0.0
+            long_pct.append({"Day": d, "Pct": pct, "DELAY_CODE": code_val})
+
+    # 4) Convert to Polars DF (required by utils_graph.create_bar_figure)
+    df_pl = pl.DataFrame(long_pct).with_columns([
+        pl.col("Day").cast(pl.Utf8),
+        pl.col("DELAY_CODE").cast(pl.Utf8),
+        pl.col("Pct").cast(pl.Float64),
+    ])
+
+    # 5) Build figure with util (100% stacked)
+    fig = create_bar_figure(
+        df=df_pl,
+        x="Day",
+        y="Pct",
+        title="",
+        x_max=None,
+        unit="%",
+        color="DELAY_CODE",
+        barmode="stack",
+        legend_title="Code",
+    ) or base_fig
+
+    # 6) Keep table day order & cap axis
+    fig.update_xaxes(type="category", categoryorder="array", categoryarray=day_cols)
+    fig.update_yaxes(range=[0, 100])
+
     return fig
 
 
-# Export (unchanged)
-add_export_callbacks(
-    ID_WEEKLY_TABLE, "weekly-export-btn", "weekly_delay_codes_analysis"
-)
+# Helpers (already in your file, keep them; shown here for completeness)
+def _is_number(x) -> bool:
+    try:
+        float(str(x).replace(",", "."))
+        return True
+    except Exception:
+        return False
+
+def _to_float(x):
+    try:
+        return float(str(x).replace(",", "."))
+    except Exception:
+        return None
+
+def _to_float(x):
+    try:
+        return float(str(x).replace(",", "."))
+    except Exception:
+        return None
