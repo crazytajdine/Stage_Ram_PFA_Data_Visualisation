@@ -13,7 +13,10 @@ layout = dbc.Modal(
                         width="auto",
                     ),
                     dbc.Col(
-                        html.Div("No File is Found", className="ms-3 fs-4 fw-bold"),
+                        html.Div(
+                            "Either we didn't find a file or it doesn't contain any useful information ...",
+                            className="ms-3 fs-4 fw-bold",
+                        ),
                         width="auto",
                     ),
                 ],

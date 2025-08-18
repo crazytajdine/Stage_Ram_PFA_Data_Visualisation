@@ -1,8 +1,7 @@
-from typing import List, Optional
+from typing import List
 
 from sqlalchemy import Tuple
 from configurations.nav_config import NAV_CONFIG
-from configurations.config import get_user_config
 
 
 from schemas.navbarItem import DATA_PAGE_TYPE, USER_PAGE_TYPE, NavItemMeta
@@ -12,42 +11,20 @@ def get_all_metadata_id_pages() -> List[int]:
     return [nav.id for nav in NAV_CONFIG]
 
 
-def get_all_metadata_id_pages_dynamic() -> List[int]:
-    return [nav.id for nav in NAV_CONFIG if nav.id is not None]
+def get_all_metadata_id_pages_dynamic(including_admin_pages: bool = True) -> List[int]:
+    return [
+        nav.id
+        for nav in NAV_CONFIG
+        if nav.id is not None
+        if including_admin_pages or not nav.admin_page
+    ]
 
 
 def get_all_metadata_pages_dynamic() -> List[NavItemMeta]:
     return [nav for nav in NAV_CONFIG if nav.id is not None]
 
 
-def get_page_visibility(page_key: str) -> Optional[bool]:
-    config = get_user_config()
-
-    return config.get("pages", {}).get(page_key, None)
-
-
-def build_nav_items_meta(
-    path_exists: bool, user_id: Optional[int]
-) -> list[NavItemMeta]:
-    meta_list = fetch_allowed_page_for_user(path_exists, user_id)
-
-    results = []
-    for item in meta_list:
-
-        is_visible_user = get_page_visibility(item.name)
-
-        if is_visible_user is None:
-            is_visible_user = True
-
-        if not is_visible_user:
-            continue
-
-        results.append(item)
-
-    return results
-
-
-def fetch_allowed_page_for_user(path_exists, user_id):
+def fetch_allowed_page_for_user(path_exists, user_id) -> list[NavItemMeta]:
 
     nav_config = NAV_CONFIG
 
@@ -60,6 +37,7 @@ def fetch_allowed_page_for_user(path_exists, user_id):
             role_pages = page_service.get_user_allowed_pages_with_preferences(
                 user_id, session
             )
+
             id_pages = {role_page.page_id for role_page in role_pages}
             nav_config = [
                 nav for nav in NAV_CONFIG if (nav.id in id_pages) or (nav.id is None)

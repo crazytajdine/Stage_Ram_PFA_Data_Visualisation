@@ -1,5 +1,4 @@
 # models.py
-from datetime import datetime
 import uuid
 from sqlalchemy import Column, DateTime, Integer, String, ForeignKey, Table, Boolean
 from sqlalchemy.orm import relationship, declarative_base
@@ -25,7 +24,8 @@ class Role(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     role_name = Column(String, unique=True, nullable=False)
-
+    is_admin = Column(Boolean, nullable=False, default=False)
+    change_file = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, default=func.now())
     created_by = Column(
         Integer,

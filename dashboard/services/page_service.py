@@ -1,7 +1,7 @@
 from typing import List, Optional
 import logging
 
-from sqlalchemy import Row, case, update
+from sqlalchemy import Row, case, insert, update
 from sqlalchemy.orm import Session
 
 from schemas.database_models import Page, User, role_page_table
@@ -22,18 +22,15 @@ def create_page(page_id: str, session: Session) -> Page:
 
 def create_pages(page_ids: List[int], session: Session) -> List[Page]:
 
-    existing_ids = {
-        i for (i,) in session.query(Page.id).filter(Page.id.in_(page_ids)).all()
-    }
-    missing = [i for i in page_ids if i not in existing_ids]
+    if not page_ids:
+        return []
 
-    missing_pages = [Page(id=i) for i in missing]
-    if missing:
-        session.bulk_save_objects(missing_pages)
-        session.flush()
-        logging.info(f"Created {len(missing)} new pages: {missing}")
+    insert_stmt = insert(Page).values([{"id": page_id} for page_id in page_ids])
+    session.execute(insert_stmt)
+    session.flush()
+    logging.info(f"Created {len(page_ids)} new pages: {page_ids}")
 
-    return missing_pages
+    return get_pages_by_id(page_ids, session)
 
 
 def get_pages(session: Session) -> list[Page]:
