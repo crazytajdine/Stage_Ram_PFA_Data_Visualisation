@@ -1,6 +1,5 @@
-from typing import List
+from typing import List, Tuple
 
-from sqlalchemy import Tuple
 from configurations.nav_config import NAV_CONFIG
 
 
