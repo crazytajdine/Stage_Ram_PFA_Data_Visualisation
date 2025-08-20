@@ -10,6 +10,7 @@ COL_NAME_PERCENTAGE_DELAY = "pct"
 COL_NAME_CATEGORY_GT_15MIN = "delay_category_gt_15min"
 COL_NAME_CATEGORY_GT_15MIN_COUNT = "delay_cat_count"
 COL_NAME_CATEGORY_GT_15MIN_MEAN = "delay_cat_mean"
+COL_NAME_PERCENTAGE = "pct_by_registrations"
 
 
 # @cache_result("main_subtype_pct")
@@ -99,3 +100,59 @@ def calculate_delay_pct(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
     return res
+
+
+@cache_result("main_subtype_registration_pct")
+def calculate_subtype_registration_pct(df: pl.LazyFrame) -> pl.LazyFrame:
+    # Step 1: group by subtype and registration
+    grouped = df.group_by(
+        [
+            COL_NAME_WINDOW_TIME,
+            COL_NAME_WINDOW_TIME_MAX,
+            COL_NAME_SUBTYPE,
+            "AC_REGISTRATION",
+        ]
+    ).agg(pl.count().alias(COL_NAME_COUNT_FLIGHTS))
+
+    # Step 2: calculate percentage of each registration inside the subtype
+    with_pct = grouped.with_columns(
+        (
+            pl.col(COL_NAME_COUNT_FLIGHTS)
+            * 100
+            / pl.col(COL_NAME_COUNT_FLIGHTS).sum().over(COL_NAME_SUBTYPE)
+        )
+        .round(2)
+        .alias(COL_NAME_PERCENTAGE)
+    )
+
+    return with_pct.sort(
+        [COL_NAME_SUBTYPE, COL_NAME_PERCENTAGE], descending=[False, True]
+    )
+
+
+@cache_result("main_subtype_airport_pct")
+def calculate_subtype_airport_pct(df: pl.LazyFrame) -> pl.LazyFrame:
+    # Step 1: group by subtype and scheduled departure airport
+    grouped = df.group_by(
+        [
+            COL_NAME_WINDOW_TIME,
+            COL_NAME_WINDOW_TIME_MAX,
+            COL_NAME_SUBTYPE,
+            "DEP_AP_SCHED",
+        ]
+    ).agg(pl.count().alias(COL_NAME_COUNT_FLIGHTS))
+
+    # Step 2: calculate percentage of each airport inside the subtype
+    with_pct = grouped.with_columns(
+        (
+            pl.col(COL_NAME_COUNT_FLIGHTS)
+            * 100
+            / pl.col(COL_NAME_COUNT_FLIGHTS).sum().over(COL_NAME_SUBTYPE)
+        )
+        .round(2)
+        .alias(COL_NAME_PERCENTAGE)
+    )
+
+    return with_pct.sort(
+        [COL_NAME_SUBTYPE, COL_NAME_PERCENTAGE], descending=[False, True]
+    )

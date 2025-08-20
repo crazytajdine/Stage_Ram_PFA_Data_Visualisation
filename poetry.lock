@@ -508,7 +508,7 @@ version = "23.0.0"
 description = "WSGI HTTP Server for UNIX"
 optional = false
 python-versions = ">=3.7"
-groups = ["prod"]
+groups = ["main", "prod"]
 files = [
     {file = "gunicorn-23.0.0-py3-none-any.whl", hash = "sha256:ec400d38950de4dfd418cff8328b2c8faed0edb0d517d3394e457c317908ca4d"},
     {file = "gunicorn-23.0.0.tar.gz", hash = "sha256:f014447a0101dc57e294f6c18ca6b40227a4c90e9bdb586042628030cba004ec"},
@@ -2007,4 +2007,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<3.11"
-content-hash = "91077fcbde2aceedf6c19f0c26e66e9b18e16d6f11c9e10eff5cd9a1ef357d18"
+content-hash = "68821d69c11efdfb03f790a5aef58974cc43f6c76ef118a7ceaecc6efad4836a"

@@ -7,8 +7,8 @@ from dash import Input, Output, State, html, dcc, dash_table
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
-from dashboard.components.auth import add_state_user_id
-from dashboard.utils_dashboard.utils_page import (
+from components.auth import add_state_user_id
+from utils_dashboard.utils_page import (
     get_all_metadata_id_pages_dynamic,
     get_all_metadata_pages_dynamic,
 )
@@ -472,7 +472,7 @@ layout = dbc.Container(
                                                     "Refresh",
                                                 ],
                                                 id="refresh-users-btn",
-                                                color="secondary",
+                                                color="seconda",
                                                 outline=True,
                                                 size="sm",
                                                 className="rounded-4",
@@ -503,7 +503,11 @@ layout = dbc.Container(
                                                     options=[],
                                                     placeholder="Choose role",
                                                 ),
-                                                dbc.Button("Assign", id="assign-role-btn", color="primary"),
+                                                dbc.Button(
+                                                    "Assign",
+                                                    id="assign-role-btn",
+                                                    color="primary",
+                                                ),
                                             ],
                                             className="mb-2",
                                         ),

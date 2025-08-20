@@ -8,6 +8,7 @@ from calculations.analytics import (
     COL_NAME_PERCENTAGE_DELAY_CODE_PER_FAMILY_PER_PERIOD,
     COL_NAME_PERCENTAGE_DELAY_CODE_PER_FAMILY_PER_PERIOD_TOTAL,
     COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD,
+    COL_NAME_PERCENTAGE_SUBTYPE_FAMILY,
     prepare_delay_data,
 )
 from utils_dashboard.utils_download import add_export_callbacks
@@ -15,6 +16,7 @@ from server_instance import get_app
 import data_managers.excel_manager as excel_manager
 from utils_dashboard.utils_graph import (
     create_bar_figure,
+    create_navbar,
 )
 
 app = get_app()
@@ -67,13 +69,22 @@ stats_block = html.Div(
 # ----- CHART GRID ----------------------------------------------
 charts_block = html.Div(
     id="charts-container",
-    children=[],
     style={
         "display": "grid",
         "gridTemplateColumns": "1fr",  # ← au lieu de repeat(2, 1fr)
         "gap": "16px",
         "alignItems": "start",
     },
+)
+charts_block_subtype = html.Div(
+    id="charts-container-subtype",
+    style={
+        "display": "grid",
+        "gridTemplateColumns": "1fr",  # ← au lieu de repeat(2, 1fr)
+        "gap": "16px",
+        "alignItems": "start",
+    },
+    className="mt-2",
 )
 
 # ----- TABLE (placed last) -------------------------------------
@@ -87,6 +98,18 @@ table_block = html.Div(
             n_clicks=0,
         ),
         html.Div(id="table-container"),
+    ]
+)
+table_block_subtype = html.Div(
+    [
+        html.H3("Delay Code Details", className="h4 mt-4"),
+        dbc.Button(
+            [html.I(className="bi bi-download me-2"), "Exporter Excel"],
+            id="export-btn",
+            className="btn-export mt-2",
+            n_clicks=0,
+        ),
+        html.Div(id="table-container-subtype"),
     ]
 )
 
@@ -148,22 +171,12 @@ layout = dbc.Container(
         stats_block,
         charts_block,
         table_block,
+        charts_block_subtype,
+        table_block_subtype,
         # ← insert this:
         html.Div(id="about-container", children=about_section),
     ],
 )
-
-
-plot_config = {
-    # everything else you already put in config …
-    "toImageButtonOptions": {
-        "format": "png",  # or "svg" / "pdf" for vector
-        "filename": "codes-chart",
-        "width": 1600,  # px  (≈ A4 landscape)
-        "height": 600,  # px
-        "scale": 3,  # 3× pixel-density → crisp on Retina
-    }
-}
 
 
 # --- Outputs -------------------------------------------------------
@@ -172,19 +185,22 @@ plot_config = {
         Output("stats-div", "children"),
         Output("charts-container", "children"),
         Output("table-container", "children"),
+        Output("charts-container-subtype", "children"),
+        Output("table-container-subtype", "children"),
     ],
     excel_manager.add_watcher_for_data(),
     prevent_initial_call=False,
 )
 def update_plots_tables(n_clicks):
-    summary, temporal_all, famille_share_df = prepare_delay_data()
-    if temporal_all is None:
+    summary, temporal_all, famille_share_df, subtype_family_percentage_df = (
+        prepare_delay_data()
+    )
+    if temporal_all is None or subtype_family_percentage_df is None:
         return dash.no_update
 
     # --- Stats ---
     unique_codes = summary.height if not summary.is_empty() else 0
-    total_delays = summary["Occurrences"].sum(
-    ) if not summary.is_empty() else 0
+    total_delays = summary["Occurrences"].sum() if not summary.is_empty() else 0
     stats = dbc.Row(
         [
             dbc.Col(
@@ -218,7 +234,6 @@ def update_plots_tables(n_clicks):
     big_chart = html.Div(
         dcc.Graph(
             figure=fig_familles,
-            config=plot_config,
             style={"width": "100%", "height": "600px"},
         ),
         className="graph mb-4 mx-auto",
@@ -264,8 +279,7 @@ def update_plots_tables(n_clicks):
             [
                 html.Div(
                     dbc.Button(
-                        [html.I(className="bi bi-download me-2"),
-                         "Exporter Excel"],
+                        [html.I(className="bi bi-download me-2"), "Exporter Excel"],
                         id="export-family-btn",
                         className="btn-export mb-2",
                         n_clicks=0,
@@ -285,46 +299,17 @@ def update_plots_tables(n_clicks):
     )
 
     # 2) Split the dataframe once by family, then iterate
-    by_fam = temporal_all.partition_by(
-        "FAMILLE_DR", as_dict=True, maintain_order=True)
-
-    tab_children = []
-    for fam, fam_data in by_fam.items():
-        fam = fam[0]
-        fig = create_bar_figure(
-            df=fam_data,
-            x=time_period,
-            x_max=time_period_max,
-            y=COL_NAME_PERCENTAGE_DELAY_CODE_PER_FAMILY_PER_PERIOD,
-            unit="%",
-            title=f"{fam} Delay codes distribution over time",
-            color="DELAY_CODE",
-            legend_title=fam,
-        )
-        tab_children.append(
-            dcc.Tab(
-                label=fam,
-                value=fam,
-                children=[
-                    dcc.Graph(
-                        figure=fig,
-                        config=plot_config,
-                        style={
-                            "backgroundColor": "white",
-                            "boxShadow": "0px 4px 6px rgba(0, 0, 0, 0.1)",
-                            "borderBottomLeftRadius": "12px",
-                            "borderBottomRightRadius": "12px",
-                            "padding": "10px",
-                            "border": "1px solid #d6d6d6",
-                            "borderTop": "none",
-                        },
-                    )
-                ],
-                selected_style={
-                    "borderTop": "3px solid var(--ram-red)",
-                },
-            )
-        )
+    tab_children = create_navbar(
+        temporal_all,
+        tabs="FAMILLE_DR",
+        x=time_period,
+        x_max=time_period_max,
+        y=COL_NAME_PERCENTAGE_DELAY_CODE_PER_FAMILY_PER_PERIOD,
+        unit="%",
+        title="Distribution of delay codes of {fam} subtype over time",
+        color="DELAY_CODE",
+        legend_title="Code Delay",
+    )
 
     family_tabs = dcc.Tabs(
         id="family-tabs",
@@ -365,7 +350,62 @@ def update_plots_tables(n_clicks):
             style_table={"overflowX": "auto"},
         )
 
-    return stats, [big_chart, family_summary_block, family_tabs], table
+    tab_children_subtype = create_navbar(
+        subtype_family_percentage_df,
+        tabs="AC_SUBTYPE",
+        x=time_period,
+        x_max=time_period_max,
+        y=COL_NAME_PERCENTAGE_SUBTYPE_FAMILY,
+        unit="%",
+        title="Distribution of Family type of {fam} subtype over time",
+        color="FAMILLE_DR",
+        legend_title="Family",
+    )
+
+    family_tabs_subtype = dcc.Tabs(
+        id="family-tabs-subtype",
+        value=tab_children_subtype[0].value if tab_children_subtype else None,
+        children=tab_children_subtype,
+        persistence=True,
+    )
+
+    # --- Table ---
+    summary_table_subtype = subtype_family_percentage_df.select(
+        [
+            time_period,
+            time_period_max,
+            "AC_SUBTYPE",
+            "FAMILLE_DR",
+            COL_NAME_PERCENTAGE_SUBTYPE_FAMILY,
+        ]
+    )
+    if summary_table_subtype.is_empty():
+        table_subtype = dbc.Alert(
+            "Aucun code de retard trouvé dans la sélection",
+            color="warning",
+            className="text-center",
+        )
+    else:
+        table_subtype = dash_table.DataTable(
+            id="codes-table",
+            data=summary_table_subtype.to_dicts(),
+            columns=[
+                {"name": TABLE_NAMES_RENAME.get(c, c), "id": c}
+                for c in summary_table_subtype.columns
+            ],
+            style_cell={"textAlign": "left"},
+            sort_action="native",
+            page_size=15,
+            style_table={"overflowX": "auto"},
+        )
+
+    return (
+        stats,
+        [big_chart, family_summary_block, family_tabs],
+        table,
+        family_tabs_subtype,
+        table_subtype,
+    )
 
 
 add_export_callbacks(

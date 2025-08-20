@@ -31,7 +31,7 @@ def fetch_allowed_page_for_user(path_exists, user_id) -> list[NavItemMeta]:
     if user_id is not None:
 
         from data_managers.database_manager import session_scope
-        from dashboard.services import page_service
+        from services import page_service
 
         with session_scope(False) as session:
             role_pages = page_service.get_user_allowed_pages_with_preferences(
@@ -63,7 +63,7 @@ def fetch_allowed_page_for_user(path_exists, user_id) -> list[NavItemMeta]:
 def get_allowed_pages_all(user_id: int):
 
     from data_managers.database_manager import session_scope
-    from dashboard.services import page_service
+    from services import page_service
 
     with session_scope() as session:
         return page_service.get_user_allowed_pages_all(user_id, session)
@@ -72,7 +72,7 @@ def get_allowed_pages_all(user_id: int):
 def update_user_page_preferences(user_id: int, preferences: dict[int, bool]):
     """Update user page preferences. preferences should contain page IDs as keys and visibility as values (is enabled)."""
     from data_managers.database_manager import session_scope
-    from dashboard.services import page_service
+    from services import page_service
 
     disabled_preferences = {
         page_id: not enabled for page_id, enabled in preferences.items()

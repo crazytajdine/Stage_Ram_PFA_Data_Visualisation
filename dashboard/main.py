@@ -3,8 +3,8 @@ import threading
 from pathlib import Path
 
 # Start Dash server in the background -----------------------------
-from dashboard.configurations.log_config import init_log
-from dashboard.root import start_server  # ⚠️ your Dash app factory
+from configurations.log_config import init_log
+from root import start_server  # ⚠️ your Dash app factory
 
 # Qt imports ------------------------------------------------------
 from PySide6.QtWidgets import QApplication, QMainWindow

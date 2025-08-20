@@ -48,7 +48,7 @@ def does_table_exist() -> Optional[bool]:
 
 def init_server() -> Optional[redis.Redis]:
     global redis_server
-    from dashboard.configurations.config import get_base_config
+    from configurations.config import get_base_config
 
     config = get_base_config()
 

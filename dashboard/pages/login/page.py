@@ -1,5 +1,5 @@
 # dashboard/pages/login/page.py
-from dash import html, dcc
+from dash import html
 import dash_bootstrap_components as dbc
 
 
@@ -18,7 +18,7 @@ app = get_app()
 
 
 layout = html.Div(
-    className="ram-login-page",   # centering only; keeps your existing page bg
+    className="ram-login-page",  # centering only; keeps your existing page bg
     children=[
         dbc.Container(
             fluid=True,
@@ -29,57 +29,74 @@ layout = html.Div(
                     className="ram-login-card ram-login-card--wide",  # large Google-like card
                     children=[
                         # ╭──────────────────── 2-column grid inside the card ────────────────────╮
-                        html.Div(className="ram-card-grid", children=[
-                            # LEFT: logo + title + subtitle (like Google)
-                            html.Div(className="ram-card-left", children=[
-                                html.Img(
-                                    src=app.get_asset_url("logo_ram-2.png"),
-                                    alt="Royal Air Maroc",
-                                    className="ram-login-logo",
-                                ),
-                                html.H2("Sign in", className="ram-sign-title"),
-                                html.P(
-                                    "Use your RAM account",
-                                    className="ram-sign-subtitle"
-                                ),
-                            ]),
-                            # RIGHT: form (keep your IDs/callbacks)
-                            html.Div(className="ram-card-right", children=[
-                                dbc.Label("Email", html_for="login-email", className="ram-field-label"),
-                                dbc.Input(
-                                    id="login-email",
-                                    type="email",
-                                    placeholder="name@example.com",
-                                    className="ram-input",
-                                    autoComplete="username",
-                                ),
-
-                                dbc.Label("Password", html_for="login-password", className="ram-field-label mt-4"),
-                                dbc.Input(
-                                    id="login-password",
-                                    type="password",
-                                    placeholder="••••••••",
-                                    className="ram-input",
-                                    autoComplete="current-password",
-                                ),
-
-                                html.Div(id="login-message", className="ram-login-message"),
-
+                        html.Div(
+                            className="ram-card-grid",
+                            children=[
+                                # LEFT: logo + title + subtitle (like Google)
                                 html.Div(
-                                    dbc.Button(
-                                        "Sign in",
-                                        id="login-submit",
-                                        n_clicks=0,
-                                        className="ram-btn-primary",
-                                    ),
-                                    className="ram-actions",
+                                    className="ram-card-left",
+                                    children=[
+                                        html.Img(
+                                            src=app.get_asset_url("logo_ram-2.png"),
+                                            alt="Royal Air Maroc",
+                                            className="ram-login-logo",
+                                        ),
+                                        html.H2("Sign in", className="ram-sign-title"),
+                                        html.P(
+                                            "Use your RAM account",
+                                            className="ram-sign-subtitle",
+                                        ),
+                                    ],
                                 ),
+                                # RIGHT: form (keep your IDs/callbacks)
                                 html.Div(
-                                    "Contact your administrator for access",
-                                    className="ram-locale"
-                                    ),
-                            ]),
-                        ]),
+                                    className="ram-card-right",
+                                    children=[
+                                        dbc.Label(
+                                            "Email",
+                                            html_for="login-email",
+                                            className="ram-field-label",
+                                        ),
+                                        dbc.Input(
+                                            id="login-email",
+                                            type="email",
+                                            placeholder="name@example.com",
+                                            className="ram-input",
+                                            autoComplete="username",
+                                        ),
+                                        dbc.Label(
+                                            "Password",
+                                            html_for="login-password",
+                                            className="ram-field-label mt-4",
+                                        ),
+                                        dbc.Input(
+                                            id="login-password",
+                                            type="password",
+                                            placeholder="••••••••",
+                                            className="ram-input",
+                                            autoComplete="current-password",
+                                        ),
+                                        html.Div(
+                                            id="login-message",
+                                            className="ram-login-message",
+                                        ),
+                                        html.Div(
+                                            dbc.Button(
+                                                "Sign in",
+                                                id="login-submit",
+                                                n_clicks=0,
+                                                className="ram-btn-primary",
+                                            ),
+                                            className="ram-actions",
+                                        ),
+                                        html.Div(
+                                            "Contact your administrator for access",
+                                            className="ram-locale",
+                                        ),
+                                    ],
+                                ),
+                            ],
+                        ),
                         # ╰──────────────────────────────────────────────────────────────────────╯
                     ],
                 ),
@@ -93,11 +110,11 @@ layout = html.Div(
     [
         add_output_auth_token(),
         add_output_user_id(),
-        Output("login-message", "children"),   # was: login-alert
-        Output("login-message", "is_open"),    # was: login-alert
-        Output("login-message", "color"),      # was: login-alert
+        Output("login-message", "children"),  # was: login-alert
+        Output("login-message", "is_open"),  # was: login-alert
+        Output("login-message", "color"),  # was: login-alert
     ],
-    Input("login-submit", "n_clicks"),         # was: login-button
+    Input("login-submit", "n_clicks"),  # was: login-button
     State("login-email", "value"),
     State("login-password", "value"),
     prevent_initial_call=True,
@@ -147,4 +164,3 @@ def handle_login(n_clicks, email, password):
             True,
             "success",
         )
-

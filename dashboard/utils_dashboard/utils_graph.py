@@ -3,7 +3,7 @@
 import logging
 from typing import Literal, Optional
 import dash_bootstrap_components as dbc
-from dash import html
+from dash import html, dcc
 import plotly.express as px
 import plotly.graph_objs as go
 
@@ -14,6 +14,18 @@ from data_managers.excel_manager import COL_NAME_WINDOW_TIME
 import plotly.io as pio
 
 pio.templates.default = "plotly"
+
+
+plot_config = {
+    # everything else you already put in config …
+    "toImageButtonOptions": {
+        "format": "png",  # or "svg" / "pdf" for vector
+        "filename": "codes-chart",
+        "width": 1600,  # px  (≈ A4 landscape)
+        "height": 600,  # px
+        "scale": 3,  # 3× pixel-density → crisp on Retina
+    }
+}
 
 
 def create_bar_figure(
@@ -29,7 +41,7 @@ def create_bar_figure(
 ) -> Optional[go.Figure]:
 
     if x not in df.columns or y not in df.columns:
-        return None
+        return go.Figure()
     # Create a new column for text display
     df = df.with_columns(
         pl.col(y)
@@ -50,8 +62,11 @@ def create_bar_figure(
         custom_data_cols.append(x_max)
     color_valid = color and color in df.columns
     if color_valid:
+        df = df.with_columns(pl.col(color).cast(pl.Utf8))
         index_map["color"] = len(custom_data_cols)
         custom_data_cols.append(color)
+        distinct_colors = df.select(pl.col(color)).n_unique()
+        barmode = "stack" if distinct_colors > 10 else barmode
 
     fig = px.bar(
         df,
@@ -148,6 +163,8 @@ def create_bar_horizontal_figure(
         custom_data_cols.append(y_max)
 
     if color and color in df.columns:
+        df = df.with_columns(pl.col(color).cast(pl.Utf8))
+
         index_map["color"] = len(custom_data_cols)
         custom_data_cols.append(color)
 
@@ -314,3 +331,58 @@ def generate_card_info_change(
         children,
         className="d-flex flex-column shadow-sm rounded-2 w-100 h-100",
     )
+
+
+def create_navbar(
+    df,
+    tabs: str,
+    x: str,
+    y,
+    title: str,
+    color: str,
+    x_max: Optional[str] = None,
+    unit: str = "%",
+    legend_title: Optional[str] = None,
+):
+    by_fam = df.partition_by(tabs, as_dict=True, maintain_order=True)
+
+    tab_children = []
+    for fam, fam_data in by_fam.items():
+        fam = fam[0]
+        fig = create_bar_figure(
+            df=fam_data,
+            x=x,
+            x_max=x_max,
+            y=y,
+            unit=unit,
+            title=title.format(fam=fam),
+            color=color,
+            legend_title=legend_title,
+        )
+        tab_children.append(
+            dcc.Tab(
+                label=fam,
+                value=fam,
+                children=[
+                    dcc.Graph(
+                        figure=fig,
+                        config=plot_config,
+                        style={
+                            "backgroundColor": "white",
+                            "boxShadow": "0px 4px 6px rgba(0, 0, 0, 0.1)",
+                            "borderBottomLeftRadius": "12px",
+                            "borderBottomRightRadius": "12px",
+                            "padding": "10px",
+                            "border": "1px solid #d6d6d6",
+                            "borderTop": "none",
+                            "height": "80vh",
+                        },
+                    )
+                ],
+                selected_style={
+                    "borderTop": "3px solid var(--ram-red)",
+                },
+            )
+        )
+
+    return tab_children

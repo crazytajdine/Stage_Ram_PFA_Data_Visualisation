@@ -12,9 +12,13 @@ from calculations.main_dashboard import (
     COL_NAME_CATEGORY_GT_15MIN_COUNT,
     COL_NAME_CATEGORY_GT_15MIN_MEAN,
     COL_NAME_COUNT_FLIGHTS,
+    COL_NAME_PERCENTAGE,
     COL_NAME_PERCENTAGE_DELAY,
+    COL_NAME_SUBTYPE,
     calculate_delay_pct,
     calculate_period_distribution,
+    calculate_subtype_airport_pct,
+    calculate_subtype_registration_pct,
     process_subtype_pct_data,
 )
 from utils_dashboard.utils_download import add_export_callbacks
@@ -26,7 +30,11 @@ from data_managers.excel_manager import (
     COL_NAME_WINDOW_TIME,
 )
 
-from utils_dashboard.utils_graph import create_bar_figure, create_bar_horizontal_figure
+from utils_dashboard.utils_graph import (
+    create_bar_figure,
+    create_bar_horizontal_figure,
+    create_navbar,
+)
 
 
 ID_SUMMERY_TABLE = "summary-table"
@@ -36,7 +44,10 @@ ID_TABLE_FLIGHT_DELAY = "table-flight-delay"
 ID_FIGURE_FLIGHT_DELAY = "figure-flight-delay"
 ID_FIGURE_SUBTYPE_PR_DELAY_MEAN = "figure-subtype-pr-delay-mean"
 ID_TABLE_SUBTYPE_PR_DELAY_MEAN = "table-subtype-pr-delay-mean"
-
+ID_navbar_SUBTYPE_REG_PCT = "figure-subtype-reg-pct"
+ID_TABLE_SUBTYPE_REG_PCT = "table-subtype-reg-pct"
+ID_TABLE_SUBTYPE_AIRPORT_PCT = "table-subtype-airport-pct"
+ID_NAVBAR_SUBTYPE_AIRPORT_PCT = "navbar-subtype-airport-pct"
 
 TABLE_NAMES_RENAME = {
     "AC_SUBTYPE": "Aircraft Subtype",
@@ -52,6 +63,8 @@ TABLE_NAMES_RENAME = {
     COL_NAME_CATEGORY_GT_15MIN: "Delay Category",
     COL_NAME_CATEGORY_GT_15MIN_MEAN: "Perentage of Delayed Flights",
     COL_NAME_CATEGORY_GT_15MIN_COUNT: "Category Count",
+    COL_NAME_PERCENTAGE: "percentage",
+    "DEP_AP_SCHED": "Departure Airport",
 }
 
 
@@ -77,6 +90,14 @@ layout = dbc.Container(
                     className="result-alert glass-success mt-4 mb-3",
                 ),
                 # Premier bouton + tableau + export
+                dbc.Row(
+                    dbc.Col(
+                        html.H2(
+                            "Table of flights with delay.",
+                            className="lead",
+                        )
+                    )
+                ),
                 dbc.Button(
                     [html.I(className="bi bi-download me-2"), "Exporter Excel"],
                     id="result-export-btn",
@@ -215,6 +236,79 @@ layout = dbc.Container(
                         ),
                     ],
                     style={"marginBottom": "40px"},
+                ),
+                # Subtype-registration % chart + table
+                dcc.Tabs(
+                    id=ID_navbar_SUBTYPE_REG_PCT,
+                    persistence=True,
+                ),
+                html.Div(
+                    [
+                        dbc.Button(
+                            [
+                                html.I(className="bi bi-download me-2"),
+                                "Exporter Excel",
+                            ],
+                            id="subtype-reg-export-btn",
+                            className="btn-export mt-2",
+                            n_clicks=0,
+                        ),
+                        dash_table.DataTable(
+                            id=ID_TABLE_SUBTYPE_REG_PCT,
+                            columns=[],
+                            data=[],
+                            page_size=10,
+                            style_cell={"textAlign": "left"},
+                            sort_action="native",
+                            style_data_conditional=[
+                                {
+                                    "if": {"row_index": "odd"},
+                                    "backgroundColor": "#f8f9fa",
+                                },
+                                {
+                                    "if": {"row_index": "even"},
+                                    "backgroundColor": "white",
+                                },
+                            ],
+                        ),
+                    ],
+                    style={"marginTop": "12px", "marginBottom": "40px"},
+                ),
+                dcc.Tabs(
+                    id=ID_NAVBAR_SUBTYPE_AIRPORT_PCT,
+                    persistence=True,
+                ),
+                html.Div(
+                    [
+                        dbc.Button(
+                            [
+                                html.I(className="bi bi-download me-2"),
+                                "Exporter Excel",
+                            ],
+                            id="subtype-airport-export-btn",
+                            className="btn-export mt-2",
+                            n_clicks=0,
+                        ),
+                        dash_table.DataTable(
+                            id=ID_TABLE_SUBTYPE_AIRPORT_PCT,
+                            columns=[],
+                            data=[],
+                            page_size=10,
+                            style_cell={"textAlign": "left"},
+                            sort_action="native",
+                            style_data_conditional=[
+                                {
+                                    "if": {"row_index": "odd"},
+                                    "backgroundColor": "#f8f9fa",
+                                },
+                                {
+                                    "if": {"row_index": "even"},
+                                    "backgroundColor": "white",
+                                },
+                            ],
+                        ),
+                    ],
+                    style={"marginTop": "12px", "marginBottom": "40px"},
                 ),
             ],
             className="mx-3",
@@ -372,15 +466,117 @@ def update_interval(_):
     return fig, cols, data
 
 
+@app.callback(
+    Output(ID_navbar_SUBTYPE_REG_PCT, "children"),
+    Output(ID_navbar_SUBTYPE_REG_PCT, "value"),
+    Output(ID_TABLE_SUBTYPE_REG_PCT, "columns"),
+    Output(ID_TABLE_SUBTYPE_REG_PCT, "data"),
+    add_watcher_for_data(),
+)
+def update_subtype_registration_pct(_):
+    df_lazy = get_df()
+    if df_lazy is None:
+        return [], None, [], []
+
+    # calculate (cached)
+    df_reg = calculate_subtype_registration_pct(df_lazy).collect()
+    if df_reg.is_empty():
+        return [], None, [], []
+
+    # figure: horizontal stacked bars per time-window showing registration % within subtypes
+    figs = create_navbar(
+        df_reg,
+        tabs=COL_NAME_SUBTYPE,
+        x=COL_NAME_WINDOW_TIME,
+        x_max=COL_NAME_WINDOW_TIME_MAX,
+        y=COL_NAME_PERCENTAGE,
+        title="distribution of registrations for {fam} subtype across time",
+        legend_title="Registrations",
+        color="AC_REGISTRATION",
+    )
+
+    value = figs[0].value if figs else None
+    # table: pick useful columns to display
+    display_cols = [
+        COL_NAME_WINDOW_TIME,
+        COL_NAME_WINDOW_TIME_MAX,
+        COL_NAME_SUBTYPE,
+        "AC_REGISTRATION",
+        COL_NAME_PERCENTAGE,
+    ]
+    df_disp = df_reg.select(display_cols)
+    cols = [{"name": TABLE_NAMES_RENAME.get(c, c), "id": c} for c in display_cols]
+
+    data = df_disp.to_dicts()
+
+    return figs, value, cols, data
+
+
+@app.callback(
+    Output(ID_NAVBAR_SUBTYPE_AIRPORT_PCT, "children"),
+    Output(ID_NAVBAR_SUBTYPE_AIRPORT_PCT, "value"),
+    Output(ID_TABLE_SUBTYPE_AIRPORT_PCT, "columns"),
+    Output(ID_TABLE_SUBTYPE_AIRPORT_PCT, "data"),
+    add_watcher_for_data(),
+)
+def update_subtype_airport_pct(_):
+    df_lazy = get_df()
+    if df_lazy is None:
+        return [], None, [], []
+
+    # calculate (cached)
+    df_air = calculate_subtype_airport_pct(df_lazy).collect()
+    if df_air.is_empty():
+        return [], None, [], []
+
+    # figure: horizontal stacked bars per time-window showing airport % within subtypes
+    figs = create_navbar(
+        df_air,
+        tabs=COL_NAME_SUBTYPE,
+        x=COL_NAME_WINDOW_TIME,
+        x_max=COL_NAME_WINDOW_TIME_MAX,
+        y=COL_NAME_PERCENTAGE,
+        title="distribution of airports for {fam} subtype across time",
+        legend_title="Airports",
+        color="DEP_AP_SCHED",
+    )
+
+    value = figs[0].value if figs else None
+    # table: pick useful columns to display
+    display_cols = [
+        COL_NAME_WINDOW_TIME,
+        COL_NAME_WINDOW_TIME_MAX,
+        COL_NAME_SUBTYPE,
+        "DEP_AP_SCHED",
+        COL_NAME_PERCENTAGE,
+    ]
+    df_disp = df_air.select(display_cols)
+    cols = [{"name": TABLE_NAMES_RENAME.get(c, c), "id": c} for c in display_cols]
+
+    data = df_disp.to_dicts()
+
+    return figs, value, cols, data
+
+
 # --- CALLBACKS POUR TELECHARGEMENT EXCEL ---
 for tbl, btn, name in [
-    (ID_SUMMERY_TABLE, "result-export-btn", "vols_filtres"),
-    (ID_TABLE_SUBTYPE_PR_DELAY_MEAN, "subtype-export-btn", "vols_subtype_filtres"),
-    (ID_TABLE_FLIGHT_DELAY, "interval-export-btn", "vols_intervalles"),
+    (ID_SUMMERY_TABLE, "result-export-btn", "flights_filtres"),
+    (ID_TABLE_SUBTYPE_PR_DELAY_MEAN, "subtype-export-btn", "flights_subtype_filtres"),
+    (ID_TABLE_FLIGHT_DELAY, "interval-export-btn", "flights_intervalles"),
     (
         ID_TABLE_CATEGORY_DELAY_GT_15MIN,
         "category-export-btn",
-        "vols_lt_15min_vs_gt_15min_filtres",
+        "flights_lt_15min_vs_gt_15min_filtres",
+    ),
+    (
+        ID_TABLE_SUBTYPE_REG_PCT,
+        "subtype-reg-export-btn",
+        "flights_subtype_reg_filtres",
+    ),
+    (
+        ID_TABLE_SUBTYPE_AIRPORT_PCT,
+        "subtype-airport-export-btn",
+        "flights_subtype_airport_filtres",
     ),
 ]:
     add_export_callbacks(id_table=tbl, id_button=btn, name=name)

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional, Tuple
 import polars as pl
 
 # ─────────────── Application modules ───────────────
@@ -7,12 +7,23 @@ from data_managers.excel_manager import (
     get_df,
 )
 
+weekday_order = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+]
+COL_NAME_DATE_PERCENTAGE = "{c}_pct"
+
 
 @cache_result("weekly_codes_analysis")
-def analyze_weekly_codes() -> Optional[pl.DataFrame]:
+def analyze_weekly_codes() -> Tuple[Optional[pl.DataFrame], List[str]]:
     df_lazy = get_df()
     if df_lazy is None:
-        return None
+        return None, []
 
     df = (
         df_lazy.sort("DEP_DAY_SCHED")
@@ -34,10 +45,20 @@ def analyze_weekly_codes() -> Optional[pl.DataFrame]:
     )
 
     # compute day columns (all except DELAY_CODE) and add Total (sum across day columns)
-    day_cols = [c for c in pivot.columns if c != "DELAY_CODE"]
+    day_cols = [c for c in weekday_order if c in pivot.columns]
     pivot = (
         pivot.select("DELAY_CODE", *day_cols)
         .with_columns(pl.sum_horizontal(day_cols).alias("Total"))
         .sort("Total", descending=True)
     )
-    return pivot
+
+    percent_cols = [
+        (pl.col(c) / pl.col("Total") * 100)
+        .round(2)
+        .alias(COL_NAME_DATE_PERCENTAGE.format(c=c))
+        for c in day_cols
+    ]
+
+    pivot_pct = pivot.with_columns(percent_cols)
+
+    return pivot_pct, day_cols

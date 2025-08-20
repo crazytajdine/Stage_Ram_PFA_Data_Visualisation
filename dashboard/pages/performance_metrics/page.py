@@ -169,12 +169,12 @@ def create_layout(
     card2 = generate_card_info_change(
         result,
         COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN,
-        "Percentage of On-Time or Delays Less Than 15 Minutes",
+        "Dispatch Reliability > 15 min",
     )  # example second card
     card3 = generate_card_info_change(
         result,
         COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46,
-        "Percentage of On-Time or less than 15 Minutes, or Delays Not Due to Reasons 41/46",
+        "Dispatch Reliability (41/46) > 15 min",
     )  # example second card
 
     fig1 = create_bar_figure(
@@ -189,14 +189,14 @@ def create_layout(
         x=COL_NAME_WINDOW_TIME,
         x_max=COL_NAME_WINDOW_TIME_MAX,
         y=COL_NAME_PER_DELAYED_FLIGHTS_NOT_WITH_15MIN,
-        title="Percentage of On-Time or Delays Less Than 15 Minutes",
+        title="Dispatch Reliability > 15 min",
     )
     fig3 = create_bar_figure(
         result,
         x=COL_NAME_WINDOW_TIME,
         x_max=COL_NAME_WINDOW_TIME_MAX,
         y=COL_NAME_PER_DELAYED_FLIGHTS_15MIN_NOT_WITH_41_46,
-        title="Percentage of On-Time or less than 15 Minutes, or Delays Not Due to Reasons 41/46",
+        title="Dispatch Reliability (41/46) > 15 min",
     )
 
     table_col_names = [
