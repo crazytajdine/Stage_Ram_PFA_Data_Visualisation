@@ -3,6 +3,7 @@ from typing import List, Tuple
 from configurations.nav_config import NAV_CONFIG
 from utils_dashboard.utils_preference import (
     get_disabled_preferences,
+    get_nav_preferences,
 )
 
 from schemas.navbarItem import DATA_PAGE_TYPE, NavItemMeta
