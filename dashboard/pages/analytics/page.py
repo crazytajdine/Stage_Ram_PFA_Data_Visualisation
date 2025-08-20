@@ -34,6 +34,7 @@ TABLE_NAMES_RENAME = {
     COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD: "Percentage of Occurrences",
     COL_NAME_PERCENTAGE_DELAY_CODE_PER_FAMILY_PER_PERIOD: "Percentage of Occurrences per family ",
     COL_NAME_PERCENTAGE_DELAY_CODE_PER_FAMILY_PER_PERIOD_TOTAL: "Percentage of Occurrences per family (total)",
+    COL_NAME_PERCENTAGE_SUBTYPE_FAMILY: "Percentage of Occurrences per subtype",
     "FAMILLE_DR": "Family",
     "DELAY_CODE": "Delay Code",
 }
