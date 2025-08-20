@@ -44,6 +44,8 @@ def create_bar_figure(
     if x not in df.columns or y not in df.columns:
         return go.Figure()
 
+    df = df.sort([x, y], descending=[False, True])
+
     color_column = color
     if value_other:
         df = df.with_columns(
@@ -143,7 +145,7 @@ def create_bar_figure(
     logging.debug("Unique values on x-axis: %s", unique_x)
     if len(unique_x) <= threshold_sep_x:
         logging.debug("Setting tickmode to 'array' with tickvals")
-        fig.update_xaxes(tickmode="array", tickvals=unique_x)
+        fig.update_xaxes(type="category", categoryorder="array", categoryarray=unique_x)
 
     return fig
 
