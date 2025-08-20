@@ -3,6 +3,7 @@ import logging
 import plotly.io as pio
 import dash
 import dash_bootstrap_components as dbc
+from waitress import serve
 from configurations.config import get_base_config
 from configurations.log_config import init_log
 from components.trigger_page_change import (
@@ -33,9 +34,6 @@ from components.navbar import (
     layout as navbar_layout,
     stores as loaded_url_store,
 )
-
-
-from waitress import serve
 
 from components.title import ID_MAIN_TITLE, layout as tittle_layout
 
@@ -159,7 +157,7 @@ add_excel_manager_callbacks()
 add_filter_callbacks()
 
 
-def start_server(start_dev=True) -> int:
+def start_server(start_dev=True):
 
     logging.info("🔁 Starting Dash server…")
     if start_dev:
