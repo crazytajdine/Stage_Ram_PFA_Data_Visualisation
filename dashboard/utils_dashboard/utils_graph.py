@@ -36,12 +36,24 @@ def create_bar_figure(
     x_max: Optional[str] = None,
     unit: str = "%",
     color: Optional[str] = None,
-    barmode: Literal["group", "stack"] = "group",
+    barmode: Literal["auto", "group", "stack"] = "auto",
     legend_title: Optional[str] = None,
+    value_other: Optional[float] = None,
 ) -> Optional[go.Figure]:
 
     if x not in df.columns or y not in df.columns:
         return go.Figure()
+
+    color_column = color
+    if value_other:
+        df = df.with_columns(
+            pl.when(pl.col(y) < value_other)
+            .then(pl.lit("Other"))
+            .otherwise(pl.col(color))
+            .alias("color_other")
+        )
+        color_column = "color_other"
+
     # Create a new column for text display
     df = df.with_columns(
         pl.col(y)
@@ -62,12 +74,17 @@ def create_bar_figure(
         custom_data_cols.append(x_max)
     color_valid = color and color in df.columns
     if color_valid:
+
         df = df.with_columns(pl.col(color).cast(pl.Utf8))
         index_map["color"] = len(custom_data_cols)
         custom_data_cols.append(color)
         distinct_colors = df.select(pl.col(color)).n_unique()
-        barmode = "stack" if distinct_colors > 10 else barmode
 
+        distinct_time = df.select(pl.col(x)).n_unique()
+        if barmode == "auto":
+            barmode = "stack" if (distinct_colors * distinct_time) > 10 else barmode
+    if barmode == "auto":
+        barmode = "group"
     fig = px.bar(
         df,
         x=x,
@@ -75,7 +92,7 @@ def create_bar_figure(
         title=title,
         text="text_label",
         barmode=barmode,
-        color=color,
+        color=color_column,
         custom_data=custom_data_cols if custom_data_cols else None,
     )
 
@@ -110,7 +127,7 @@ def create_bar_figure(
     )
 
     fig.update_traces(
-        textposition="auto" if len_date <= threshold_show_y else "none",
+        textposition="auto",
         marker=dict(cornerradius=4),
         textangle=0,
         hovertemplate=(
@@ -141,11 +158,21 @@ def create_bar_horizontal_figure(
     color: Optional[str] = None,
     barmode: Literal["group", "stack"] = "group",
     legend_title: Optional[str] = None,
+    value_other: Optional[float] = None,
 ) -> Optional[go.Figure]:
 
     if x not in df.columns or y not in df.columns:
         return None
 
+    color_column = color
+    if value_other:
+        df = df.with_columns(
+            pl.when(pl.col(y) < value_other)
+            .then(pl.lit("Other"))
+            .otherwise(pl.col(color))
+            .alias("color_other")
+        )
+        color_column = "color_other"
     # Text label for bar display
     df = df.with_columns((pl.col(x).round(2).cast(str) + unit).alias("text_label"))
 
@@ -176,7 +203,7 @@ def create_bar_horizontal_figure(
         text="text_label",
         orientation="h",
         barmode=barmode,
-        color=color,
+        color=color_column,
         custom_data=custom_data_cols,
     )
 
@@ -204,7 +231,7 @@ def create_bar_horizontal_figure(
         else ""
     )
     fig.update_traces(
-        textposition=("auto" if len_date <= threshold_show_x else "none"),
+        textposition="auto",
         textangle=0,
         hovertemplate=(
             y_label_template
@@ -343,6 +370,7 @@ def create_navbar(
     x_max: Optional[str] = None,
     unit: str = "%",
     legend_title: Optional[str] = None,
+    value_other: Optional[float] = None,
 ):
     by_fam = df.partition_by(tabs, as_dict=True, maintain_order=True)
 
@@ -358,6 +386,7 @@ def create_navbar(
             title=title.format(fam=fam),
             color=color,
             legend_title=legend_title,
+            value_other=value_other,
         )
         tab_children.append(
             dcc.Tab(

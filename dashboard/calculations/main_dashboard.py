@@ -51,7 +51,9 @@ def process_subtype_pct_data(df: pl.LazyFrame) -> pl.LazyFrame:
 
 
 @cache_result("main_period_distribution")
-def calculate_period_distribution(df: pl.DataFrame) -> pl.DataFrame:
+def calculate_period_distribution(
+    df: pl.LazyFrame | pl.DataFrame,
+) -> pl.LazyFrame | pl.DataFrame:
     counts_df = (
         df.group_by([COL_NAME_WINDOW_TIME, COL_NAME_WINDOW_TIME_MAX])
         .agg(pl.len().alias("count"))
@@ -72,7 +74,7 @@ def calculate_period_distribution(df: pl.DataFrame) -> pl.DataFrame:
 
 
 @cache_result("main_delay_pct")
-def calculate_delay_pct(df: pl.LazyFrame) -> pl.LazyFrame:
+def calculate_delay_pct(df: pl.LazyFrame | pl.DataFrame) -> pl.LazyFrame | pl.DataFrame:
     # 1) Categorize delays
     df = df.with_columns(
         pl.when(pl.col("DELAY_TIME") > 15)
@@ -103,7 +105,9 @@ def calculate_delay_pct(df: pl.LazyFrame) -> pl.LazyFrame:
 
 
 @cache_result("main_subtype_registration_pct")
-def calculate_subtype_registration_pct(df: pl.LazyFrame) -> pl.LazyFrame:
+def calculate_subtype_registration_pct(
+    df: pl.LazyFrame | pl.DataFrame,
+) -> pl.LazyFrame | pl.DataFrame:
     # Step 1: group by subtype and registration
     grouped = df.group_by(
         [
@@ -119,7 +123,9 @@ def calculate_subtype_registration_pct(df: pl.LazyFrame) -> pl.LazyFrame:
         (
             pl.col(COL_NAME_COUNT_FLIGHTS)
             * 100
-            / pl.col(COL_NAME_COUNT_FLIGHTS).sum().over(COL_NAME_SUBTYPE)
+            / pl.col(COL_NAME_COUNT_FLIGHTS)
+            .sum()
+            .over([COL_NAME_SUBTYPE, COL_NAME_WINDOW_TIME])
         )
         .round(2)
         .alias(COL_NAME_PERCENTAGE)
@@ -131,7 +137,9 @@ def calculate_subtype_registration_pct(df: pl.LazyFrame) -> pl.LazyFrame:
 
 
 @cache_result("main_subtype_airport_pct")
-def calculate_subtype_airport_pct(df: pl.LazyFrame) -> pl.LazyFrame:
+def calculate_subtype_airport_pct(
+    df: pl.LazyFrame | pl.DataFrame,
+) -> pl.LazyFrame | pl.DataFrame:
     # Step 1: group by subtype and scheduled departure airport
     grouped = df.group_by(
         [
@@ -147,7 +155,9 @@ def calculate_subtype_airport_pct(df: pl.LazyFrame) -> pl.LazyFrame:
         (
             pl.col(COL_NAME_COUNT_FLIGHTS)
             * 100
-            / pl.col(COL_NAME_COUNT_FLIGHTS).sum().over(COL_NAME_SUBTYPE)
+            / pl.col(COL_NAME_COUNT_FLIGHTS)
+            .sum()
+            .over([COL_NAME_WINDOW_TIME, COL_NAME_SUBTYPE])
         )
         .round(2)
         .alias(COL_NAME_PERCENTAGE)

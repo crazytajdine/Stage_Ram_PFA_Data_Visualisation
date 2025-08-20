@@ -132,6 +132,7 @@ def refresh_weekly_table(_):
         title="Distribution of codes by day of the week",
         color="DELAY_CODE",
         legend_title="Delay code",
+        barmode="group",
     )
 
     return data, columns, data_percentage, columns_percentage, fig

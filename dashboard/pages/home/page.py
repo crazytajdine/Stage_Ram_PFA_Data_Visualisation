@@ -493,6 +493,7 @@ def update_subtype_registration_pct(_):
         title="distribution of registrations for {fam} subtype across time",
         legend_title="Registrations",
         color="AC_REGISTRATION",
+        value_other=3,
     )
 
     value = figs[0].value if figs else None
@@ -539,6 +540,7 @@ def update_subtype_airport_pct(_):
         title="distribution of airports for {fam} subtype across time",
         legend_title="Airports",
         color="DEP_AP_SCHED",
+        value_other=3,
     )
 
     value = figs[0].value if figs else None

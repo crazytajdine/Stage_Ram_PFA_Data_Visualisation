@@ -1,17 +1,13 @@
-from typing import Optional, Tuple
+from typing import Optional
 import polars as pl
-from datetime import date, datetime
 from dash import Input, Output, State
 from utils_dashboard.utils_filter import set_name_from_filter
 from data_managers.excel_manager import (
-    COL_NAME_DEPARTURE_DATETIME,
-    COL_NAME_WINDOW_TIME,
-    COL_NAME_WINDOW_TIME_MAX,
     ID_DATA_STORE_TRIGGER,
+    apply_filters,
     update_df,
     get_df_unfiltered,
     add_watch_file,
-    get_count_df,
     get_min_max_date_raw_df,
 )
 from server_instance import get_app
@@ -164,116 +160,6 @@ layout = dbc.Card(
     style={"display": "none"},
     id=ID_FILTER_CONTAINER,
 )
-
-
-def apply_filters(
-    df: pl.LazyFrame, filters: FilterType, is_suggestions=False
-) -> Tuple[pl.LazyFrame, Optional[pl.LazyFrame]]:
-    logging.info("Applying filters to dataframe")
-    total_df = None
-
-    segmentation = filters.get("fl_segmentation") if filters else None
-    unit_segmentation = filters.get("fl_unit_segmentation") if filters else None
-    code_delays = filters.get("fl_code_delays") if filters else None
-    subtypes = filters.get("fl_subtypes") if filters else None
-    matricules = filters.get("fl_matricules") if filters else None
-    min_dt = filters.get("dt_start") if filters else None
-    max_dt = filters.get("dt_end") if filters else None
-
-    logging.debug(
-        f"Filter parameters: segmentation={segmentation}, unit={unit_segmentation}, "
-        f"codes={code_delays}, subtypes={subtypes}, regs={matricules}, "
-        f"min_dt={min_dt}, max_dt={max_dt}, suggestions={is_suggestions}"
-    )
-
-    start = end = None
-    if (not segmentation) and (not min_dt or not max_dt):
-        min_total_dt, max_total_dt = get_min_max_date_raw_df()
-        logging.debug(
-            "Loaded full date range from raw df: %s to %s", min_total_dt, max_total_dt
-        )
-
-    if min_dt:
-        start = (
-            min_dt
-            if isinstance(min_dt, date)
-            else datetime.fromisoformat(min_dt).date()
-        )
-        stmt_start = pl.lit(start)
-    else:
-        stmt_start = (
-            pl.lit(COL_NAME_DEPARTURE_DATETIME).min()
-            if segmentation
-            else pl.lit(min_total_dt)
-        )
-
-    if max_dt:
-        end = (
-            max_dt
-            if isinstance(max_dt, date)
-            else datetime.fromisoformat(max_dt).date()
-        )
-        stmt_end = pl.lit(end)
-    else:
-        stmt_end = (
-            pl.col(COL_NAME_DEPARTURE_DATETIME).max()
-            if segmentation
-            else pl.lit(max_total_dt)
-        )
-
-    if code_delays:
-        logging.info("Filtering by CODE_DR values: %s", code_delays)
-        df = df.filter(pl.col("DELAY_CODE").is_in(code_delays))
-
-    if not is_suggestions:
-        logging.info("Generating total_df via get_count_df")
-        total_df = get_count_df(segmentation, unit_segmentation, start, end)
-
-    stmt_start = stmt_start.alias(COL_NAME_WINDOW_TIME)
-    stmt_end = stmt_end.alias(COL_NAME_WINDOW_TIME_MAX)
-
-    if not filters:
-        logging.info("No filters applied, adding default window time columns")
-        df = df.with_columns(stmt_start, stmt_end)
-        return df, total_df
-
-    if subtypes:
-        logging.info("Filtering by AC_SUBTYPE: %s", subtypes)
-        df = df.filter(pl.col("AC_SUBTYPE").is_in(subtypes))
-
-    if matricules:
-        logging.info("Filtering by AC_REGISTRATION: %s", matricules)
-        df = df.filter(pl.col("AC_REGISTRATION").is_in(matricules))
-
-    if segmentation:
-        logging.info("Applying segmentation: %s%s", segmentation, unit_segmentation)
-        min_segmentation = str(segmentation) + unit_segmentation
-        max_segmentation = str(segmentation) + unit_segmentation
-
-        df = df.with_columns(
-            pl.col(COL_NAME_DEPARTURE_DATETIME)
-            .dt.truncate(min_segmentation)
-            .alias(COL_NAME_WINDOW_TIME)
-        ).with_columns(
-            pl.col(COL_NAME_WINDOW_TIME)
-            .dt.offset_by(max_segmentation)
-            .dt.offset_by("-1d")
-            .alias(COL_NAME_WINDOW_TIME_MAX),
-        )
-    else:
-        logging.info("No segmentation, using literal time range")
-        df = df.with_columns(stmt_start, stmt_end)
-
-    if start:
-        logging.debug("Filtering from date: %s", start)
-        df = df.filter(pl.col(COL_NAME_DEPARTURE_DATETIME) >= start)
-
-    if end:
-        logging.debug("Filtering to date: %s", end)
-        df = df.filter(pl.col(COL_NAME_DEPARTURE_DATETIME) <= end)
-
-    logging.info("Filtering complete.")
-    return df, total_df
 
 
 def split_views_by_exclusion(
