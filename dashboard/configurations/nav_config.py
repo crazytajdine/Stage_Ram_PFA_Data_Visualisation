@@ -7,14 +7,11 @@ from pages.undefined.metadata import metadata as undefined_metadata
 from pages.about.metadata import metadata as about_metadata
 
 NAV_CONFIG = [
-    # content
     home_metadata,
     tech_metadata,
     weekly_metadata,
     perf_metrics_metadata,
-    undefined_metadata,
-    # manage
     settings_metadata,
-    # about
+    undefined_metadata,
     about_metadata,
 ]
