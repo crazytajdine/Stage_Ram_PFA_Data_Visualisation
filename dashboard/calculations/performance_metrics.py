@@ -10,7 +10,6 @@ from data_managers.excel_manager import (
     get_total_df,
 )
 
-from data_managers.cache_manager import cache_result
 
 COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY = "flight_with_delay"
 COL_NAME_TOTAL_COUNT_FLIGHT_WITH_DELAY_GTE_15MIN = "flight_with_delay_gte_15min"
@@ -112,7 +111,6 @@ def calculate_graph_info_with_period(df: pl.LazyFrame) -> pl.LazyFrame:
     return joined_df
 
 
-@cache_result("preformance_metrics")
 def calculate_result() -> Optional[pl.DataFrame]:
 
     df = get_df()

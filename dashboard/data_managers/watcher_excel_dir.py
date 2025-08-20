@@ -4,7 +4,6 @@ import logging
 
 from dash import Input, Output, State
 
-from data_managers.cache_manager import delete_old_keys
 from schemas.data_status import StatusData
 from data_managers.excel_manager import (
     ID_INTERVAL_WATCHER,
@@ -45,7 +44,6 @@ def add_callbacks():
                 )
                 new_status: StatusData = "selected" if path_to_excel else "unselected"
                 if old_status != new_status:
-                    delete_old_keys()
 
                     return path_to_excel, latest_modification_time
                 else:
@@ -57,7 +55,6 @@ def add_callbacks():
             )
             if latest_modification_time != date_latest_fetch:
                 logging.info("File changed, updating DataFrame...")
-                delete_old_keys()
                 update_df_unfiltered()
 
                 modify_modification_date(latest_modification_time)

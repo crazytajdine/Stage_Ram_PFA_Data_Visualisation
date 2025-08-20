@@ -3,7 +3,6 @@ from typing import List, Optional, Tuple
 import polars as pl
 
 # ─────────────── Application modules ───────────────
-from data_managers.cache_manager import cache_result
 from utils_dashboard.utils_filter import get_date_range
 from data_managers.excel_manager import (
     get_df,
@@ -32,7 +31,6 @@ def get_weekday_range(start: datetime.date, end: datetime.date) -> List[str]:
     return [weekday_order[(start_idx + i) % 7] for i in range(range_difference)]
 
 
-@cache_result("weekly_codes_analysis")
 def analyze_weekly_codes() -> Tuple[Optional[pl.DataFrame], List[str]]:
     df_lazy = get_df()
     if df_lazy is None:
