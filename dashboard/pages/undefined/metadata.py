@@ -7,7 +7,7 @@ metadata = NavItemMeta(
     preference_show=False,
     show_filter=False,
     title="",
-    show_navbar=False,
+    show_navbar=True,
     type_data="nodata",
     type_user="user",
 )
