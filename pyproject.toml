@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = [{ name = "Taj Eddine Marmoul", email = "tajdinetajdine1@gmail.com" }]
 readme = "README.md"
-requires-python = ">=3.10,<3.15"
+requires-python = ">=3.10,<3.11"
 dependencies = [
     "dash (>=3.2,<4.0)",
     "polars (>=1.31.0,<2.0.0)",
@@ -17,12 +17,11 @@ dependencies = [
     "pydantic (>=2.11.7,<3.0.0)",
     "pyinstaller (>=6.15.0,<7.0.0)",
     "waitress (>=3.0.2,<4.0.0)",
-    "dash-table (>=5.0.0,<6.0.0)",
     "plotly (>=6.2.0,<7.0.0)",
     "kaleido (>=1.0.0,<2.0.0)",
     "gunicorn (>=23.0.0,<24.0.0)",
-    "cefpython3 (>=66.1,<67.0)",
     "pywebview (>=6.0,<7.0)",
+    "nuitka (>=2.7.12,<3.0.0)",
 ]
 
 
@@ -33,6 +32,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.group.prod.dependencies]
 gunicorn = "^23"
+
 
 [tool.poetry.scripts]
 start-prod = "gunicorn.app.wsgiapp:run"
