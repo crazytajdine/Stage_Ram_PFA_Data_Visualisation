@@ -160,7 +160,7 @@ add_filter_callbacks()
 def start_server(start_dev=True):
 
     logging.info("🔁 Starting Dash server…")
-    app.run(debug=True, use_reloader=start_dev, port=8050)
+    app.run(debug=start_dev, use_reloader=start_dev, port=8050)
 
 
 if __name__ == "__main__":
