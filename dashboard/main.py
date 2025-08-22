@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     # Create window
     window = webview.create_window(
-        "Dashboard Desktop",
+        "Dashboard Ram",
         "http://127.0.0.1:8050",
         width=1200,
         height=800,
