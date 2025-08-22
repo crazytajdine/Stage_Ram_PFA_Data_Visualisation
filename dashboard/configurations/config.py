@@ -94,7 +94,9 @@ def save_config_sys(updated_config: dict[str, Any]) -> dict[str, Any]:
 # ------------------
 
 
-config_path = os.path.join("configurations", "config.toml")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+config_path = os.path.join(BASE_DIR, "configurations", "config.toml")
 
 
 config = get_base_config()

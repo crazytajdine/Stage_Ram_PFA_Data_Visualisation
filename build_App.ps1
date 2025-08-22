@@ -5,4 +5,5 @@ poetry run python -m nuitka `
     --include-package=dash,dash_bootstrap_components,plotly,polars,fastexcel,dashboard `
     --include-package-data=dash,dash_bootstrap_components,plotly,polars,fastexcel `
     --include-data-files=dashboard/configurations/config.toml=configurations/config.toml `
+    --include-data-dir=dashboard/assets=assets `
     dashboard/main.py
