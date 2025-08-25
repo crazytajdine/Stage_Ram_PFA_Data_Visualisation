@@ -9,15 +9,18 @@ from pages.login.metadata import metadata as login_metadata
 from pages.about.metadata import metadata as about_metadata
 
 NAV_CONFIG = [
+    # content
     home_metadata,
     tech_metadata,
     weekly_metadata,
     perf_metrics_metadata,
-    admin_metadata,
-    settings_metadata,
     undefined_metadata,
+    # manage
     login_metadata,
-    about_metadata
+    settings_metadata,
+    admin_metadata,
+    # about
+    about_metadata,
 ]
 
 MAPPER_NAV_CONFIG = {meta.id: meta for meta in NAV_CONFIG if meta.id is not None}
