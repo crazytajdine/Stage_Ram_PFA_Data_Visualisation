@@ -166,10 +166,12 @@ def create_bar_horizontal_figure(
     if x not in df.columns or y not in df.columns:
         return None
 
+    df = df.sort([x, y], descending=[True, True])
+
     color_column = color
     if value_other:
         df = df.with_columns(
-            pl.when(pl.col(y) < value_other)
+            pl.when(pl.col(x) < value_other)
             .then(pl.lit("Other"))
             .otherwise(pl.col(color))
             .alias("color_other")
