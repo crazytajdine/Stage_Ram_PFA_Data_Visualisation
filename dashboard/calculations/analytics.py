@@ -12,7 +12,7 @@ COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD = "perc_family_per_period"
 COL_NAME_PERCENTAGE_DELAY_CODE_PER_FAMILY_PER_PERIOD = "perc_family"
 COL_NAME_PERCENTAGE_DELAY_CODE_PER_FAMILY_PER_PERIOD_TOTAL = "perc_family_total"
 COL_NAME_PERCENTAGE_SUBTYPE_FAMILY = "pct_subtype_family_vs_family_total"
-
+COL_NAME_PERCENTAGE_REGISTRATION_FAMILY = "pct_registration_family_vs_family_total"
 COL_NAME_SUBTYPE = "AC_SUBTYPE"
 
 
@@ -149,7 +149,14 @@ def prepare_delay_data():
 
     df_pers_by_subtype_by_family = prepare_subtype_family_data(df)
 
-    return summary, temporal_all, famille_share_df, df_pers_by_subtype_by_family
+    df_pers_by_registration_by_family = prepare_registration_family_data(df)
+    return (
+        summary,
+        temporal_all,
+        famille_share_df,
+        df_pers_by_subtype_by_family,
+        df_pers_by_registration_by_family,
+    )
 
 
 def prepare_subtype_family_data(df: pl.DataFrame):
@@ -175,6 +182,37 @@ def prepare_subtype_family_data(df: pl.DataFrame):
             (pl.col("count_per_subtype_family") / pl.col("period_total") * 100)
             .round(2)
             .alias(COL_NAME_PERCENTAGE_SUBTYPE_FAMILY),
+        ]
+    )
+
+    return temporal_all
+
+
+def prepare_registration_family_data(df: pl.DataFrame):
+
+    # Count per FAMILLE_DR + AC_REGISTRATION per time window
+    temporal_all = df.group_by(
+        [COL_NAME_WINDOW_TIME, "AC_REGISTRATION", "FAMILLE_DR"]
+    ).agg(
+        pl.len().alias("count_per_registration_family"),
+        pl.col(COL_NAME_WINDOW_TIME_MAX).first().alias(COL_NAME_WINDOW_TIME_MAX),
+    )
+
+    # Total per period
+    period_totals = temporal_all.group_by(
+        [COL_NAME_WINDOW_TIME, "AC_REGISTRATION"]
+    ).agg(pl.col("count_per_registration_family").sum().alias("period_total"))
+
+    # Join totals and calculate percentages
+
+    temporal_all = temporal_all.join(
+        period_totals, on=[COL_NAME_WINDOW_TIME, "AC_REGISTRATION"]
+    ).with_columns(
+        [
+            # % vs total period
+            (pl.col("count_per_registration_family") / pl.col("period_total") * 100)
+            .round(2)
+            .alias(COL_NAME_PERCENTAGE_REGISTRATION_FAMILY),
         ]
     )
 

@@ -9,6 +9,7 @@ from calculations.analytics import (
     COL_NAME_PERCENTAGE_DELAY_CODE_PER_FAMILY_PER_PERIOD_TOTAL,
     COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD,
     COL_NAME_PERCENTAGE_SUBTYPE_FAMILY,
+    COL_NAME_PERCENTAGE_REGISTRATION_FAMILY,
     prepare_delay_data,
 )
 from utils_dashboard.utils_download import add_export_callbacks
@@ -35,6 +36,7 @@ TABLE_NAMES_RENAME = {
     COL_NAME_PERCENTAGE_DELAY_CODE_PER_FAMILY_PER_PERIOD: "Percentage of Occurrences per family ",
     COL_NAME_PERCENTAGE_DELAY_CODE_PER_FAMILY_PER_PERIOD_TOTAL: "Percentage of Occurrences per family (total)",
     COL_NAME_PERCENTAGE_SUBTYPE_FAMILY: "Percentage of Occurrences per subtype",
+    COL_NAME_PERCENTAGE_REGISTRATION_FAMILY: "Percentage per Registration",
     "FAMILLE_DR": "Family",
     "DELAY_CODE": "Delay Code",
 }
@@ -106,11 +108,35 @@ table_block_subtype = html.Div(
         html.H3("Delay Code Details", className="h4 mt-4"),
         dbc.Button(
             [html.I(className="bi bi-download me-2"), "Exporter Excel"],
-            id="export-btn",
+            id="export-btn-subtype",
             className="btn-export mt-2",
             n_clicks=0,
         ),
         html.Div(id="table-container-subtype"),
+    ]
+)
+
+charts_block_registration = html.Div(
+    id="charts-container-registration",
+    style={
+        "display": "grid",
+        "gridTemplateColumns": "1fr",
+        "gap": "16px",
+        "alignItems": "start",
+    },
+    className="mt-2",
+)
+
+table_block_registration = html.Div(
+    [
+        html.H3("Details by Registration", className="h4 mt-4"),
+        dbc.Button(
+            [html.I(className="bi bi-download me-2"), "Exporter Excel"],
+            id="export-btn-registration",
+            className="btn-export mt-2",
+            n_clicks=0,
+        ),
+        html.Div(id="table-container-registration"),
     ]
 )
 
@@ -174,6 +200,8 @@ layout = dbc.Container(
         table_block,
         charts_block_subtype,
         table_block_subtype,
+        charts_block_registration,
+        table_block_registration,
         # ← insert this:
         html.Div(id="about-container", children=about_section),
     ],
@@ -188,20 +216,27 @@ layout = dbc.Container(
         Output("table-container", "children"),
         Output("charts-container-subtype", "children"),
         Output("table-container-subtype", "children"),
+        Output("charts-container-registration", "children"),
+        Output("table-container-registration", "children"),
     ],
     excel_manager.add_watcher_for_data(),
     prevent_initial_call=False,
 )
 def update_plots_tables(n_clicks):
-    summary, temporal_all, famille_share_df, subtype_family_percentage_df = (
-        prepare_delay_data()
-    )
-    if temporal_all is None or subtype_family_percentage_df is None:
+    (
+        summary,
+        temporal_all,
+        famille_share_df,
+        subtype_family_percentage_df,
+        df_pers_by_registration_by_family,
+    ) = prepare_delay_data()
+    if temporal_all is None:
         return dash.no_update
 
     # --- Stats ---
     unique_codes = summary.height if not summary.is_empty() else 0
     total_delays = summary["Occurrences"].sum() if not summary.is_empty() else 0
+
     stats = dbc.Row(
         [
             dbc.Col(
@@ -339,7 +374,7 @@ def update_plots_tables(n_clicks):
         )
     else:
         table = dash_table.DataTable(
-            id="codes-table",
+            id="codes-table-subtype",
             data=summary_table.to_dicts(),
             columns=[
                 {"name": TABLE_NAMES_RENAME.get(c, c), "id": c}
@@ -400,12 +435,59 @@ def update_plots_tables(n_clicks):
             style_table={"overflowX": "auto"},
         )
 
+        tab_children_registration = create_navbar(
+            df_pers_by_registration_by_family,
+            tabs="AC_REGISTRATION",
+            x=time_period,
+            x_max=time_period_max,
+            y=COL_NAME_PERCENTAGE_REGISTRATION_FAMILY,
+            unit="%",
+            title="Distribution of Family types for registration {fam} over time",
+            color="FAMILLE_DR",
+            legend_title="Registration",
+        )
+
+    tabs_registration = dcc.Tabs(
+        id="registration-tabs",
+        value=tab_children_registration[0].value if tab_children_registration else None,
+        children=tab_children_registration,
+        persistence=True,
+    )
+
+    summary_table_registration = df_pers_by_registration_by_family.select(
+        [
+            time_period,
+            time_period_max,
+            "AC_REGISTRATION",
+            "FAMILLE_DR",
+            COL_NAME_PERCENTAGE_REGISTRATION_FAMILY,
+        ]
+    )
+
+    if summary_table_registration.is_empty():
+        table_registration = dbc.Alert("No registration data found", color="warning")
+    else:
+        table_registration = dash_table.DataTable(
+            id="registration-table",
+            data=summary_table_registration.to_dicts(),
+            columns=[
+                {"name": TABLE_NAMES_RENAME.get(c, c), "id": c}
+                for c in summary_table_registration.columns
+            ],
+            style_cell={"textAlign": "left"},
+            sort_action="native",
+            page_size=15,
+            style_table={"overflowX": "auto"},
+        )
+
     return (
         stats,
         [big_chart, family_summary_block, family_tabs],
         table,
         family_tabs_subtype,
         table_subtype,
+        tabs_registration,
+        table_registration,
     )
 
 
@@ -418,4 +500,15 @@ add_export_callbacks(
     id_table="family-summary-table",
     id_button="export-family-btn",
     name="family-summary",
+)
+
+add_export_callbacks(
+    id_table="codes-table-subtype",
+    id_button="export-btn-subtype",
+    name="subtype-summary",
+)
+add_export_callbacks(
+    id_table="registration-table",
+    id_button="export-btn-registration",
+    name="registration-summary",
 )
