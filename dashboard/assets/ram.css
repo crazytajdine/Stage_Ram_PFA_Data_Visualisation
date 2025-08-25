@@ -2327,3 +2327,15 @@ img.ram-login-logo{
 @media (min-width: 1200px){
   :root{ --avatar-size: 184px; }
 }
+
+.tab-container {
+  overflow: auto !important;
+}
+.tab-parent {
+  max-width: 95vw;
+  box-sizing: border-box;
+}
+
+.tab {
+  min-width: max-content;
+}

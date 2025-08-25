@@ -398,11 +398,13 @@ def update_plots_tables(n_clicks):
         legend_title="Family",
     )
 
-    family_tabs_subtype = dcc.Tabs(
-        id="family-tabs-subtype",
-        value=tab_children_subtype[0].value if tab_children_subtype else None,
-        children=tab_children_subtype,
-        persistence=True,
+    family_tabs_subtype = html.Div(
+        dcc.Tabs(
+            id="family-tabs-subtype",
+            value=tab_children_subtype[0].value if tab_children_subtype else None,
+            children=tab_children_subtype,
+            persistence=True,
+        )
     )
 
     # --- Table ---
