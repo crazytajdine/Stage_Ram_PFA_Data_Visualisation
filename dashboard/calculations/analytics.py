@@ -1,4 +1,3 @@
-from data_managers.cache_manager import cache_result
 from data_managers.excel_manager import (
     COL_NAME_WINDOW_TIME,
     COL_NAME_WINDOW_TIME_MAX,
@@ -22,11 +21,11 @@ COL_NAME_COUNT_PER_SUBTYPE_FAMILY = "count_per_subtype_family"
 COL_NAME_COUNT_FAMILY_TOTAL = "count_family_total"
 
 
-@cache_result("analytics_summary_data")
-def analyze_summery() -> pl.DataFrame:
-
-    frame = get_df().collect()
-
+def analyze_delay_codes_polars(frame: pl.DataFrame) -> pl.DataFrame:
+    """
+    Return a Polars frame with:
+        CODE_DR | Occurrences | Description | Aeroports | Nb_AP
+    """
     if frame.is_empty():
         return pl.DataFrame(
             {
@@ -88,13 +87,13 @@ def analyze_summery() -> pl.DataFrame:
     return agg
 
 
-@cache_result("analytics_delay_code_data")
 def prepare_delay_data():
     df = get_df()
     if df is None:
-        return None, None
+        return None, None, None, None
 
     df = df.collect()
+    summary = analyze_delay_codes_polars(df)
 
     # Count per family + delay code
     temporal_all = df.group_by([COL_NAME_WINDOW_TIME, "FAMILLE_DR", "DELAY_CODE"]).agg(
@@ -152,15 +151,21 @@ def prepare_delay_data():
         .round(2)
         .alias(COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD)
     )
+
+    df_pers_by_subtype_by_family = prepare_subtype_family_data(df)
+
+    df_pers_by_registration_by_family = prepare_registration_family_data(df)
     return (
+        summary,
         temporal_all,
         famille_share_df,
+        df_pers_by_subtype_by_family,
+        df_pers_by_registration_by_family,
     )
 
 
-@cache_result("analytics_subtype_family_data")
-def prepare_subtype_family_data():
-    df = get_df().collect()
+def prepare_subtype_family_data(df: pl.DataFrame):
+
     # Count per FAMILLE_DR + AC_SUBTYPE per time window
     temporal_all = df.group_by([COL_NAME_WINDOW_TIME, "AC_SUBTYPE", "FAMILLE_DR"]).agg(
         pl.len().alias(COL_NAME_COUNT_PER_SUBTYPE_FAMILY),
@@ -188,10 +193,7 @@ def prepare_subtype_family_data():
     return temporal_all
 
 
-@cache_result("analytics_registration_family_data")
-def prepare_registration_family_data():
-
-    df = get_df().collect()
+def prepare_registration_family_data(df: pl.DataFrame):
 
     # Count per FAMILLE_DR + AC_REGISTRATION per time window
     temporal_all = df.group_by(
