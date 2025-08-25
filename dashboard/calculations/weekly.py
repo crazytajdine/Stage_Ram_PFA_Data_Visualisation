@@ -44,6 +44,10 @@ def analyze_weekly_codes() -> Tuple[Optional[pl.DataFrame], List[str]]:
         .fill_null(0)
     )
 
+    for day in weekday_order:
+        if day not in pivot.columns:
+            pivot = pivot.with_columns(pl.lit(0).alias(day))
+
     # compute day columns (all except DELAY_CODE) and add Total (sum across day columns)
     day_cols = [c for c in weekday_order if c in pivot.columns]
     pivot = (

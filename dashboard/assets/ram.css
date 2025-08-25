@@ -2330,6 +2330,7 @@ img.ram-login-logo{
 
 .tab-container {
   overflow: auto !important;
+    max-height: 256px;
 }
 .tab-parent {
   max-width: 95vw;

@@ -1,3 +1,4 @@
+from data_managers.cache_manager import cache_result
 from data_managers.excel_manager import (
     COL_NAME_WINDOW_TIME,
     COL_NAME_WINDOW_TIME_MAX,
@@ -82,6 +83,7 @@ def analyze_delay_codes_polars(frame: pl.DataFrame) -> pl.DataFrame:
     return agg
 
 
+@cache_result("analytics_delay_data")
 def prepare_delay_data():
     df = get_df()
     if df is None:
