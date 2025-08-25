@@ -34,6 +34,9 @@ from components.navbar import (
     stores as loaded_url_store,
 )
 
+
+from waitress import serve
+
 from components.title import ID_MAIN_TITLE, layout as tittle_layout
 
 
@@ -157,10 +160,13 @@ add_excel_manager_callbacks()
 add_filter_callbacks()
 
 
-def start_server(start_dev=True):
+def start_server(start_dev=True) -> int:
 
     logging.info("🔁 Starting Dash server…")
-    app.run(debug=start_dev, use_reloader=start_dev, port=8050)
+    if start_dev:
+        app.run(debug=True, use_reloader=True, port=8050)
+    else:
+        serve(app, host="0.0.0.0", port=8050, threads=3)
 
 
 if __name__ == "__main__":
