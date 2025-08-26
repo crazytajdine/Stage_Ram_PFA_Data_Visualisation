@@ -21,11 +21,10 @@ COL_NAME_COUNT_PER_SUBTYPE_FAMILY = "count_per_subtype_family"
 COL_NAME_COUNT_FAMILY_TOTAL = "count_family_total"
 
 
-def analyze_delay_codes_polars(frame: pl.DataFrame) -> pl.DataFrame:
-    """
-    Return a Polars frame with:
-        CODE_DR | Occurrences | Description | Aeroports | Nb_AP
-    """
+def analyze_delay_codes_polars() -> pl.DataFrame:
+
+    frame = get_df().collect()
+
     if frame.is_empty():
         return pl.DataFrame(
             {
@@ -90,10 +89,9 @@ def analyze_delay_codes_polars(frame: pl.DataFrame) -> pl.DataFrame:
 def prepare_delay_data():
     df = get_df()
     if df is None:
-        return None, None, None, None
+        return None, None
 
     df = df.collect()
-    summary = analyze_delay_codes_polars(df)
 
     # Count per family + delay code
     temporal_all = df.group_by([COL_NAME_WINDOW_TIME, "FAMILLE_DR", "DELAY_CODE"]).agg(
@@ -151,16 +149,9 @@ def prepare_delay_data():
         .round(2)
         .alias(COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD)
     )
-
-    df_pers_by_subtype_by_family = prepare_subtype_family_data(df)
-
-    df_pers_by_registration_by_family = prepare_registration_family_data(df)
     return (
-        summary,
         temporal_all,
         famille_share_df,
-        df_pers_by_subtype_by_family,
-        df_pers_by_registration_by_family,
     )
 
 
