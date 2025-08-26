@@ -56,8 +56,7 @@ layout = dbc.Container(
                         {"if": {"row_index": "even"}, "backgroundColor": "white"},
                     ],
                 )
-            ),
-            className="mb-4",
+            )
         ),
         dbc.Button(
             [html.I(className="bi bi-download me-2"), "Exporter Excel"],
@@ -142,4 +141,11 @@ def refresh_weekly_table(_):
 
 add_export_callbacks(
     ID_WEEKLY_TABLE, "weekly-export-btn", "weekly_delay_codes_analysis"
+)
+
+
+add_export_callbacks(
+    ID_WEEKLY_TABLE_PERCENTAGE,
+    "weekly-export-percentage-btn",
+    "weekly_delay_codes_analysis_percentage",
 )
