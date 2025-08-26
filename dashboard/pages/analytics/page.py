@@ -10,7 +10,7 @@ from calculations.analytics import (
     COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD,
     COL_NAME_PERCENTAGE_SUBTYPE_FAMILY,
     COL_NAME_PERCENTAGE_REGISTRATION_FAMILY,
-    analyze_delay_codes_polars,
+    analyze_summery,
     prepare_delay_data,
     prepare_registration_family_data,
     prepare_subtype_family_data,
@@ -252,7 +252,7 @@ def update_plots_tables(n_clicks):
         return dash.no_update
 
     # --- Stats ---
-    summary = analyze_delay_codes_polars()
+    summary = analyze_summery()
     unique_codes = summary.height if not summary.is_empty() else 0
     total_delays = summary["Occurrences"].sum() if not summary.is_empty() else 0
 

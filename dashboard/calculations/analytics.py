@@ -17,7 +17,8 @@ COL_NAME_PERCENTAGE_REGISTRATION_FAMILY = "pct_registration_family_vs_family_tot
 COL_NAME_SUBTYPE = "AC_SUBTYPE"
 
 
-def analyze_delay_codes_polars() -> pl.DataFrame:
+@cache_result("analytics_summary_data")
+def analyze_summery() -> pl.DataFrame:
 
     frame = get_df().collect()
 
@@ -82,7 +83,7 @@ def analyze_delay_codes_polars() -> pl.DataFrame:
     return agg
 
 
-@cache_result("analytics_delay_data")
+@cache_result("analytics_delay_code_data")
 def prepare_delay_data():
     df = get_df()
     if df is None:
@@ -152,6 +153,7 @@ def prepare_delay_data():
     )
 
 
+@cache_result("analytics_subtype_family_data")
 def prepare_subtype_family_data():
     df = get_df().collect()
     # Count per FAMILLE_DR + AC_SUBTYPE per time window
@@ -181,6 +183,7 @@ def prepare_subtype_family_data():
     return temporal_all
 
 
+@cache_result("analytics_registration_family_data")
 def prepare_registration_family_data():
 
     df = get_df().collect()
