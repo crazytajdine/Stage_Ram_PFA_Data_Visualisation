@@ -3,18 +3,21 @@
 import logging
 from typing import Literal, Optional
 import dash_bootstrap_components as dbc
-from dash import html, dcc
+from dash import Input, Output, html, dcc
 import plotly.express as px
 import plotly.graph_objs as go
 
 import polars as pl
 
-from data_managers.excel_manager import COL_NAME_WINDOW_TIME
+from data_managers.excel_manager import COL_NAME_WINDOW_TIME, add_watcher_for_data
 
 import plotly.io as pio
 
-pio.templates.default = "plotly"
+from server_instance import get_app
 
+app = get_app()
+
+pio.templates.default = "plotly"
 
 plot_config = {
     # everything else you already put in config …
@@ -26,6 +29,8 @@ plot_config = {
         "scale": 3,  # 3× pixel-density → crisp on Retina
     }
 }
+
+registered_ids = set()
 
 
 def create_bar_figure(
@@ -364,11 +369,63 @@ def generate_card_info_change(
     )
 
 
-def create_navbar(
-    df,
-    tabs: str,
+# ───── Layout creation ─────
+def create_navbar(df: pl.DataFrame, tabs_col: str, id_prefix: str):
+    """
+    Create the tabs + graph layout for a navbar.
+    """
+    tabs_id = f"{id_prefix}_tabs"
+    graph_id = f"{id_prefix}_graph"
+
+    # unique tab labels
+    unique_fams = df.select(tabs_col).unique().to_series().to_list()
+    tab_children = [
+        dcc.Tab(
+            label=fam,
+            value=fam,
+            selected_style={"borderTop": "3px solid var(--ram-red)"},
+        )
+        for fam in unique_fams
+    ]
+
+    layout = html.Div(
+        [
+            dcc.Tabs(
+                id=tabs_id,
+                value=tab_children[0].value if tab_children else None,
+                children=tab_children,
+                persistence=True,
+            ),
+            dcc.Graph(
+                id=graph_id,
+                config=plot_config,
+                style={
+                    "backgroundColor": "white",
+                    "boxShadow": "0px 4px 6px rgba(0, 0, 0, 0.1)",
+                    "borderBottomLeftRadius": "12px",
+                    "borderBottomRightRadius": "12px",
+                    "padding": "10px",
+                    "border": "1px solid #d6d6d6",
+                    "borderTop": "none",
+                    "height": "80vh",
+                },
+            ),
+        ],
+        style={
+            "max-width": "95vw",
+        },
+    )
+
+    return layout
+
+
+# ───── Callback registration ─────
+def register_navbar_callback(
+    id_prefix: str,
+    get_df_fn,  # function returning a polars DataFrame
+    tabs_col: str,
     x: str,
-    y,
+    y: str,
     title: str,
     color: str,
     x_max: Optional[str] = None,
@@ -376,46 +433,30 @@ def create_navbar(
     legend_title: Optional[str] = None,
     value_other: Optional[float] = None,
 ):
-    by_fam = df.partition_by(tabs, as_dict=True, maintain_order=True)
 
-    tab_children = []
-    for fam, fam_data in by_fam.items():
-        fam = fam[0]
-        fig = create_bar_figure(
+    tabs_id = f"{id_prefix}_tabs"
+    graph_id = f"{id_prefix}_graph"
+
+    @app.callback(
+        Output(graph_id, "figure"),
+        Input(tabs_id, "value", True),
+        add_watcher_for_data(),
+    )
+    def update_graph(selected_fam, _):
+        if selected_fam is None:
+            return {}
+
+        df = get_df_fn()  # get the latest df
+        fam_data = df.filter(pl.col(tabs_col) == selected_fam)
+
+        return create_bar_figure(
             df=fam_data,
             x=x,
             x_max=x_max,
             y=y,
             unit=unit,
-            title=title.format(fam=fam),
+            title=title.format(fam=selected_fam),
             color=color,
             legend_title=legend_title,
             value_other=value_other,
         )
-        tab_children.append(
-            dcc.Tab(
-                label=fam,
-                value=fam,
-                children=[
-                    dcc.Graph(
-                        figure=fig,
-                        config=plot_config,
-                        style={
-                            "backgroundColor": "white",
-                            "boxShadow": "0px 4px 6px rgba(0, 0, 0, 0.1)",
-                            "borderBottomLeftRadius": "12px",
-                            "borderBottomRightRadius": "12px",
-                            "padding": "10px",
-                            "border": "1px solid #d6d6d6",
-                            "borderTop": "none",
-                            "height": "80vh",
-                        },
-                    )
-                ],
-                selected_style={
-                    "borderTop": "3px solid var(--ram-red)",
-                },
-            )
-        )
-
-    return tab_children

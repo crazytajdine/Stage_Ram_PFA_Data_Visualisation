@@ -10,26 +10,32 @@ from calculations.analytics import (
     COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD,
     COL_NAME_PERCENTAGE_SUBTYPE_FAMILY,
     COL_NAME_PERCENTAGE_REGISTRATION_FAMILY,
+    analyze_delay_codes_polars,
     prepare_delay_data,
+    prepare_registration_family_data,
+    prepare_subtype_family_data,
+)
+from data_managers.excel_manager import (
+    COL_NAME_WINDOW_TIME,
+    COL_NAME_WINDOW_TIME_MAX,
+    add_watcher_for_data,
 )
 from utils_dashboard.utils_download import add_export_callbacks
 from server_instance import get_app
-import data_managers.excel_manager as excel_manager
 from utils_dashboard.utils_graph import (
     create_bar_figure,
     create_navbar,
+    register_navbar_callback,
 )
 
 app = get_app()
 # ------------------------------------------------------------------ #
 # 1 ▸  Read & prepare data                                           #
 # ------------------------------------------------------------------ #
-time_period = excel_manager.COL_NAME_WINDOW_TIME
-time_period_max = excel_manager.COL_NAME_WINDOW_TIME_MAX
 
 TABLE_NAMES_RENAME = {
-    time_period: "Time Window",
-    time_period_max: "Max Time Window",
+    COL_NAME_WINDOW_TIME: "Time Window",
+    COL_NAME_WINDOW_TIME_MAX: "Max Time Window",
     COL_NAME_COUNT_DELAY_FAMILY: "Number of Occurrences",
     COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY: "Number of Occurrences of Delay Code",
     COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD: "Percentage of Occurrences",
@@ -209,31 +215,44 @@ layout = dbc.Container(
 
 
 # --- Outputs -------------------------------------------------------
+# ───── Constants ─────
+ID_STATS_DIV = "stats-div"
+ID_CHARTS_CONTAINER = "charts-container"
+ID_TABLE_CONTAINER = "table-container"
+ID_CHARTS_CONTAINER_SUBTYPE = "charts-container-subtype"
+ID_TABLE_CONTAINER_SUBTYPE = "table-container-subtype"
+ID_CHARTS_CONTAINER_REGISTRATION = "charts-container-registration"
+ID_TABLE_CONTAINER_REGISTRATION = "table-container-registration"
+
+ID_NAVBAR_FAMILY = "navbar-family"
+ID_NAVBAR_SUBTYPE = "navbar-subtype"
+ID_NAVBAR_REGISTRATION = "navbar-registration"
+
+
 @app.callback(
     [
-        Output("stats-div", "children"),
-        Output("charts-container", "children"),
-        Output("table-container", "children"),
-        Output("charts-container-subtype", "children"),
-        Output("table-container-subtype", "children"),
-        Output("charts-container-registration", "children"),
-        Output("table-container-registration", "children"),
+        Output(ID_STATS_DIV, "children"),
+        Output(ID_CHARTS_CONTAINER, "children"),
+        Output(ID_TABLE_CONTAINER, "children"),
+        Output(ID_CHARTS_CONTAINER_SUBTYPE, "children"),
+        Output(ID_TABLE_CONTAINER_SUBTYPE, "children"),
+        Output(ID_CHARTS_CONTAINER_REGISTRATION, "children"),
+        Output(ID_TABLE_CONTAINER_REGISTRATION, "children"),
     ],
-    excel_manager.add_watcher_for_data(),
+    add_watcher_for_data(),
     prevent_initial_call=False,
 )
 def update_plots_tables(n_clicks):
-    (
-        summary,
-        temporal_all,
-        famille_share_df,
-        subtype_family_percentage_df,
-        df_pers_by_registration_by_family,
-    ) = prepare_delay_data()
-    if temporal_all is None:
+    # --- Prepare data ---
+    temporal_all, famille_share_df = prepare_delay_data()
+    subtype_family_percentage_df = prepare_subtype_family_data()
+    df_pers_by_registration_by_family = prepare_registration_family_data()
+
+    if temporal_all is None or temporal_all.is_empty():
         return dash.no_update
 
     # --- Stats ---
+    summary = analyze_delay_codes_polars()
     unique_codes = summary.height if not summary.is_empty() else 0
     total_delays = summary["Occurrences"].sum() if not summary.is_empty() else 0
 
@@ -256,11 +275,11 @@ def update_plots_tables(n_clicks):
         ]
     )
 
-    # --- Charts ---
+    # --- Family chart ---
     fig_familles = create_bar_figure(
         df=famille_share_df,
-        x=time_period,
-        x_max=time_period_max,
+        x=COL_NAME_WINDOW_TIME,
+        x_max=COL_NAME_WINDOW_TIME_MAX,
         y=COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD,
         title="Percentage of delays by family by segmentation",
         unit="%",
@@ -268,15 +287,13 @@ def update_plots_tables(n_clicks):
         legend_title="Family",
     )
     big_chart = html.Div(
-        dcc.Graph(
-            figure=fig_familles,
-            style={"width": "100%", "height": "600px"},
-        ),
+        dcc.Graph(figure=fig_familles, style={"width": "100%", "height": "600px"}),
         className="graph mb-4 mx-auto",
         style={"width": "90%", "gridColumn": "1 / -1"},
     )
-    # --- Family % table (under the first chart) ---
-    if (famille_share_df is None) or famille_share_df.is_empty():
+
+    # --- Family table ---
+    if famille_share_df.is_empty():
         family_summary_block = dbc.Alert(
             "Aucune donnée famille/segmentation trouvée pour cette sélection.",
             color="warning",
@@ -287,18 +304,16 @@ def update_plots_tables(n_clicks):
         fam_table_df = (
             famille_share_df.select(
                 [
-                    pl.col(time_period),
-                    pl.col(time_period_max),
-                    pl.col("FAMILLE_DR"),
-                    pl.col(COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD),
+                    COL_NAME_WINDOW_TIME,
+                    COL_NAME_WINDOW_TIME_MAX,
+                    "FAMILLE_DR",
+                    COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD,
                 ]
             )
-            .sort([time_period, "FAMILLE_DR"])
+            .sort([COL_NAME_WINDOW_TIME, "FAMILLE_DR"])
             .with_columns(pl.col(COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD).round(2))
         )
-
         family_summary_table = dash_table.DataTable(
-            id="family-summary-table",
             data=fam_table_df.to_dicts(),
             columns=[
                 {"name": TABLE_NAMES_RENAME.get(c, c), "id": c}
@@ -310,17 +325,13 @@ def update_plots_tables(n_clicks):
             style_table={"overflowX": "auto"},
             style_header={"fontWeight": "600"},
         )
-
         family_summary_block = html.Div(
             [
-                html.Div(
-                    dbc.Button(
-                        [html.I(className="bi bi-download me-2"), "Exporter Excel"],
-                        id="export-family-btn",
-                        className="btn-export mb-2",
-                        n_clicks=0,
-                    ),
-                    className="d-flex mb-2",
+                dbc.Button(
+                    [html.I(className="bi bi-download me-2"), "Exporter Excel"],
+                    id="export-family-btn",
+                    className="btn-export mb-2",
+                    n_clicks=0,
                 ),
                 family_summary_table,
             ],
@@ -328,37 +339,18 @@ def update_plots_tables(n_clicks):
             style={"width": "90%", "gridColumn": "1 / -1"},
         )
 
-    temporal_all = temporal_all.with_columns(
-        [
-            pl.col("DELAY_CODE").cast(pl.Utf8),  # make color discrete once
-        ]
+    # --- Family Navbar ---
+    navbar_family_layout = create_navbar(
+        df=temporal_all,
+        tabs_col="FAMILLE_DR",
+        id_prefix=ID_NAVBAR_FAMILY,
     )
 
-    # 2) Split the dataframe once by family, then iterate
-    tab_children = create_navbar(
-        temporal_all,
-        tabs="FAMILLE_DR",
-        x=time_period,
-        x_max=time_period_max,
-        y=COL_NAME_PERCENTAGE_DELAY_CODE_PER_FAMILY_PER_PERIOD,
-        unit="%",
-        title="Distribution of delay codes of {fam} subtype over time",
-        color="DELAY_CODE",
-        legend_title="Code Delay",
-    )
-
-    family_tabs = dcc.Tabs(
-        id="family-tabs",
-        value=tab_children[0].value if tab_children else None,
-        children=tab_children,
-        persistence=True,
-    )
-
-    # --- Table ---
+    # --- Family table (per code) ---
     summary_table = temporal_all.select(
         [
-            time_period,
-            time_period_max,
+            COL_NAME_WINDOW_TIME,
+            COL_NAME_WINDOW_TIME_MAX,
             "FAMILLE_DR",
             "DELAY_CODE",
             COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY,
@@ -366,15 +358,8 @@ def update_plots_tables(n_clicks):
             COL_NAME_PERCENTAGE_DELAY_CODE_PER_FAMILY_PER_PERIOD_TOTAL,
         ]
     )
-    if summary_table.is_empty():
-        table = dbc.Alert(
-            "Aucun code de retard trouvé dans la sélection",
-            color="warning",
-            className="text-center",
-        )
-    else:
-        table = dash_table.DataTable(
-            id="codes-table-subtype",
+    table = (
+        dash_table.DataTable(
             data=summary_table.to_dicts(),
             columns=[
                 {"name": TABLE_NAMES_RENAME.get(c, c), "id": c}
@@ -385,47 +370,32 @@ def update_plots_tables(n_clicks):
             page_size=15,
             style_table={"overflowX": "auto"},
         )
-
-    tab_children_subtype = create_navbar(
-        subtype_family_percentage_df,
-        tabs="AC_SUBTYPE",
-        x=time_period,
-        x_max=time_period_max,
-        y=COL_NAME_PERCENTAGE_SUBTYPE_FAMILY,
-        unit="%",
-        title="Distribution of Family type of {fam} subtype over time",
-        color="FAMILLE_DR",
-        legend_title="Family",
-    )
-
-    family_tabs_subtype = html.Div(
-        dcc.Tabs(
-            id="family-tabs-subtype",
-            value=tab_children_subtype[0].value if tab_children_subtype else None,
-            children=tab_children_subtype,
-            persistence=True,
+        if not summary_table.is_empty()
+        else dbc.Alert(
+            "Aucun code de retard trouvé dans la sélection",
+            color="warning",
+            className="text-center",
         )
     )
 
-    # --- Table ---
+    # --- Subtype Navbar ---
+    navbar_subtype_layout = create_navbar(
+        df=subtype_family_percentage_df,
+        tabs_col="AC_SUBTYPE",
+        id_prefix=ID_NAVBAR_SUBTYPE,
+    )
+
     summary_table_subtype = subtype_family_percentage_df.select(
         [
-            time_period,
-            time_period_max,
+            COL_NAME_WINDOW_TIME,
+            COL_NAME_WINDOW_TIME_MAX,
             "AC_SUBTYPE",
             "FAMILLE_DR",
             COL_NAME_PERCENTAGE_SUBTYPE_FAMILY,
         ]
     )
-    if summary_table_subtype.is_empty():
-        table_subtype = dbc.Alert(
-            "Aucun code de retard trouvé dans la sélection",
-            color="warning",
-            className="text-center",
-        )
-    else:
-        table_subtype = dash_table.DataTable(
-            id="codes-table",
+    table_subtype = (
+        dash_table.DataTable(
             data=summary_table_subtype.to_dicts(),
             columns=[
                 {"name": TABLE_NAMES_RENAME.get(c, c), "id": c}
@@ -436,41 +406,32 @@ def update_plots_tables(n_clicks):
             page_size=15,
             style_table={"overflowX": "auto"},
         )
-
-        tab_children_registration = create_navbar(
-            df_pers_by_registration_by_family,
-            tabs="AC_REGISTRATION",
-            x=time_period,
-            x_max=time_period_max,
-            y=COL_NAME_PERCENTAGE_REGISTRATION_FAMILY,
-            unit="%",
-            title="Distribution of Family types for registration {fam} over time",
-            color="FAMILLE_DR",
-            legend_title="Registration",
+        if not summary_table_subtype.is_empty()
+        else dbc.Alert(
+            "Aucun code de retard trouvé dans la sélection",
+            color="warning",
+            className="text-center",
         )
+    )
 
-    tabs_registration = dcc.Tabs(
-        id="registration-tabs",
-        value=tab_children_registration[0].value if tab_children_registration else None,
-        children=tab_children_registration,
-        persistence=True,
+    # --- Registration Navbar ---
+    navbar_registration_layout = create_navbar(
+        df=df_pers_by_registration_by_family,
+        tabs_col="AC_REGISTRATION",
+        id_prefix=ID_NAVBAR_REGISTRATION,
     )
 
     summary_table_registration = df_pers_by_registration_by_family.select(
         [
-            time_period,
-            time_period_max,
+            COL_NAME_WINDOW_TIME,
+            COL_NAME_WINDOW_TIME_MAX,
             "AC_REGISTRATION",
             "FAMILLE_DR",
             COL_NAME_PERCENTAGE_REGISTRATION_FAMILY,
         ]
     )
-
-    if summary_table_registration.is_empty():
-        table_registration = dbc.Alert("No registration data found", color="warning")
-    else:
-        table_registration = dash_table.DataTable(
-            id="registration-table",
+    table_registration = (
+        dash_table.DataTable(
             data=summary_table_registration.to_dicts(),
             columns=[
                 {"name": TABLE_NAMES_RENAME.get(c, c), "id": c}
@@ -481,14 +442,20 @@ def update_plots_tables(n_clicks):
             page_size=15,
             style_table={"overflowX": "auto"},
         )
+        if not summary_table_registration.is_empty()
+        else dbc.Alert(
+            "No registration data found",
+            color="warning",
+        )
+    )
 
     return (
         stats,
-        [big_chart, family_summary_block, family_tabs],
+        [big_chart, family_summary_block, navbar_family_layout],
         table,
-        family_tabs_subtype,
+        navbar_subtype_layout,
         table_subtype,
-        tabs_registration,
+        navbar_registration_layout,
         table_registration,
     )
 
@@ -513,4 +480,41 @@ add_export_callbacks(
     id_table="registration-table",
     id_button="export-btn-registration",
     name="registration-summary",
+)
+
+
+register_navbar_callback(
+    id_prefix=ID_NAVBAR_FAMILY,
+    get_df_fn=lambda: prepare_delay_data()[0],
+    tabs_col="FAMILLE_DR",
+    x=COL_NAME_WINDOW_TIME,
+    x_max=COL_NAME_WINDOW_TIME_MAX,
+    y=COL_NAME_PERCENTAGE_DELAY_CODE_PER_FAMILY_PER_PERIOD,
+    title="Distribution of delay codes of {fam} subtype over time",
+    color="DELAY_CODE",
+    legend_title="Code Delay",
+)
+
+register_navbar_callback(
+    id_prefix=ID_NAVBAR_SUBTYPE,
+    get_df_fn=prepare_subtype_family_data,
+    tabs_col="AC_SUBTYPE",
+    x=COL_NAME_WINDOW_TIME,
+    x_max=COL_NAME_WINDOW_TIME_MAX,
+    y=COL_NAME_PERCENTAGE_SUBTYPE_FAMILY,
+    title="Distribution of Family type of {fam} subtype over time",
+    color="FAMILLE_DR",
+    legend_title="Family",
+)
+
+register_navbar_callback(
+    id_prefix=ID_NAVBAR_REGISTRATION,
+    get_df_fn=prepare_registration_family_data,
+    tabs_col="AC_REGISTRATION",
+    x=COL_NAME_WINDOW_TIME,
+    x_max=COL_NAME_WINDOW_TIME_MAX,
+    y=COL_NAME_PERCENTAGE_REGISTRATION_FAMILY,
+    title="Distribution of Family types for registration {fam} over time",
+    color="FAMILLE_DR",
+    legend_title="Registration",
 )

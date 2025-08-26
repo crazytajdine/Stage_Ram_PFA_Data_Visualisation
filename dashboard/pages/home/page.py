@@ -34,6 +34,7 @@ from utils_dashboard.utils_graph import (
     create_bar_figure,
     create_bar_horizontal_figure,
     create_navbar,
+    register_navbar_callback,
 )
 
 
@@ -44,10 +45,15 @@ ID_TABLE_FLIGHT_DELAY = "table-flight-delay"
 ID_FIGURE_FLIGHT_DELAY = "figure-flight-delay"
 ID_FIGURE_SUBTYPE_PR_DELAY_MEAN = "figure-subtype-pr-delay-mean"
 ID_TABLE_SUBTYPE_PR_DELAY_MEAN = "table-subtype-pr-delay-mean"
-ID_navbar_SUBTYPE_REG_PCT = "figure-subtype-reg-pct"
+ID_NAVBAR_SUBTYPE_REG_PCT = "figure-subtype-reg-pct"
 ID_TABLE_SUBTYPE_REG_PCT = "table-subtype-reg-pct"
 ID_TABLE_SUBTYPE_AIRPORT_PCT = "table-subtype-airport-pct"
 ID_NAVBAR_SUBTYPE_AIRPORT_PCT = "navbar-subtype-airport-pct"
+
+
+ID_AIRPORT_SUBTYPE_TABS_RESULT = "subtype_air_pct_tabs_result"
+ID_AIRPORT_REGISTRATIONS_TABS_RESULT = "subtype_reg_pct_tabs_result"
+
 
 TABLE_NAMES_RENAME = {
     "AC_SUBTYPE": "Aircraft Subtype",
@@ -238,10 +244,7 @@ layout = dbc.Container(
                     style={"marginBottom": "40px"},
                 ),
                 # Subtype-registration % chart + table
-                dcc.Tabs(
-                    id=ID_navbar_SUBTYPE_REG_PCT,
-                    persistence=True,
-                ),
+                html.Div(id=ID_NAVBAR_SUBTYPE_REG_PCT),
                 html.Div(
                     [
                         dbc.Button(
@@ -274,9 +277,8 @@ layout = dbc.Container(
                     ],
                     style={"marginTop": "12px", "marginBottom": "40px"},
                 ),
-                dcc.Tabs(
+                html.Div(
                     id=ID_NAVBAR_SUBTYPE_AIRPORT_PCT,
-                    persistence=True,
                 ),
                 html.Div(
                     [
@@ -467,8 +469,7 @@ def update_interval(_):
 
 
 @app.callback(
-    Output(ID_navbar_SUBTYPE_REG_PCT, "children"),
-    Output(ID_navbar_SUBTYPE_REG_PCT, "value"),
+    Output(ID_NAVBAR_SUBTYPE_REG_PCT, "children"),
     Output(ID_TABLE_SUBTYPE_REG_PCT, "columns"),
     Output(ID_TABLE_SUBTYPE_REG_PCT, "data"),
     add_watcher_for_data(),
@@ -483,21 +484,12 @@ def update_subtype_registration_pct(_):
     if df_reg.is_empty():
         return [], None, [], []
 
-    # figure: horizontal stacked bars per time-window showing registration % within subtypes
-    figs = create_navbar(
-        df_reg,
-        tabs=COL_NAME_SUBTYPE,
-        x=COL_NAME_WINDOW_TIME,
-        x_max=COL_NAME_WINDOW_TIME_MAX,
-        y=COL_NAME_PERCENTAGE,
-        title="distribution of registrations for {fam} subtype across time",
-        legend_title="Registrations",
-        color="AC_REGISTRATION",
-        value_other=3,
+    # ───── Navbar layout ─────
+    navbar_layout = create_navbar(
+        df=df_reg,
+        tabs_col=COL_NAME_SUBTYPE,
+        id_prefix=ID_AIRPORT_REGISTRATIONS_TABS_RESULT,
     )
-
-    value = figs[0].value if figs else None
-    # table: pick useful columns to display
     display_cols = [
         COL_NAME_WINDOW_TIME,
         COL_NAME_WINDOW_TIME_MAX,
@@ -507,15 +499,13 @@ def update_subtype_registration_pct(_):
     ]
     df_disp = df_reg.select(display_cols)
     cols = [{"name": TABLE_NAMES_RENAME.get(c, c), "id": c} for c in display_cols]
-
     data = df_disp.to_dicts()
 
-    return figs, value, cols, data
+    return navbar_layout, cols, data
 
 
 @app.callback(
     Output(ID_NAVBAR_SUBTYPE_AIRPORT_PCT, "children"),
-    Output(ID_NAVBAR_SUBTYPE_AIRPORT_PCT, "value"),
     Output(ID_TABLE_SUBTYPE_AIRPORT_PCT, "columns"),
     Output(ID_TABLE_SUBTYPE_AIRPORT_PCT, "data"),
     add_watcher_for_data(),
@@ -523,28 +513,20 @@ def update_subtype_registration_pct(_):
 def update_subtype_airport_pct(_):
     df_lazy = get_df()
     if df_lazy is None:
-        return [], None, [], []
+        return [], [], []
 
     # calculate (cached)
     df_air = calculate_subtype_airport_pct(df_lazy).collect()
     if df_air.is_empty():
-        return [], None, [], []
+        return [], [], []
 
-    # figure: horizontal stacked bars per time-window showing airport % within subtypes
-    figs = create_navbar(
-        df_air,
-        tabs=COL_NAME_SUBTYPE,
-        x=COL_NAME_WINDOW_TIME,
-        x_max=COL_NAME_WINDOW_TIME_MAX,
-        y=COL_NAME_PERCENTAGE,
-        title="distribution of airports for {fam} subtype across time",
-        legend_title="Airports",
-        color="DEP_AP_SCHED",
-        value_other=3,
+    # create_navbar registers the graph-callback and returns layout
+    navbar_layout = create_navbar(
+        df=df_air,
+        tabs_col=COL_NAME_SUBTYPE,
+        id_prefix=ID_AIRPORT_SUBTYPE_TABS_RESULT,
     )
 
-    value = figs[0].value if figs else None
-    # table: pick useful columns to display
     display_cols = [
         COL_NAME_WINDOW_TIME,
         COL_NAME_WINDOW_TIME_MAX,
@@ -554,10 +536,9 @@ def update_subtype_airport_pct(_):
     ]
     df_disp = df_air.select(display_cols)
     cols = [{"name": TABLE_NAMES_RENAME.get(c, c), "id": c} for c in display_cols]
-
     data = df_disp.to_dicts()
 
-    return figs, value, cols, data
+    return navbar_layout, cols, data
 
 
 # --- CALLBACKS POUR TELECHARGEMENT EXCEL ---
@@ -582,3 +563,30 @@ for tbl, btn, name in [
     ),
 ]:
     add_export_callbacks(id_table=tbl, id_button=btn, name=name)
+
+register_navbar_callback(
+    id_prefix=ID_AIRPORT_SUBTYPE_TABS_RESULT,
+    get_df_fn=lambda: calculate_subtype_airport_pct(get_df()).collect(),
+    tabs_col=COL_NAME_SUBTYPE,
+    x=COL_NAME_WINDOW_TIME,
+    x_max=COL_NAME_WINDOW_TIME_MAX,
+    y=COL_NAME_PERCENTAGE,
+    title="distribution of airports for {fam} subtype across time",
+    legend_title="Airports",
+    color="DEP_AP_SCHED",
+    value_other=3,
+)
+
+
+register_navbar_callback(
+    id_prefix=ID_AIRPORT_REGISTRATIONS_TABS_RESULT,
+    get_df_fn=lambda: calculate_subtype_registration_pct(get_df()).collect(),
+    tabs_col=COL_NAME_SUBTYPE,
+    x=COL_NAME_WINDOW_TIME,
+    x_max=COL_NAME_WINDOW_TIME_MAX,
+    y=COL_NAME_PERCENTAGE,
+    title="distribution of registrations for {fam} subtype across time",
+    legend_title="Registrations",
+    color="AC_REGISTRATION",
+    value_other=3,
+)
