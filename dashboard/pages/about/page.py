@@ -13,11 +13,10 @@ app = get_app()
 TEAM = [
     {
         "name": "Taj Eddine Marmoul",
-        "role": "AI Engineer",
+        "role": "Data Scientist | MLOps & DevOps Engineer",
         "photo": "team/1732545400901.jpg",
         "email": "tajdinetajdine1@gmail.com",
         "linkedin": "https://www.linkedin.com/in/tajeddine-marmoul/",
-        # optional: add when ready
         "phone": "+212664410196",
     },
     {
