@@ -33,6 +33,25 @@ app = get_app()
 # 1 ▸  Read & prepare data                                           #
 # ------------------------------------------------------------------ #
 
+ID_STATS_DIV = "stats-div"
+ID_CHARTS_CONTAINER = "charts-container"
+ID_TABLE_CONTAINER = "table-container"
+ID_CHARTS_CONTAINER_SUBTYPE = "charts-container-subtype"
+ID_TABLE_CONTAINER_SUBTYPE = "table-container-subtype"
+ID_CHARTS_CONTAINER_REGISTRATION = "charts-container-registration"
+ID_TABLE_CONTAINER_REGISTRATION = "table-container-registration"
+
+ID_TABLE_SUMMARY = "table-summary"
+ID_TABLE_SUBTYPE = "table-subtype"
+ID_TABLE_REGISTRATION = "table-registration"
+ID_TABLE_DELAY_CODE = "table-delay-code"
+
+
+ID_NAVBAR_FAMILY = "navbar-family"
+ID_NAVBAR_SUBTYPE = "navbar-subtype"
+ID_NAVBAR_REGISTRATION = "navbar-registration"
+
+
 TABLE_NAMES_RENAME = {
     COL_NAME_WINDOW_TIME: "Time Window",
     COL_NAME_WINDOW_TIME_MAX: "Max Time Window",
@@ -215,18 +234,6 @@ layout = dbc.Container(
 
 
 # --- Outputs -------------------------------------------------------
-# ───── Constants ─────
-ID_STATS_DIV = "stats-div"
-ID_CHARTS_CONTAINER = "charts-container"
-ID_TABLE_CONTAINER = "table-container"
-ID_CHARTS_CONTAINER_SUBTYPE = "charts-container-subtype"
-ID_TABLE_CONTAINER_SUBTYPE = "table-container-subtype"
-ID_CHARTS_CONTAINER_REGISTRATION = "charts-container-registration"
-ID_TABLE_CONTAINER_REGISTRATION = "table-container-registration"
-
-ID_NAVBAR_FAMILY = "navbar-family"
-ID_NAVBAR_SUBTYPE = "navbar-subtype"
-ID_NAVBAR_REGISTRATION = "navbar-registration"
 
 
 @app.callback(
@@ -314,6 +321,7 @@ def update_plots_tables(n_clicks):
             .with_columns(pl.col(COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD).round(2))
         )
         family_summary_table = dash_table.DataTable(
+            id=ID_TABLE_SUMMARY,
             data=fam_table_df.to_dicts(),
             columns=[
                 {"name": TABLE_NAMES_RENAME.get(c, c), "id": c}
@@ -360,6 +368,7 @@ def update_plots_tables(n_clicks):
     )
     table = (
         dash_table.DataTable(
+            id=ID_TABLE_DELAY_CODE,
             data=summary_table.to_dicts(),
             columns=[
                 {"name": TABLE_NAMES_RENAME.get(c, c), "id": c}
@@ -396,6 +405,7 @@ def update_plots_tables(n_clicks):
     )
     table_subtype = (
         dash_table.DataTable(
+            id=ID_TABLE_SUBTYPE,
             data=summary_table_subtype.to_dicts(),
             columns=[
                 {"name": TABLE_NAMES_RENAME.get(c, c), "id": c}
@@ -432,6 +442,7 @@ def update_plots_tables(n_clicks):
     )
     table_registration = (
         dash_table.DataTable(
+            id=ID_TABLE_REGISTRATION,
             data=summary_table_registration.to_dicts(),
             columns=[
                 {"name": TABLE_NAMES_RENAME.get(c, c), "id": c}
@@ -461,25 +472,25 @@ def update_plots_tables(n_clicks):
 
 
 add_export_callbacks(
-    id_table="codes-table",
+    id_table=ID_TABLE_DELAY_CODE,
     id_button="export-btn",
-    name="codes-retard",
+    name="delay_code",
 )
 add_export_callbacks(
-    id_table="family-summary-table",
+    id_table=ID_TABLE_SUMMARY,
     id_button="export-family-btn",
-    name="family-summary",
+    name="family_summary",
 )
 
 add_export_callbacks(
-    id_table="codes-table-subtype",
+    id_table=ID_TABLE_SUBTYPE,
     id_button="export-btn-subtype",
-    name="subtype-summary",
+    name="subtype_summary",
 )
 add_export_callbacks(
-    id_table="registration-table",
+    id_table=ID_TABLE_REGISTRATION,
     id_button="export-btn-registration",
-    name="registration-summary",
+    name="registration_summary",
 )
 
 
