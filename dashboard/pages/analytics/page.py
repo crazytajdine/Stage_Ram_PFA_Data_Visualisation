@@ -130,7 +130,7 @@ table_block = html.Div(
 )
 table_block_subtype = html.Div(
     [
-        html.H3("Delay Code Details", className="h4 mt-4"),
+        html.H3("Details by Subtype", className="h4 mt-4"),
         dbc.Button(
             [html.I(className="bi bi-download me-2"), "Exporter Excel"],
             id="export-btn-subtype",
