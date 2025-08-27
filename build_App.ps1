@@ -13,4 +13,5 @@ poetry run python -m nuitka `
     --windows-file-description="Analytics tool for RAM flight delays" `
     --windows-file-version="1.0.0" `
     --windows-product-version="1.0.0" `
+    --windows-disable-console `
     "dashboard/RAM Delay Dashboard.py"
