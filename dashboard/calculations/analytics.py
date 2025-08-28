@@ -21,7 +21,7 @@ COL_NAME_COUNT_PER_SUBTYPE_FAMILY = "count_per_subtype_family"
 COL_NAME_COUNT_FAMILY_TOTAL = "count_family_total"
 
 
-def analyze_delay_codes_polars() -> pl.DataFrame:
+def analyze_summery() -> pl.DataFrame:
 
     frame = get_df().collect()
 
