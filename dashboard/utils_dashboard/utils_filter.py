@@ -2,7 +2,7 @@
 
 from datetime import datetime
 import logging
-from dashboard.data_managers.excel_manager import get_min_max_date_raw_df
+from data_managers.excel_manager import get_min_max_date_raw_df
 from schemas.filter import FilterType
 
 filter_name = ""
@@ -17,14 +17,22 @@ def load_filtering():
 def get_date_range() -> tuple:
     global date_min, date_max
 
-    if date_min is None or date_max is None:
-        logging.warning("Date range is not set. Returning (None, None).")
-        return get_min_max_date_raw_df()
+    global_date_min, global_date_max = get_min_max_date_raw_df()
+    if date_min is None:
+        logging.info("Date min is not set.")
+        date_min_to_send = global_date_min
+    else:
+        date_min_to_send = datetime.strptime(date_min, "%Y-%m-%d").date()
 
-    return (
-        datetime.strptime(date_min, "%Y-%m-%d").date(),
-        datetime.strptime(date_max, "%Y-%m-%d").date(),
-    )
+    if date_max is None:
+        logging.info("Date max is not set.")
+
+        date_max_to_send = global_date_max
+
+    else:
+        date_max_to_send = datetime.strptime(date_max, "%Y-%m-%d").date()
+
+    return date_min_to_send, date_max_to_send
 
 
 def set_name_from_filter(filters: FilterType) -> None:

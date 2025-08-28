@@ -427,7 +427,6 @@ def get_latest_modification_time():
 
 def get_min_max_date_raw_df() -> tuple:
     global df_raw
-
     min_max_date = df_raw.select(
         pl.col(COL_NAME_DEPARTURE_DATETIME).min().alias("min_date"),
         pl.col(COL_NAME_DEPARTURE_DATETIME).max().alias("max_date"),
