@@ -185,10 +185,7 @@ add_auth_callbacks()
 def start_server(start_dev=True):
 
     logging.info("🔁 Starting Dash server…")
-    if start_dev:
-        app.run(debug=True, use_reloader=True, port=8050)
-    else:
-        serve(app, host="localhost", port=8050, threads=3)
+    app.run(debug=True, use_reloader=start_dev, port=8050)
 
 
 if __name__ == "__main__":
