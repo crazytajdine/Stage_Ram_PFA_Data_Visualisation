@@ -5,8 +5,8 @@ import logging
 from dash import Input, Output, State
 
 from data_managers.cache_manager import delete_old_keys
-from dashboard.schemas.data_status import StatusData
-from dashboard.status.data_status_manager import compare_status
+from schemas.data_status import StatusData
+from status.data_status_manager import compare_status
 from data_managers.excel_manager import (
     ID_INTERVAL_WATCHER,
     ID_PATH_STORE,
@@ -36,7 +36,6 @@ def add_callbacks():
         try:
             # Check if file path exists
             if (not current_path) or (not os.path.exists(current_path)):
-
                 logging.warning("Excel file path no longer exists.")
 
                 path_to_excel, latest_modification_time = (
@@ -49,13 +48,11 @@ def add_callbacks():
                     return path_to_excel, latest_modification_time
                 else:
                     return dash.no_update
-
             # Check for modification time
             latest_modification_time = get_latest_modification_time()
             logging.debug(
                 f"watching file: {latest_modification_time} new: {date_latest_fetch}"
             )
-
             if latest_modification_time != date_latest_fetch:
                 logging.info("File changed, updating DataFrame...")
                 delete_old_keys()
@@ -69,4 +66,4 @@ def add_callbacks():
         except Exception as e:
             logging.error(f"Error watching file: {e}", exc_info=True)
 
-        return dash.no_update, dash.no_update
+        return dash.no_update
