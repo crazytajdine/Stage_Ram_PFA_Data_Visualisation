@@ -1,18 +1,34 @@
 # filter_state.py
 
+from datetime import datetime
 import logging
+from dashboard.data_managers.excel_manager import get_min_max_date_raw_df
 from schemas.filter import FilterType
 
 filter_name = ""
 filter_list = []
+date_min, date_max = None, None
 
 
 def load_filtering():
     logging.info("Loading filter file...")
 
 
+def get_date_range() -> tuple:
+    global date_min, date_max
+
+    if date_min is None or date_max is None:
+        logging.warning("Date range is not set. Returning (None, None).")
+        return get_min_max_date_raw_df()
+
+    return (
+        datetime.strptime(date_min, "%Y-%m-%d").date(),
+        datetime.strptime(date_max, "%Y-%m-%d").date(),
+    )
+
+
 def set_name_from_filter(filters: FilterType) -> None:
-    global filter_name, filter_list
+    global filter_name, filter_list, date_min, date_max
     logging.info("Starting to generate filter name from filters: %s", filters)
 
     start = filters.get("dt_start") or ""
@@ -22,6 +38,11 @@ def set_name_from_filter(filters: FilterType) -> None:
     code_delays = filters.get("fl_code_delays") or []
     matricules = filters.get("fl_matricules") or []
     segmentation_unit = filters.get("fl_unit_segmentation") or "d"
+
+    date_min, date_max = (
+        filters.get("dt_start"),
+        filters.get("dt_end"),
+    )
 
     logging.debug(
         "Extracted values: start=%s, end=%s, seg=%s, unit=%s | subtypes=%s, code_delays=%s, matricules=%s",
@@ -42,6 +63,7 @@ def set_name_from_filter(filters: FilterType) -> None:
     else:
         if start:
             logging.debug("Adding start date part: from_%s")
+
             filter_list.append(f"from_{start.replace(' ', '_').replace('_', '/')}")
         if end:
             logging.debug("Adding end date part: to_%s")

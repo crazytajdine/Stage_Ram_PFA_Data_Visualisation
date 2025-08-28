@@ -5,6 +5,8 @@ import logging
 from dash import Input, Output, State
 
 from data_managers.cache_manager import delete_old_keys
+from dashboard.schemas.data_status import StatusData
+from dashboard.status.data_status_manager import compare_status
 from data_managers.excel_manager import (
     ID_INTERVAL_WATCHER,
     ID_PATH_STORE,
@@ -31,13 +33,22 @@ def add_callbacks():
     )
     def watch_file(current_path, date_latest_fetch, _):
         logging.debug("Watching file every second...")
-
         try:
             # Check if file path exists
             if (not current_path) or (not os.path.exists(current_path)):
+
                 logging.warning("Excel file path no longer exists.")
-                delete_old_keys()
-                return get_path_to_excel(), get_latest_modification_time()
+
+                path_to_excel, latest_modification_time = (
+                    get_path_to_excel(),
+                    get_latest_modification_time(),
+                )
+                new_status: StatusData = "unselected" if path_to_excel else "selected"
+                if compare_status(new_status):
+                    delete_old_keys()
+                    return path_to_excel, latest_modification_time
+                else:
+                    return dash.no_update
 
             # Check for modification time
             latest_modification_time = get_latest_modification_time()

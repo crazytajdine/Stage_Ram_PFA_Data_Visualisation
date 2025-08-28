@@ -12,6 +12,9 @@ from calculations.main_dashboard import (
     COL_NAME_CATEGORY_GT_15MIN_COUNT,
     COL_NAME_CATEGORY_GT_15MIN_MEAN,
     COL_NAME_COUNT_FLIGHTS,
+    COL_NAME_COUNT_FLIGHTS_AIRPORT_PER_SUBTYPE,
+    COL_NAME_COUNT_FLIGHTS_REGISTRATION_PER_SUBTYPE,
+    COL_NAME_COUNT_PERIOD,
     COL_NAME_PERCENTAGE,
     COL_NAME_PERCENTAGE_DELAY,
     COL_NAME_SUBTYPE,
@@ -70,7 +73,10 @@ TABLE_NAMES_RENAME = {
     COL_NAME_CATEGORY_GT_15MIN_MEAN: "Perentage of Delayed Flights",
     COL_NAME_CATEGORY_GT_15MIN_COUNT: "Category Count",
     COL_NAME_PERCENTAGE: "percentage",
+    COL_NAME_COUNT_PERIOD: "Count per Period",
     "DEP_AP_SCHED": "Departure Airport",
+    COL_NAME_COUNT_FLIGHTS_AIRPORT_PER_SUBTYPE: "Count of Flights by Airport and Subtype",
+    COL_NAME_COUNT_FLIGHTS_REGISTRATION_PER_SUBTYPE: "Count of Flights by Registration and Subtype",
 }
 
 
@@ -390,6 +396,7 @@ def update_subtype(_):
         x=COL_NAME_PERCENTAGE_DELAY,
         y=COL_NAME_WINDOW_TIME,
         y_max=COL_NAME_WINDOW_TIME_MAX,
+        occurrences=COL_NAME_COUNT_FLIGHTS,
         title="Delayed flights by SUBTYPE (%) per time window",
         color="AC_SUBTYPE",
         legend_title="Subtype",
@@ -422,6 +429,7 @@ def update_category(_):
         x_max=COL_NAME_WINDOW_TIME_MAX,
         y=COL_NAME_CATEGORY_GT_15MIN_MEAN,
         color=COL_NAME_CATEGORY_GT_15MIN,
+        occurrences=COL_NAME_CATEGORY_GT_15MIN_COUNT,
         legend_title="Category of delay",
         title="Flight delays ≥15 min vs <15 min (per time window)",
     )
@@ -430,6 +438,7 @@ def update_category(_):
         COL_NAME_WINDOW_TIME,
         COL_NAME_WINDOW_TIME_MAX,
         COL_NAME_CATEGORY_GT_15MIN,
+        COL_NAME_CATEGORY_GT_15MIN_COUNT,
         COL_NAME_CATEGORY_GT_15MIN_MEAN,
     ]
 
@@ -460,6 +469,7 @@ def update_interval(_):
         x=COL_NAME_PERCENTAGE_DELAY,
         y=COL_NAME_WINDOW_TIME,
         y_max=COL_NAME_WINDOW_TIME_MAX,
+        occurrences=COL_NAME_COUNT_PERIOD,
         title="Distribution of flights by time intervals",
     )
     # table
@@ -495,6 +505,7 @@ def update_subtype_registration_pct(_):
         COL_NAME_WINDOW_TIME_MAX,
         COL_NAME_SUBTYPE,
         "AC_REGISTRATION",
+        COL_NAME_COUNT_FLIGHTS_REGISTRATION_PER_SUBTYPE,
         COL_NAME_PERCENTAGE,
     ]
     df_disp = df_reg.select(display_cols)
@@ -532,6 +543,7 @@ def update_subtype_airport_pct(_):
         COL_NAME_WINDOW_TIME_MAX,
         COL_NAME_SUBTYPE,
         "DEP_AP_SCHED",
+        COL_NAME_COUNT_FLIGHTS_AIRPORT_PER_SUBTYPE,
         COL_NAME_PERCENTAGE,
     ]
     df_disp = df_air.select(display_cols)
@@ -575,6 +587,7 @@ register_navbar_callback(
     legend_title="Airports",
     color="DEP_AP_SCHED",
     value_other=3,
+    occurrences=COL_NAME_COUNT_FLIGHTS_AIRPORT_PER_SUBTYPE,
 )
 
 
@@ -589,4 +602,5 @@ register_navbar_callback(
     legend_title="Registrations",
     color="AC_REGISTRATION",
     value_other=3,
+    occurrences=COL_NAME_COUNT_FLIGHTS_REGISTRATION_PER_SUBTYPE,
 )

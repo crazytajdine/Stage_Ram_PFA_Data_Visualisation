@@ -5,6 +5,9 @@ import dash_bootstrap_components as dbc
 from calculations.analytics import (
     COL_NAME_COUNT_DELAY_FAMILY,
     COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY,
+    COL_NAME_COUNT_FAMILY_TOTAL,
+    COL_NAME_COUNT_PER_REGISTRATION_FAMILY,
+    COL_NAME_COUNT_PER_SUBTYPE_FAMILY,
     COL_NAME_PERCENTAGE_DELAY_CODE_PER_FAMILY_PER_PERIOD,
     COL_NAME_PERCENTAGE_DELAY_CODE_PER_FAMILY_PER_PERIOD_TOTAL,
     COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD,
@@ -62,6 +65,9 @@ TABLE_NAMES_RENAME = {
     COL_NAME_PERCENTAGE_DELAY_CODE_PER_FAMILY_PER_PERIOD_TOTAL: "Percentage of Occurrences per family (total)",
     COL_NAME_PERCENTAGE_SUBTYPE_FAMILY: "Percentage of Occurrences per subtype",
     COL_NAME_PERCENTAGE_REGISTRATION_FAMILY: "Percentage per Registration",
+    COL_NAME_COUNT_PER_REGISTRATION_FAMILY: "Number of Occurrences per Registration per Family",
+    COL_NAME_COUNT_PER_SUBTYPE_FAMILY: "Number of Occurrences per Subtype per Family",
+    COL_NAME_COUNT_FAMILY_TOTAL: "Number of Occurrences per Family",
     "FAMILLE_DR": "Family",
     "DELAY_CODE": "Delay Code",
 }
@@ -292,6 +298,7 @@ def update_plots_tables(n_clicks):
         unit="%",
         color="FAMILLE_DR",
         legend_title="Family",
+        occurrences=COL_NAME_COUNT_FAMILY_TOTAL,
     )
     big_chart = html.Div(
         dcc.Graph(figure=fig_familles, style={"width": "100%", "height": "600px"}),
@@ -314,6 +321,7 @@ def update_plots_tables(n_clicks):
                     COL_NAME_WINDOW_TIME,
                     COL_NAME_WINDOW_TIME_MAX,
                     "FAMILLE_DR",
+                    COL_NAME_COUNT_FAMILY_TOTAL,
                     COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD,
                 ]
             )
@@ -400,6 +408,7 @@ def update_plots_tables(n_clicks):
             COL_NAME_WINDOW_TIME_MAX,
             "AC_SUBTYPE",
             "FAMILLE_DR",
+            COL_NAME_COUNT_PER_SUBTYPE_FAMILY,
             COL_NAME_PERCENTAGE_SUBTYPE_FAMILY,
         ]
     )
@@ -437,6 +446,7 @@ def update_plots_tables(n_clicks):
             COL_NAME_WINDOW_TIME_MAX,
             "AC_REGISTRATION",
             "FAMILLE_DR",
+            COL_NAME_COUNT_PER_REGISTRATION_FAMILY,
             COL_NAME_PERCENTAGE_REGISTRATION_FAMILY,
         ]
     )
@@ -504,6 +514,7 @@ register_navbar_callback(
     title="Distribution of delay codes of {fam} subtype over time",
     color="DELAY_CODE",
     legend_title="Code Delay",
+    occurrences=COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY,
 )
 
 register_navbar_callback(
@@ -516,6 +527,7 @@ register_navbar_callback(
     title="Distribution of Family type of {fam} subtype over time",
     color="FAMILLE_DR",
     legend_title="Family",
+    occurrences=COL_NAME_COUNT_PER_SUBTYPE_FAMILY,
 )
 
 register_navbar_callback(
@@ -528,4 +540,5 @@ register_navbar_callback(
     title="Distribution of Family types for registration {fam} over time",
     color="FAMILLE_DR",
     legend_title="Registration",
+    occurrences=COL_NAME_COUNT_PER_REGISTRATION_FAMILY,
 )

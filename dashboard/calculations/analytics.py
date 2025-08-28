@@ -17,6 +17,11 @@ COL_NAME_PERCENTAGE_REGISTRATION_FAMILY = "pct_registration_family_vs_family_tot
 COL_NAME_SUBTYPE = "AC_SUBTYPE"
 
 
+COL_NAME_COUNT_PER_REGISTRATION_FAMILY = "count_per_registration_family"
+COL_NAME_COUNT_PER_SUBTYPE_FAMILY = "count_per_subtype_family"
+COL_NAME_COUNT_FAMILY_TOTAL = "count_family_total"
+
+
 @cache_result("analytics_summary_data")
 def analyze_summery() -> pl.DataFrame:
 
@@ -108,7 +113,7 @@ def prepare_delay_data():
     family_totals = temporal_all.group_by([COL_NAME_WINDOW_TIME, "FAMILLE_DR"]).agg(
         pl.col(COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY)
         .sum()
-        .alias("family_total"),
+        .alias(COL_NAME_COUNT_FAMILY_TOTAL),
         pl.col(COL_NAME_WINDOW_TIME_MAX).first().alias(COL_NAME_WINDOW_TIME_MAX),
     )
 
@@ -130,7 +135,7 @@ def prepare_delay_data():
                 # % vs total family in same period
                 (
                     pl.col(COL_NAME_COUNT_DELAY_PER_CODE_DELAY_PER_FAMILY)
-                    / pl.col("family_total")
+                    / pl.col(COL_NAME_COUNT_FAMILY_TOTAL)
                     * 100
                 )
                 .round(2)
@@ -143,7 +148,7 @@ def prepare_delay_data():
     famille_share_df = family_totals.join(
         period_totals, on=COL_NAME_WINDOW_TIME
     ).with_columns(
-        (pl.col("family_total") / pl.col("period_total") * 100)
+        (pl.col(COL_NAME_COUNT_FAMILY_TOTAL) / pl.col("period_total") * 100)
         .round(2)
         .alias(COL_NAME_PERCENTAGE_FAMILY_PER_PERIOD)
     )
@@ -158,13 +163,13 @@ def prepare_subtype_family_data():
     df = get_df().collect()
     # Count per FAMILLE_DR + AC_SUBTYPE per time window
     temporal_all = df.group_by([COL_NAME_WINDOW_TIME, "AC_SUBTYPE", "FAMILLE_DR"]).agg(
-        pl.len().alias("count_per_subtype_family"),
+        pl.len().alias(COL_NAME_COUNT_PER_SUBTYPE_FAMILY),
         pl.col(COL_NAME_WINDOW_TIME_MAX).first().alias(COL_NAME_WINDOW_TIME_MAX),
     )
 
     # Total per period
     period_totals = temporal_all.group_by([COL_NAME_WINDOW_TIME, "AC_SUBTYPE"]).agg(
-        pl.col("count_per_subtype_family").sum().alias("period_total")
+        pl.col(COL_NAME_COUNT_PER_SUBTYPE_FAMILY).sum().alias("period_total")
     )
 
     # Join totals and calculate percentages
@@ -174,7 +179,7 @@ def prepare_subtype_family_data():
     ).with_columns(
         [
             # % vs total period
-            (pl.col("count_per_subtype_family") / pl.col("period_total") * 100)
+            (pl.col(COL_NAME_COUNT_PER_SUBTYPE_FAMILY) / pl.col("period_total") * 100)
             .round(2)
             .alias(COL_NAME_PERCENTAGE_SUBTYPE_FAMILY),
         ]
@@ -192,14 +197,14 @@ def prepare_registration_family_data():
     temporal_all = df.group_by(
         [COL_NAME_WINDOW_TIME, "AC_REGISTRATION", "FAMILLE_DR"]
     ).agg(
-        pl.len().alias("count_per_registration_family"),
+        pl.len().alias(COL_NAME_COUNT_PER_REGISTRATION_FAMILY),
         pl.col(COL_NAME_WINDOW_TIME_MAX).first().alias(COL_NAME_WINDOW_TIME_MAX),
     )
 
     # Total per period
     period_totals = temporal_all.group_by(
         [COL_NAME_WINDOW_TIME, "AC_REGISTRATION"]
-    ).agg(pl.col("count_per_registration_family").sum().alias("period_total"))
+    ).agg(pl.col(COL_NAME_COUNT_PER_REGISTRATION_FAMILY).sum().alias("period_total"))
 
     # Join totals and calculate percentages
 
@@ -208,7 +213,11 @@ def prepare_registration_family_data():
     ).with_columns(
         [
             # % vs total period
-            (pl.col("count_per_registration_family") / pl.col("period_total") * 100)
+            (
+                pl.col(COL_NAME_COUNT_PER_REGISTRATION_FAMILY)
+                / pl.col("period_total")
+                * 100
+            )
             .round(2)
             .alias(COL_NAME_PERCENTAGE_REGISTRATION_FAMILY),
         ]

@@ -232,10 +232,12 @@ def add_callbacks():
         Output(FILTER_DATE_RANGE, "min_date_allowed"),
         Output(FILTER_DATE_RANGE, "max_date_allowed"),
         Input(FILTER_STORE_SUGGESTIONS, "data"),
+        add_watch_file(),
     )
-    def update_filter_options(store_data):
+    def update_filter_options(store_data, _):
 
         base_lazy = get_df_unfiltered()  # your global LazyFrame
+
         if base_lazy is None:
             logging.warning("Base LazyFrame is None, returning empty options.")
             return [], [], [], None, None
@@ -364,7 +366,6 @@ def add_callbacks():
         )
 
         df = get_df_unfiltered()
-
         if df is None:
             logging.warning("Unfiltered DataFrame is None. Returning empty payload.")
 

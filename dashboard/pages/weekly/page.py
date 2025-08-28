@@ -133,6 +133,7 @@ def refresh_weekly_table(_):
         color="DELAY_CODE",
         legend_title="Delay code",
         barmode="group",
+        sort_values=False,
     )
 
     return data, columns, data_percentage, columns_percentage, fig

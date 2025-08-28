@@ -42,14 +42,17 @@ def create_bar_figure(
     unit: str = "%",
     color: Optional[str] = None,
     barmode: Literal["auto", "group", "stack"] = "auto",
+    occurrences: Optional[str] = None,
     legend_title: Optional[str] = None,
     value_other: Optional[float] = None,
+    sort_values=True,
 ) -> Optional[go.Figure]:
 
     if x not in df.columns or y not in df.columns:
         return go.Figure()
 
-    df = df.sort([x, y], descending=[False, True])
+    if sort_values:
+        df = df.sort([x, y], descending=[False, True])
 
     color_column = color
     if value_other:
@@ -90,6 +93,10 @@ def create_bar_figure(
         distinct_time = df.select(pl.col(x)).n_unique()
         if barmode == "auto":
             barmode = "stack" if (distinct_colors * distinct_time) > 10 else barmode
+    if occurrences in df.columns:
+        index_map["occurrences"] = len(custom_data_cols)
+        custom_data_cols.append(occurrences)
+
     if barmode == "auto":
         barmode = "group"
     fig = px.bar(
@@ -133,6 +140,12 @@ def create_bar_figure(
         else ""
     )
 
+    occurrences_template = (
+        f"occurrences : %{{customdata[{index_map['occurrences']}]}}<br>"
+        if "occurrences" in index_map
+        else ""
+    )
+
     fig.update_traces(
         textposition="auto",
         marker=dict(cornerradius=4),
@@ -140,17 +153,18 @@ def create_bar_figure(
         hovertemplate=(
             x_label_template
             + color_template
+            + occurrences_template
             + "value : %{text}<br>"
             + "<extra></extra>"
         ),
         textfont_size=16,
     )
 
-    unique_x = df[x].unique()
-    logging.debug("Unique values on x-axis: %s", unique_x)
-    if len(unique_x) <= threshold_sep_x:
-        logging.debug("Setting tickmode to 'array' with tickvals")
-        fig.update_xaxes(type="category", categoryorder="array", categoryarray=unique_x)
+    # unique_x = df[x].unique()
+    # logging.debug("Unique values on x-axis: %s", unique_x)
+    # if len(unique_x) <= threshold_sep_x:
+    #     logging.debug("Setting tickmode to 'array' with tickvals")
+    #     fig.update_xaxes(type="category", categoryorder="array", categoryarray=unique_x)
 
     return fig
 
@@ -164,14 +178,16 @@ def create_bar_horizontal_figure(
     unit: str = "%",
     color: Optional[str] = None,
     barmode: Literal["group", "stack"] = "group",
+    occurrences: Optional[str] = None,
     legend_title: Optional[str] = None,
     value_other: Optional[float] = None,
+    sort_values=True,
 ) -> Optional[go.Figure]:
 
     if x not in df.columns or y not in df.columns:
         return None
-
-    df = df.sort([x, y], descending=[True, True])
+    if sort_values:
+        df = df.sort([x, y], descending=[True, True])
 
     color_column = color
     if value_other:
@@ -203,6 +219,10 @@ def create_bar_horizontal_figure(
 
         index_map["color"] = len(custom_data_cols)
         custom_data_cols.append(color)
+
+    if occurrences and occurrences in df.columns:
+        index_map["occurrences"] = len(custom_data_cols)
+        custom_data_cols.append(occurrences)
 
     fig = px.bar(
         df,
@@ -239,12 +259,20 @@ def create_bar_horizontal_figure(
         if "color" in index_map
         else ""
     )
+
+    occurrences_template = (
+        f"occurrences : %{{customdata[{index_map['occurrences']}]}}<br>"
+        if "occurrences" in index_map
+        else ""
+    )
+
     fig.update_traces(
         textposition="auto",
         textangle=0,
         hovertemplate=(
             y_label_template
             + color_template
+            + occurrences_template
             + "value : %{text}<br>"
             + "<extra></extra>"
         ),
@@ -255,11 +283,11 @@ def create_bar_horizontal_figure(
     if legend_title is not None:
         fig.update_layout(legend_title_text=legend_title)
 
-    unique_y = df[y].unique()
-    logging.debug("Unique values on y-axis: %s", unique_y)
-    if len(unique_y) <= threshold_sep_y:
-        logging.debug("Setting tickmode to 'array' with tickvals")
-        fig.update_yaxes(tickmode="array", tickvals=unique_y)
+    # unique_y = df[y].unique()
+    # logging.debug("Unique values on y-axis: %s", unique_y)
+    # if len(unique_y) <= threshold_sep_y:
+    #     logging.debug("Setting tickmode to 'array' with tickvals")
+    #     fig.update_yaxes(tickmode="array", tickvals=unique_y)
 
     return fig
 
@@ -430,8 +458,10 @@ def register_navbar_callback(
     color: str,
     x_max: Optional[str] = None,
     unit: str = "%",
+    occurrences: Optional[str] = None,
     legend_title: Optional[str] = None,
     value_other: Optional[float] = None,
+    sort_values=True,
 ):
 
     tabs_id = f"{id_prefix}_tabs"
@@ -457,6 +487,8 @@ def register_navbar_callback(
             unit=unit,
             title=title.format(fam=selected_fam),
             color=color,
+            occurrences=occurrences,
             legend_title=legend_title,
             value_other=value_other,
+            sort_values=sort_values,
         )
