@@ -90,7 +90,6 @@ def export_current_chart(_, fig_dict):
     add_state_loaded_url(),
 )
 def update_page_and_navbar(pathname, _, pref, loaded_url):
-
     does_path_exists = path_exists()
     logging.info("Selected Path : %s", pathname)
     nav_items = build_nav_items(does_path_exists)
@@ -166,7 +165,7 @@ def start_server(start_dev=True) -> int:
     if start_dev:
         app.run(debug=True, use_reloader=True, port=8050)
     else:
-        serve(app, host="0.0.0.0", port=8050, threads=3)
+        serve(app, host="localhost", port=8050, threads=3)
 
 
 if __name__ == "__main__":
