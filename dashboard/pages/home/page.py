@@ -137,7 +137,7 @@ layout = dbc.Container(
                 # Graphique subtype pct
                 html.Div(
                     dcc.Graph(
-                        id=ID_FIGURE_SUBTYPE_PR_DELAY_MEAN, style={"height": "400px"}
+                        id=ID_FIGURE_SUBTYPE_PR_DELAY_MEAN, style={"height": "80vh"}
                     ),
                     className="graph mb-4 mx-auto",  # ← nouvelle classe CSS
                     style={"width": "90%"},
@@ -176,7 +176,7 @@ layout = dbc.Container(
                 html.Div(
                     dcc.Graph(
                         id=ID_FIGURE_CATEGORY_DELAY_GT_15MIN,
-                        style={"margin": "auto", "height": "400px", "width": "90%"},
+                        style={"margin": "auto", "height": "80vh", "width": "90%"},
                     ),
                     className="graph mb-4 mx-auto",  # ← nouvelle classe CSS
                     style={"width": "90%"},
@@ -214,7 +214,7 @@ layout = dbc.Container(
                 html.Div(
                     dcc.Graph(
                         id=ID_FIGURE_FLIGHT_DELAY,
-                        style={"margin": "auto", "width": "100%"},
+                        style={"margin": "auto", "height": "80vh", "width": "100%"},
                     ),
                     className="graph mb-4 mx-auto",  # ← nouvelle classe CSS
                     style={"width": "90%"},

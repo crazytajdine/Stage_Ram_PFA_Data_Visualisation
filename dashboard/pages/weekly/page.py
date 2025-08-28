@@ -35,7 +35,11 @@ layout = dbc.Container(
     fluid=True,
     className="p-4",
     children=[
-        dcc.Graph(id=ID_WEEKLY_BARS, className="graph"),
+        dcc.Graph(
+            id=ID_WEEKLY_BARS,
+            className="graph",
+            style={"height": "80vh"},
+        ),
         dbc.Button(
             [html.I(className="bi bi-download me-2"), "Exporter Excel"],
             id="weekly-export-btn",

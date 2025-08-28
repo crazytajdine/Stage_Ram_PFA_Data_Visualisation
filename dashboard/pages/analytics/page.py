@@ -301,7 +301,7 @@ def update_plots_tables(n_clicks):
         occurrences=COL_NAME_COUNT_FAMILY_TOTAL,
     )
     big_chart = html.Div(
-        dcc.Graph(figure=fig_familles, style={"width": "100%", "height": "600px"}),
+        dcc.Graph(figure=fig_familles, style={"width": "100%", "height": "80vh"}),
         className="graph mb-4 mx-auto",
         style={"width": "90%", "gridColumn": "1 / -1"},
     )
