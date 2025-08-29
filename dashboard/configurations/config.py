@@ -24,7 +24,7 @@ def save_config(path: str, config: dict[str, Any]) -> dict[str, Any]:
 def load_config(path: str) -> dict[str, Any]:
 
     logging.info(f"Loading config from: {path}")
-
+    print(f"Loading config from: {path}")
     if os.path.exists(path):
         with open(path, "r") as f:
             config = toml.load(f)
@@ -95,6 +95,7 @@ def save_config_sys(updated_config: dict[str, Any]) -> dict[str, Any]:
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 config_path = os.path.join(BASE_DIR, "config.toml")
 
 

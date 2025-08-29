@@ -401,6 +401,7 @@ def update_subtype(_):
         color="AC_SUBTYPE",
         legend_title="Subtype",
         barmode="stack",
+        value_other=3,
     )
 
     # table
