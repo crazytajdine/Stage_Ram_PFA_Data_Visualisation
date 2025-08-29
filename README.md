@@ -1,247 +1,140 @@
-# Tauri + Dash Application
+# Stage RAM PFA Data Visualisation
 
-A desktop application that combines Tauri (Rust) with Dash (Python) to create a modern sales dashboard with native desktop capabilities.
+# Dashboard Application
 
-## Overview
+This repository provides an interactive Dash-based data visualization dashboard for analyzing RAM delay metrics and performance insights for Stage PFA. It includes both a web server and a desktop application build.
 
-This project demonstrates how to integrate a Python Dash web application within a Tauri desktop wrapper, providing the best of both worlds:
-- Native desktop performance and security (Tauri/Rust)
-- Rich data visualization capabilities (Dash/Plotly)
-- Cross-platform compatibility
+## Table of Contents
 
-## Prerequisites
+- [Features](#features)
+- [Folder Structure](#folder-structure)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage](#usage)
+  - [Running the Server](#running-the-server)
+  - [Building the Desktop App](#building-the-desktop-app)
+  - [Docker Deployment](#docker-deployment)
+- [Scripts](#scripts)
+- [Contributing](#contributing)
+- [License](#license)
 
-Before starting, make sure you have the following installed on your system:
+## Features
 
-### Required Software
-1. **Python** (3.9 - 3.13)
-   - Download from [python.org](https://www.python.org/downloads/)
-   - Make sure to add Python to your PATH during installation
+- Multiple interactive pages: Home, Analytics, Weekly Analysis, Performance Metrics, Settings, About
+- Automatic Excel data watcher with live updates
+- Customizable settings via `dashboard/configurations/config.toml`
+- Logging for server and desktop application events
+- Build scripts for Python package, desktop installer, and Docker containers
 
-2. **Poetry** (Python dependency manager)
-   ```powershell
-   # Install Poetry via pip
-   pip install poetry
-   
-   # Or use the official installer (recommended)
-   (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
-   ```
-
-3. **Rust** (for Tauri)
-   ```powershell
-   # Install Rust via rustup
-   # Download and run: https://rustup.rs/
-   ```
-
-4. **Node.js** (for Tauri CLI)
-   - Download from [nodejs.org](https://nodejs.org/)
-   - Or use winget: `winget install OpenJS.NodeJS`
-
-5. **Tauri CLI**
-   ```powershell
-   npm install 
-   ```
-
-## Project Structure
+## Folder Structure
 
 ```
-tauri-app/
-├── dashboard/              # Python Dash application
-│   ├── main.py            # Main Dash app
-│   └── README.md
-├── src-tauri/             # Tauri (Rust) backend
-│   ├── src/
-│   │   ├── main.rs        # Rust main file
-│   │   └── lib.rs
-│   ├── tauri.conf.json    # Tauri configuration
-│   └── Cargo.toml
-├── public/                # Static files
-│   └── index.html         # Loading page
-├── pyproject.toml         # Python dependencies
-├── poetry.lock            # Locked Python dependencies
-├── main.spec              # PyInstaller configuration
-└── README.md              # This file
+.
+├── dashboard/                # Dash application source code
+│   ├── components/           # UI components (navbar, title, filters, etc.)
+│   ├── pages/                # Page modules with metadata and layouts
+│   ├── calculations/         # Data processing and performance metrics
+│   ├── data_managers/        # Excel loader and directory watcher
+│   ├── schemas/              # Pydantic schemas and types
+│   ├── configurations/       # App & logging configuration
+│   ├── utils_dashboard/      # Shared utilities (graphs, filters)
+│   └── RAM Delay Dashboard.py# Main server entry point
+├── build/                    # Installer scripts and build artifacts
+├── logs/                     # Application log files
+├── build_App.ps1            # Build Python package
+├── build_desktop.ps1        # Create desktop installer via PyInstaller
+├── build_docker.ps1         # Build Docker image
+├── build_docker_compose.ps1 # Build Docker Compose setup
+├── start_docker.ps1         # Launch Docker containers
+├── run_server.windows.ps1   # Run Dash server on Windows
+├── run_server.unix.ps1      # Run Dash server on Unix
+├── main.spec                # PyInstaller spec file
+├── pyproject.toml           # Python project metadata
+└── README.md                # This file
 ```
 
-## Setup Instructions
+## Installation
 
-### 1. Clone and Navigate to Project
+### Prerequisites
+
+- Python 3.8+
+- [Poetry](https://python-poetry.org/) for dependency management
+- PowerShell (Windows) or Bash (Unix)
+- Docker & Docker Compose (optional)
+
 ```powershell
-# If you haven't already, navigate to the project directory
-cd ".\tauri-app"
-```
+# Clone the repository
+git clone https://github.com/crazytajdine/Stage_Ram_PFA_Data_Visualisation.git
+cd Stage_Ram_PFA_Data_Visualisation
 
-### 2. Install Python Dependencies
-```powershell
-# Install Python dependencies using Poetry
+# Install dependencies via Poetry
 poetry install
 ```
-
-### 3. Install Rust Dependencies
-```powershell
-# Navigate to Tauri directory and install dependencies
-cd src-tauri
-cargo build
-cd ..
-```
-
-### 4. Verify Installation
-```powershell
-# Check if Poetry environment is working
-poetry run python --version
-
-# Check if Tauri is working
-tauri info
-```
-
-## Running the Application
-
-### Development Mode
-
-#### Option 1: Run Tauri Development Server (Recommended)
-```powershell
-# This will start both the Python Dash server and Tauri app
-tauri dev
-```
-
-#### Option 2: Run Components Separately
-```powershell
-# Terminal 1: Start the Dash server
-poetry run python dashboard/main.py
-
-# Terminal 2: Start Tauri (in another terminal)
-tauri dev
-```
-
-### Production Build
-
-#### 1. Build Python Executable
-```powershell
-# Create standalone Python executable using PyInstaller
-poetry run pyinstaller main.spec
-```
-
-#### 2. Build Tauri Application
-```powershell
-# Build the complete desktop application
-tauri build
-```
-
-The built application will be available in `src-tauri/target/release/bundle/`
-
-## Application Features
-
-### Dashboard Features
-- **Interactive Sales Visualization**: Line charts showing sales trends over time
-- **Region Filtering**: Dropdown to filter data by geographic regions (North, South, East, West)
-- **Real-time Statistics**: Display of average, maximum, and minimum sales values
-- **Responsive Design**: Modern web interface that adapts to different window sizes
-
-### Technical Features
-- **Desktop Integration**: Native desktop application with system integration
-- **Automatic Server Management**: Backend server starts automatically with the app
-- **Cross-platform**: Runs on Windows, macOS, and Linux
-- **Offline Capability**: Once built, runs without internet connection
 
 ## Configuration
 
-### Tauri Configuration (`src-tauri/tauri.conf.json`)
-- **Window Settings**: Default size (1000x700), resizable
-- **Development URL**: Points to `http://localhost:8050` (Dash default)
-- **Build Commands**: Automatically installs dependencies and builds Python executable
+Customize `dashboard/configurations/config.toml`:
 
-### Python Dependencies (`pyproject.toml`)
-- **Dash**: Web application framework
-- **Plotly**: Interactive visualization library
-- **Pandas**: Data manipulation and analysis
-- **PyInstaller**: Creates standalone executable
+```toml
+dir_path = ""        # path to your data directory
 
-## Troubleshooting
+[app]
+app_name = "DashboardApp"
+auth     = "StagePFA"
 
-### Common Issues
-
-#### 1. Poetry not found
-```powershell
-# Make sure Poetry is in your PATH, or install it globally
-pip install poetry
+[exe]
+name_of_python_exe = "server_dashboard"
 ```
 
-#### 2. Rust compilation errors
-```powershell
-# Update Rust toolchain
-rustup update
+## Usage
 
-# Clear cargo cache
-cargo clean
+### Running the Server
+
+```powershell
+./run_server.windows.ps1   # Windows PowerShell
 ```
 
-#### 3. Python dependencies issues
-```powershell
-# Clear Poetry cache and reinstall
-poetry cache clear . --all
-poetry install
+```bash
+# Unix / Bash
+./run_server.unix.ps1
 ```
 
-#### 4. Port 8050 already in use
-```powershell
-# Find and kill process using port 8050
-netstat -ano | findstr :8050
-# Note the PID and kill it
-taskkill /PID <PID> /F
+Or directly via Poetry:
+
+```bash
+poetry run python "dashboard/RAM Delay Dashboard.py"
 ```
 
-#### 5. Tauri build fails
-```powershell
-# Make sure all dependencies are installed
-tauri info
+Open http://127.0.0.1:8050 in your browser.
 
-# Try building step by step
-cargo build --manifest-path=src-tauri/Cargo.toml
+### Building the Desktop App
+
+```powershell
+./build_desktop.ps1
 ```
 
-### Development Tips
+The executable will be in the `dist/` directory.
 
-1. **Hot Reload**: In development mode, both Rust and Python changes trigger automatic reloads
-2. **Debugging**: Use browser dev tools by right-clicking in the app and selecting "Inspect"
-3. **Logs**: Check console output for both Tauri and Dash application logs
-4. **Performance**: Monitor memory usage in Task Manager during development
+### Docker Deployment
 
-## Customization
+```powershell
+./start_docker.ps1
+```
 
-### Adding New Features to Dashboard
-1. Edit `dashboard/main.py` to add new visualizations or data sources
-2. Update dependencies in `pyproject.toml` if needed
-3. Test with `poetry run python dashboard/main.py`
+This launches the dashboard within Docker containers.
 
-### Modifying Tauri Configuration
-1. Edit `src-tauri/tauri.conf.json` for app settings
-2. Modify `src-tauri/src/main.rs` for Rust backend logic
-3. Update icons in `src-tauri/icons/` directory
+## Scripts
 
-### Building for Distribution
-1. Ensure all dependencies are correctly specified
-2. Test the production build thoroughly
-3. Consider code signing for Windows distribution
+- **build_App.ps1**: Package as a Python distribution
+- **build_desktop.ps1**: PyInstaller desktop build
+- **build_docker\*.ps1**: Docker image and Compose builds
+- **start_docker.ps1**: Run Docker environment
+- **run_server.\*.ps1**: Start Dash server
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly in both development and production modes
-5. Submit a pull request
+Contributions are welcome! Please open issues or submit pull requests.
 
 ## License
 
-[Add your license information here]
-
-## Support
-
-For issues and questions:
-1. Check the troubleshooting section above
-2. Review Tauri documentation: [tauri.app](https://tauri.app/)
-3. Review Dash documentation: [dash.plotly.com](https://dash.plotly.com/)
-
----
-
-**Note**: This application is designed to work on Windows, macOS, and Linux. The instructions above are specific to Windows PowerShell, but similar commands work on other platforms with appropriate shell syntax.
+MIT © 2025 Taj Eddine Marmoul
