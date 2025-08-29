@@ -1,16 +1,47 @@
 from datetime import datetime
+import time
+import glob
 import logging
 import os
 import sys
 
+from configurations.config import get_cache_dir_sys
+
+
+def cleanup_logs(log_dir, days=1):
+    now = time.time()
+    print(f"current time: {now}")
+
+    for file_path in glob.glob(os.path.join(log_dir, "*.log")):
+        try:
+            print(f"Checking log file: {file_path}")
+            if os.stat(file_path).st_mtime < now - days * 86400:
+                os.remove(file_path)
+                print(f"Deleted log file: {file_path}")
+        except FileNotFoundError:
+            print(f"File not found (skipping): {file_path}")
+        except PermissionError:
+            print(f"Permission denied (skipping): {file_path}")
+        except Exception as e:
+            print(f"Error deleting file {file_path}: {e}")
+
 
 def init_log(log_file_template: str):
-    log_dir = os.path.dirname(log_file_template)
-    if log_dir:
-        os.makedirs(log_dir, exist_ok=True)
+    config_dir = get_cache_dir_sys()
+
+    cleanup_logs(config_dir)
 
     ts = datetime.now().strftime("%Y%m%d_%H%M")
+
     log_file = log_file_template.format(ts=ts)
+    log_file = os.path.join(config_dir, log_file)
+
+    log_dir = os.path.dirname(log_file)
+    print(f"Log directory: {log_dir}")
+
+    if log_dir:
+        os.makedirs(log_dir, exist_ok=True)
+    print(f"Log directory: {log_dir}")
 
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)

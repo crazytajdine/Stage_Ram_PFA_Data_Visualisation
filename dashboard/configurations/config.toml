@@ -16,8 +16,8 @@ session_expiration_offset_in_hours = 12
 
 
 [log]
-log_file_desktop_app = "logs/{ts}_dashboard_desktop_app.log"
-log_file_server = "logs/{ts}_dashboard_server.log"
+log_file_desktop_app = "{ts}_dashboard_desktop_app.log"
+log_file_server = "{ts}_dashboard_server.log"
 
 [redis]
 host = "localhost"

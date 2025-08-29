@@ -1,7 +1,7 @@
 import logging
 import os
 from typing import Any
-from platformdirs import user_config_dir
+from platformdirs import user_cache_dir, user_config_dir
 import toml
 
 config = {}
@@ -73,6 +73,15 @@ def get_config_dir_sys():
     path_user_config = user_config_dir(app_name, auth)
     os.makedirs(path_user_config, exist_ok=True)
     return path_user_config
+
+
+def get_cache_dir_sys():
+    global app_name, auth
+
+    path_user_cache = user_cache_dir(app_name, auth)
+    os.makedirs(path_user_cache, exist_ok=True)
+    print(f"Cache directory: {path_user_cache}")
+    return path_user_cache
 
 
 def save_config_sys(updated_config: dict[str, Any]) -> dict[str, Any]:
