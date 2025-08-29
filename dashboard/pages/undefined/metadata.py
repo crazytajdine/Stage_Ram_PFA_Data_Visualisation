@@ -9,4 +9,5 @@ metadata = NavItemMeta(
     title="Oh no",
     show_navbar=True,
     type_data="nodata",
+    type_user="user",
 )
