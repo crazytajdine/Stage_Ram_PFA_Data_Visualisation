@@ -11,8 +11,11 @@ from configurations.config import get_base_config, get_user_config, save_config_
 from schemas.filter import FilterType
 from schemas.data_status import StatusData
 from server_instance import get_app
-
-from status.data_status_manager import compare_status, set_status
+from status.data_status_manager import (
+    ID_DATA_STATUS_CHANGE_TRIGGER,
+    add_state_for_data_status,
+    store_trigger_status,
+)
 
 logging.info("Loading excel file...")
 
@@ -32,7 +35,6 @@ COL_NAME_WINDOW_TIME_MAX = "WINDOW_DATETIME_DEP_MAX"
 COL_NAME_TOTAL_COUNT = "total_count"
 
 ID_DATA_STORE_TRIGGER = "filter-store-trigger"
-ID_DATA_STATUS_CHANGE_TRIGGER = "store-status-data-trigger"
 
 # init
 
@@ -469,7 +471,6 @@ store_latest_date_fetch = dcc.Store(
 )
 
 store_trigger_change = dcc.Store(id=ID_DATA_STORE_TRIGGER)
-store_trigger_status = dcc.Store(ID_DATA_STATUS_CHANGE_TRIGGER)
 interval_watcher = dcc.Interval(id=ID_INTERVAL_WATCHER, interval=1000)
 
 hookers = [
@@ -483,10 +484,6 @@ hookers = [
 
 def add_watch_file():
     return Input(ID_STORE_DATE_WATCHER, "data")
-
-
-def add_watcher_for_data_status():
-    return Input(ID_DATA_STATUS_CHANGE_TRIGGER, "data")
 
 
 def add_watcher_for_data():
@@ -534,16 +531,16 @@ def add_callbacks():
     @app.callback(
         Output(ID_DATA_STATUS_CHANGE_TRIGGER, "data"),
         Input(ID_PATH_STORE, "data"),
+        add_state_for_data_status(),
     )
-    def trigger_data_status_change(_):
+    def trigger_data_status_change(_, old_status):
 
         logging.info("Data status changed.")
         new_status: StatusData = "selected" if path_exists() else "unselected"
 
-        same_as_old_status = compare_status(new_status)
-        set_status(new_status)
+        same_as_old_status = old_status == new_status
 
         logging.info(
             f"sending status change: {new_status}, same as old: {same_as_old_status}"
         )
-        return dash.no_update if same_as_old_status else None
+        return dash.no_update if same_as_old_status else new_status

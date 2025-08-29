@@ -10,14 +10,11 @@ from configurations.config import get_cache_dir_sys
 
 def cleanup_logs(log_dir, days=1):
     now = time.time()
-    print(f"current time: {now}")
 
     for file_path in glob.glob(os.path.join(log_dir, "*.log")):
         try:
-            print(f"Checking log file: {file_path}")
             if os.stat(file_path).st_mtime < now - days * 86400:
                 os.remove(file_path)
-                print(f"Deleted log file: {file_path}")
         except FileNotFoundError:
             print(f"File not found (skipping): {file_path}")
         except PermissionError:

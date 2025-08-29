@@ -10,13 +10,13 @@ from components.trigger_page_change import (
     stores as trigger_stores,
 )
 from utils_dashboard.utils_authorization import validate_session
+from status.data_status_manager import add_watcher_for_data_status
 from utils_dashboard.utils_navs import build_nav_items
 from server_instance import get_app, get_server
 
 from utils_dashboard.utils_download import download_dash
 
 from data_managers.excel_manager import (
-    add_watcher_for_data_status,
     add_callbacks as add_excel_manager_callbacks,
     hookers as excel_hookers,
     path_exists,
@@ -140,7 +140,7 @@ def update_page_and_navbar(pathname, _, pref, token, loaded_url):
             page_content = html.Div("No page is loaded")
             page_title = ""
             filter_style = {}
-
+    print(loaded_url, selected_page_href)
     if (loaded_url == selected_page_href) and (not should_update_on_data_change):
         page_content = page_title = filter_style = dash.no_update
 
@@ -191,7 +191,7 @@ def start_server(start_dev=True):
 if __name__ == "__main__":
 
     config = get_base_config()
-    log_file = config.get("log", {}).get("log_file_server", "logs/dashboard_server.log")
+    log_file = config.get("log", {}).get("log_file_server", "dashboard_server.log")
 
     init_log(log_file)
 

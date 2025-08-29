@@ -6,11 +6,11 @@ from dash import Input, Output, State
 
 from data_managers.cache_manager import delete_old_keys
 from schemas.data_status import StatusData
-from status.data_status_manager import compare_status
 from data_managers.excel_manager import (
     ID_INTERVAL_WATCHER,
     ID_PATH_STORE,
     ID_STORE_DATE_WATCHER,
+    add_state_for_data_status,
     get_latest_modification_time,
     get_path_to_excel,
     modify_modification_date,
@@ -29,9 +29,10 @@ def add_callbacks():
         State(ID_PATH_STORE, "data"),
         State(ID_STORE_DATE_WATCHER, "data"),
         Input(ID_INTERVAL_WATCHER, "n_intervals"),
+        add_state_for_data_status(),
         prevent_initial_call=True,
     )
-    def watch_file(current_path, date_latest_fetch, _):
+    def watch_file(current_path, date_latest_fetch, _, old_status):
         logging.debug("Watching file every second...")
         try:
             # Check if file path exists
@@ -42,9 +43,10 @@ def add_callbacks():
                     get_path_to_excel(),
                     get_latest_modification_time(),
                 )
-                new_status: StatusData = "unselected" if path_to_excel else "selected"
-                if compare_status(new_status):
+                new_status: StatusData = "selected" if path_to_excel else "unselected"
+                if old_status != new_status:
                     delete_old_keys()
+
                     return path_to_excel, latest_modification_time
                 else:
                     return dash.no_update
@@ -57,6 +59,7 @@ def add_callbacks():
                 logging.info("File changed, updating DataFrame...")
                 delete_old_keys()
                 update_df_unfiltered()
+
                 modify_modification_date(latest_modification_time)
                 return dash.no_update, latest_modification_time
 
