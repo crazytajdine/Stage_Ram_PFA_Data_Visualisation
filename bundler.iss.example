@@ -1,0 +1,25 @@
+[Setup]
+AppName=Delay Dashboard
+AppVersion=1.0
+DefaultDirName={localappdata}\Programs\DelayDashboard
+DefaultGroupName=Delay Dashboard
+OutputBaseFilename=DelayDashboardInstaller
+PrivilegesRequired=admin
+AppPublisher=Taj Eddine Marmoul
+AppPublisherURL=https://www.linkedin.com/in/tajeddine-marmoul
+
+[Files]
+Source: "path\to\Stage_Ram_PFA_Data_Visualisation\build\RAM Delay Dashboard.dist\*"; DestDir: "{app}"; Flags: recursesubdirs
+
+[Dirs]
+Name: "{sd}\data_dashboard"
+
+[Icons]
+Name: "{autodesktop}\Delay Dashboard"; Filename: "{app}\RAM Delay Dashboard.exe"
+Name: "{group}\Delay Dashboard"; Filename: "{app}\RAM Delay Dashboard.exe"
+Name: "{autodesktop}\Dash Dashboard Folder"; Filename: "{sd}\data_dashboard"
+
+
+[Run]
+Filename: "{app}\RAM Delay Dashboard.exe"; Description: "Launch Delay Dashboard"; Flags: nowait postinstall skipifsilent unchecked
+Filename: "https://www.linkedin.com/in/tajeddine-marmoul";Description:"Learn More About Creator" ; Flags: shellexec postinstall skipifsilent
