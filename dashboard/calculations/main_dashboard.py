@@ -70,7 +70,7 @@ def calculate_delay_pct(df: pl.LazyFrame | pl.DataFrame) -> pl.LazyFrame | pl.Da
     # 1) Categorize delays
     df = df.with_columns(
         pl.when(pl.col("DELAY_TIME") >= 15)
-        .then(pl.lit("flights with delay  ≥ 15 min"))
+        .then(pl.lit("flights with delay ≥ 15 min"))
         .otherwise(pl.lit("flights with delay < 15 min"))
         .alias(COL_NAME_CATEGORY_GT_15MIN)
     )
