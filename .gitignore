@@ -382,3 +382,5 @@ dist-ssr
 
 *.ipynb
 *.ipynb
+*.iss
+/Output
