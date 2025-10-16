@@ -112,6 +112,16 @@ def refresh_weekly_table(_):
         {c: c.replace("_pct", "") for c in percentage_col_names}
     )
 
+    df_count: pl.DataFrame = df.select(
+        pl.exclude([*[days_col + "_pct" for days_col in days_cols], "Total"])
+    )
+    df_count_long = df_count.unpivot(
+        index=["DELAY_CODE"],
+        on=days_cols,
+        variable_name="Day",
+        value_name="Count",
+    )
+
     data_percentage = df_percentage.to_dicts()
 
     columns_percentage = [{"id": "DELAY_CODE", "name": "Code"}] + [
@@ -124,6 +134,7 @@ def refresh_weekly_table(_):
         variable_name="Day",
         value_name="Percentage",
     )
+    df_long = df_long.join(df_count_long, on=["DELAY_CODE", "Day"])
 
     fig = create_bar_figure(
         df_long,
@@ -133,6 +144,7 @@ def refresh_weekly_table(_):
         color="DELAY_CODE",
         legend_title="Delay code",
         barmode="group",
+        occurrences="Count",
         sort_values=False,
     )
 

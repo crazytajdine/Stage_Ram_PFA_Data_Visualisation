@@ -22,8 +22,19 @@ COL_NAME_COUNT_FAMILY_TOTAL = "count_family_total"
 
 
 def analyze_summery() -> pl.DataFrame:
+    df = get_df()
+    if df is None:
+        return pl.DataFrame(
+            {
+                "DELAY_CODE": [],
+                "Occurrences": [],
+                "Description": [],
+                "Aeroports": [],
+                "Nb_AP": [],
+            }
+        )
 
-    frame = get_df().collect()
+    frame = df.collect()
 
     if frame.is_empty():
         return pl.DataFrame(
