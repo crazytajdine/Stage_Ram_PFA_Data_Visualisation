@@ -430,7 +430,7 @@ def update_category(_):
         color=COL_NAME_CATEGORY_GT_15MIN,
         occurrences=COL_NAME_CATEGORY_GT_15MIN_COUNT,
         legend_title="Category of delay",
-        title="Flight delays ≥15 min vs <15 min (per time window)",
+        title="Flight delays >15 min vs ≤ 15 min (per time window)",
     )
     # table
     display_cols = [
