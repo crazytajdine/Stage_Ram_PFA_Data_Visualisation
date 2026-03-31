@@ -1,19 +1,12 @@
 # pages/settings/page.py
-from dash import html, Input, Output, State
+from dash import html, dcc, Input, Output, State
 import dash
 import dash_bootstrap_components as dbc
 import logging
 
-from components.trigger_page_change import add_output_manual_trigger
-from components.auth import ID_USER_ID
-from configurations.nav_config import MAPPER_NAV_CONFIG
-from components.navbar import add_input_loaded_url
 from server_instance import get_app
 
-from utils_dashboard.utils_page import (
-    get_allowed_pages_all,
-    update_user_page_preferences,
-)
+from utils_dashboard.utils_preference import get_nav_preferences, set_page_visibility
 
 from pages.settings.metadata import metadata
 
@@ -24,9 +17,11 @@ ID_PAGE_VISIBILITY_MSG = "page-visibility-message"
 
 ID_CONTAINER_VISIBILITY_CONTROLS = "page-visibility-controls"
 
+ID_TRIGGER_PARAMS_PREFERENCES = "trigger-params-preferences"
 
 layout = html.Div(
     [
+        dcc.Store(ID_TRIGGER_PARAMS_PREFERENCES),
         # ── Excel File
         dbc.Card(
             [
@@ -44,7 +39,9 @@ layout = html.Div(
                             id=ID_SETTINGS_BUTTON_NAV,
                             className="btn-glossy me-2",
                         ),
-                        dbc.Alert(id=ID_PAGE_VISIBILITY_MSG, is_open=False, fade=True),
+                        dbc.Alert(
+                            id=ID_PAGE_VISIBILITY_MSG, is_open=False, className="mt-3"
+                        ),
                     ]
                 ),
             ]
@@ -62,30 +59,23 @@ layout = html.Div(
 # 6. Display page visibility controls
 @app.callback(
     Output(ID_CONTAINER_VISIBILITY_CONTROLS, "children"),
-    add_input_loaded_url(),
-    State(ID_USER_ID, "data"),
+    Input("url", "pathname"),
 )
-def update_page_visibility_controls(pathname, user_id):
-    if user_id is None:
-        return []
+def update_page_visibility_controls(pathname):
     if pathname == metadata.href:
-
-        allowed_pages = get_allowed_pages_all(user_id)
-        allowed_pages = [
-            (MAPPER_NAV_CONFIG[allowed_page.page_id], not allowed_page.disabled)
-            for allowed_page in allowed_pages
-        ]
+        nav_preferences = get_nav_preferences()
         logging.debug(
-            f"Loading page visibility controls for {len(allowed_pages)} pages"
+            f"Loading page visibility controls for {len(nav_preferences)} pages"
         )
+
         checkboxes = [
             dbc.Checkbox(
-                id={"type": "page-checkbox", "index": page_label.id},
-                label=page_label.name,
+                id={"type": "page-checkbox", "index": page_label},
+                label=page_label,
                 value=is_checked,
                 className="mb-2",
             )
-            for (page_label, is_checked) in allowed_pages
+            for page_label, is_checked in nav_preferences.items()
         ]
         return checkboxes
     else:
@@ -96,25 +86,28 @@ def update_page_visibility_controls(pathname, user_id):
         return []
 
 
+def add_watcher_params_preferences():
+    return Input(ID_TRIGGER_PARAMS_PREFERENCES, "data", True)
+
+
 # 7. Save page visibility preferences
 @app.callback(
     Output(ID_PAGE_VISIBILITY_MSG, "children"),
     Output(ID_PAGE_VISIBILITY_MSG, "color"),
     Output(ID_PAGE_VISIBILITY_MSG, "is_open"),
-    add_output_manual_trigger(),
+    Output(ID_TRIGGER_PARAMS_PREFERENCES, "data"),
     Input(ID_SETTINGS_BUTTON_NAV, "n_clicks"),
-    State(ID_USER_ID, "data"),
     State({"type": "page-checkbox", "index": dash.ALL}, "value"),
     State({"type": "page-checkbox", "index": dash.ALL}, "id"),
     prevent_initial_call=True,
 )
-def save_page_visibility_cb(n_clicks, user_id, values, ids):
+def save_page_visibility_cb(n_clicks, values, ids):
 
     if not n_clicks:
-        raise dash.exceptions.PreventUpdate
+        return dash.exceptions.PreventUpdate
 
     prefs = {
-        ids[i]["index"]: values[i] if values[i] is not None else False
+        ids[i]["index"]: (values[i] if values[i] is not None else False)
         for i in range(len(ids))
     }
     logging.info(f"Saving page visibility settings: {prefs}")
@@ -130,16 +123,6 @@ def save_page_visibility_cb(n_clicks, user_id, values, ids):
             dash.no_update,
         )
 
-    is_updated = update_user_page_preferences(user_id, prefs)
-
-    if not is_updated:
-        logging.error("Failed to update page visibility settings.")
-        return (
-            "Error: Failed to save settings.",
-            "danger",
-            True,
-            dash.no_update,
-        )
-
+    set_page_visibility(prefs)
     logging.info("Page visibility settings saved successfully.")
     return "Settings saved successfully.", "success", True, None

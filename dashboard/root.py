@@ -3,13 +3,13 @@ import logging
 import plotly.io as pio
 import dash
 import dash_bootstrap_components as dbc
+from waitress import serve
 from configurations.config import get_base_config
 from configurations.log_config import init_log
 from components.trigger_page_change import (
     add_input_manual_trigger,
     stores as trigger_stores,
 )
-from utils_dashboard.utils_authorization import validate_session
 from status.data_status_manager import add_watcher_for_data_status
 from utils_dashboard.utils_navs import build_nav_items
 from server_instance import get_app, get_server
@@ -35,11 +35,6 @@ from components.navbar import (
     stores as loaded_url_store,
 )
 
-from components.auth import (
-    add_input_auth_token,
-    stores as auth_stores,
-    add_callbacks as add_auth_callbacks,
-)
 from components.title import ID_MAIN_TITLE, layout as tittle_layout
 
 
@@ -50,8 +45,6 @@ server = get_server()
 app.layout = html.Div(
     [
         download_dash,
-        # auth
-        *auth_stores,
         # hookers
         *excel_hookers,
         # triggers
@@ -92,19 +85,12 @@ def export_current_chart(_, fig_dict):
     add_input_url(),
     add_watcher_for_data_status(),
     add_input_manual_trigger(),
-    add_input_auth_token(),
     add_state_loaded_url(),
 )
-def update_page_and_navbar(pathname, _, pref, token, loaded_url):
-    user_id = validate_session(token)
-
-    is_login = user_id is not None
-
-    logging.info("User is logged in: %s", user_id)
-
+def update_page_and_navbar(pathname, _, pref, loaded_url):
     does_path_exists = path_exists()
     logging.info("Selected Path : %s", pathname)
-    nav_items = build_nav_items(does_path_exists, user_id)
+    nav_items = build_nav_items(does_path_exists)
     logging.info("Does path exist set to %s", does_path_exists)
 
     logging.info("Nav items metadata: %s", [(i.name, i.show_navbar) for i in nav_items])
@@ -156,16 +142,6 @@ def update_page_and_navbar(pathname, _, pref, token, loaded_url):
         for nav_item in nav_items
         if nav_item.show_navbar
     ]
-    if is_login:
-        navbar.append(
-            dbc.Button(
-                [html.Span("Logout", className="label")],
-                id="logout-btn",
-                className="btn-logout",
-                color="light",
-                outline=True,
-            )
-        )
 
     return (
         page_content,
@@ -179,13 +155,15 @@ def update_page_and_navbar(pathname, _, pref, token, loaded_url):
 add_watcher_excel()
 add_excel_manager_callbacks()
 add_filter_callbacks()
-add_auth_callbacks()
 
 
 def start_server(start_dev=True):
 
     logging.info("🔁 Starting Dash server…")
-    app.run(debug=True, use_reloader=start_dev, port=8050)
+    if start_dev:
+        app.run(debug=True, use_reloader=True, port=8050)
+    else:
+        serve(app, host="localhost", port=8050, threads=3)
 
 
 if __name__ == "__main__":

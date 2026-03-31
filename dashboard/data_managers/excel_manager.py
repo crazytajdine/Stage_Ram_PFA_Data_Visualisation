@@ -44,6 +44,13 @@ base_config = get_base_config()
 config = get_user_config()
 
 dir_path = base_config.get("dir_path", "")
+
+if not dir_path:
+    dir_path = os.path.join("/data_dashboard")
+    os.makedirs(dir_path, exist_ok=True)
+    print(dir_path)
+
+
 path_to_excel_cashed = config.get("path_to_excel", "")
 
 # func

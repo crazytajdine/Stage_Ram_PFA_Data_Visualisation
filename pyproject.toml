@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = [{ name = "Taj Eddine Marmoul", email = "tajdinetajdine1@gmail.com" }]
 readme = "README.md"
-requires-python = ">=3.10,<3.15"
+requires-python = ">=3.10,<3.11"
 dependencies = [
     "dash (>=3.2,<4.0)",
     "polars (>=1.31.0,<2.0.0)",
@@ -14,18 +14,14 @@ dependencies = [
     "toml (>=0.10.2,<0.11.0)",
     "fastexcel (>=0.14.0,<0.15.0)",
     "xlsxwriter (>=3.2.5,<4.0.0)",
-    "pyarrow (>=20.0.0,<21.0.0)",
     "pydantic (>=2.11.7,<3.0.0)",
     "pyinstaller (>=6.15.0,<7.0.0)",
     "waitress (>=3.0.2,<4.0.0)",
-    "redis (>=5,<6)",
     "plotly (>=6.2.0,<7.0.0)",
     "kaleido (>=1.0.0,<2.0.0)",
-    "sqlalchemy (>=2.0.42,<3.0.0)",
-    "psycopg2-binary (>=2.9.10,<3.0.0)",
-    "bcrypt (>=4.3.0,<5.0.0)",
-    "dotenv (>=0.9.9,<0.10.0)",
     "gunicorn (>=23.0.0,<24.0.0)",
+    "pywebview (>=6.0,<7.0)",
+    "nuitka (>=2.7.12,<3.0.0)",
 ]
 
 
@@ -36,6 +32,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.group.prod.dependencies]
 gunicorn = "^23"
+
 
 [tool.poetry.scripts]
 start-prod = "gunicorn.app.wsgiapp:run"

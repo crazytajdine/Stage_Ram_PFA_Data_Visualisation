@@ -1,4 +1,3 @@
-from data_managers.cache_manager import cache_result
 from data_managers.excel_manager import (
     COL_NAME_WINDOW_TIME,
     COL_NAME_WINDOW_TIME_MAX,
@@ -22,7 +21,6 @@ COL_NAME_COUNT_PER_SUBTYPE_FAMILY = "count_per_subtype_family"
 COL_NAME_COUNT_FAMILY_TOTAL = "count_family_total"
 
 
-@cache_result("analytics_summary_data")
 def analyze_summery() -> pl.DataFrame:
     df = get_df()
     if df is None:
@@ -99,7 +97,6 @@ def analyze_summery() -> pl.DataFrame:
     return agg
 
 
-@cache_result("analytics_delay_code_data")
 def prepare_delay_data():
     df = get_df()
     if df is None:
@@ -169,7 +166,6 @@ def prepare_delay_data():
     )
 
 
-@cache_result("analytics_subtype_family_data")
 def prepare_subtype_family_data():
     df = get_df().collect()
     # Count per FAMILLE_DR + AC_SUBTYPE per time window
@@ -199,7 +195,6 @@ def prepare_subtype_family_data():
     return temporal_all
 
 
-@cache_result("analytics_registration_family_data")
 def prepare_registration_family_data():
 
     df = get_df().collect()
